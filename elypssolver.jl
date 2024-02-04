@@ -6,7 +6,7 @@ Returns
 ---------------
 1 if index i,j is in bounds(without padding) and 0 else
 """
-function __G_h(i, j, len, width)
+function G(i, j, len, width)
     if 2 <= i <= len +1 && 2 <= j <= width + 1
          1.0
     else
@@ -15,10 +15,10 @@ function __G_h(i, j, len, width)
 end
 
 function neighbours_in_domain(i, j, len, width)
-        (__G_h(i + 0.5, j, len, width)
-        + __G_h(i - 0.5, j, len, width)
-        + __G_h(i, j + 0.5, len, width)
-        + __G_h(i, j - 0.5, len, width))
+        (G(i + 0.5, j, len, width)
+        + G(i - 0.5, j, len, width)
+        + G(i, j + 0.5, len, width)
+        + G(i, j - 0.5, len, width))
 
 end
 
@@ -35,13 +35,12 @@ function discrete_G_weigted_neigbour_sum(
 end
 
 """
-    elyps_solver(
-    c
-    phase
-    len
-    width
-    alpha
-    h
+    elyps_solver(c,
+    phase,
+    len,
+    width,
+    alpha,
+    h,
     n
 )
 
@@ -59,10 +58,9 @@ function elyps_solver(c,
         for i = 2:(len+1)
             for j = 2:( width + 1)
                 bordernumber = neighbours_in_domain(i, j, len, width)
-
                 c[i, j] = (
                     alpha * phase[i, j]
-                    + discrete_G_weigted_neigbour_sum(i, j, c, __G_h, len, width)
+                    + discrete_G_weigted_neigbour_sum(i, j, c, G, len, width)
                     / h^2
                 ) / (bordernumber / h^2 + alpha)
 

@@ -1,2 +1,12 @@
 /test.jl
 /@/
+/*.aux
+/*.bbl
+/*.bcf
+/*.bcf-SAVE-ERROR
+/*.blg
+*.fls
+*.fdb_latexmk
+*.log
+*.xml
+*.toc
