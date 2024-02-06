@@ -96,6 +96,67 @@ The authors [cite:@SHIN20117441] then define the discrete CH Equation adapted fo
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+1} )  \\
  \mu_{ij}^{n+1} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
 \end{align*}
+** Test Data:
+For testing and later training, a multitude o different phasefields where used. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
+
+#+begin_src julia :tangle utils.jl :eval never
+struct multi_solver
+    phase::Matrix{Float64}
+    potential::Matrix{Float64}
+    xi::Matrix{Float64}
+    psi::Matrix{Float64}
+    epsilon::Float64
+    h::Float64
+    dt::Float64
+    W_prime::Function
+    len::UInt32
+    width::UInt32
+
+end
+#+end_src
+
+#+name:inputs
+| Size | blobs | blobsize | norm |
+|------+-------+----------+------|
+|   64 |    10 |       10 |    2 |
+|   64 |    10 |       10 |  100 |
+|  512 |    20 |       50 |    2 |
+
+#+name: testdata
+#+begin_src julia :eval never :tangle utils.jl
+function testdata(gridsize , blobs , radius ,norm)
+rngpoints = rand(1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
+
+end
+#+end_src
+
+#+name: fig:testinput
+#+begin_src julia :results file graphics  :file testdata.svg :noweb strip-export :async t :session jl :let :width 16px :height 9px :exports results
+using Plots
+using LaTeXStrings
+using LinearAlgebra
+<<testdata>>
+p0 = heatmap(testdata(512, 20 , 50, 2));
+p1 = heatmap(testdata(512 , 20 , 50 ,Inf));
+p2 = heatmap(testdata(64 , 10 , 10,2));
+p3 = heatmap(testdata(64 , 10 , 10 ,Inf));
+p = plot(p0,p1,p2,p3, aspectratio=:auto , layout=(2,2));
+savefig(p,"testdata.svg")
+#+end_src
+
+#+caption: Examples of different phasefields used as initial condition later on
+#+RESULTS: fig:testinput
+[[file:testdata.svg]]
 ** adaptations to the simplified problem
 even tough this work uses rectangular domains, the adaptation of the algorithm is simplified by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
 Therefore, the internal representation of the adapted algorithm considers phasefield and potential field \( \phi , \mu \) as 2D arrays of shape \( (N_x + 2 , N_y + 2) \) in order to accommodate padding. Where N_x and N_y are the number of steps in x-/y-Direction respectively.
@@ -124,19 +185,19 @@ L
 \end{align*}
 implented as
 #+begin_src julia :tangle multisolver.jl :eval never
-function L(solver::multi_solver , i , j )
-xi = solver.phase[i,j] / solver.dt -
-    (discrete_G_weigted_neigbour_sum(i,j, solver.potential[i,j] , G , solver.len , solver.width)  - neighbours_in_domain(i,j,solver.len , solver.width) * solver.potential[i,j]) / solver.h^2
-psi = solver.epsilon^2 *
-    (discrete_G_weigted_neigbour_sum(i,j, solver.phase[i,j] , G , solver.len , solver.width) / h^2
-     - neighbours_in_domain(i,j,solver.len , solver.width) * solver.phase[i,j]) - 2 * solver.phase[i,j] + solver.potential[i,j]
-    return (xi , psi)
+using LinearAlgebra
+function L(solver::multi_solver, i, j)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width) - neighbours_in_domain(i, j, solver.len, solver.width) * solver.potential[i, j]) / solver.h^2
+    psi = solver.epsilon^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width) / solver.h^2
+           -
+           neighbours_in_domain(i, j, solver.len, solver.width) * solver.phase[i, j]) - 2 * solver.phase[i, j] + solver.potential[i, j]
+    return (xi, psi)
 end
-
 #+end_src
-.
 
-Furthermore, as it enabled a Newtorn  iteration we state its derivative in respect to the current gridpoint \( (i,j)^{T} \) in as:
+Furthermore, as it enabled a Newton  iteration we state its derivative in respect to the current gridpoint \( (i,j)^{T} \) in as:
 
 \begin{align*}
 DL\begin{pmatrix}
@@ -166,15 +227,12 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \]
 
 #+begin_src julia :tangle utils.jl :eval never
-function set_xi_and_psi(phase , len , width , dt , W_prime)
-    xi = zeros(len + 2 , width + 2)
-    psi = zeros(len + 2 , width + 2)
-    xi_init(x) = x / dt
-    psi_init(x) = W_prime(x) - 2 * x
-    xi[2:end-1, 2:end-1] = xi_init.(phase[2:end-1,2:end-1])
-    psi[2:end-1, 2:end-1] = psi_init.(phase[2:end-1,2:end-1])
-
-    (xi , psi)
+function set_xi_and_psi!(solver::multi_solver)
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    return nothing
 end
 
 #+end_src
@@ -189,112 +247,137 @@ SMOOTH
 \end{align}
 and is implemented as:
 #+name:SMOOTH
-#+begin_src julia :tangle smooth.jl
-function SMOOTH(
-    xi,
-    psi,
-    phase,
-    mu,
-    epsilon,
-    h,
-    dt,
-    len,
-    width,
+#+begin_src julia :tangle smooth.jl :eval never
+include("elypssolver.jl")
+
+
+
+function SMOOTH!(
+    solver::multi_solver,
     iterations,
     adaptive
 )
-    for k =  ProgressBar(1:iterations)
-        old_phase = copy(phase)
-        for i = 2:(len + 1)
-            for j = 2:(width + 1)
-                bordernumber = neighbours_in_domain(i, j, len, width)
+    for k = 1:iterations
+        old_phase = copy(solver.phase)
+        for i = 2:(solver.len + 1)
+            for j = 2:(solver.width + 1)
+                bordernumber = neighbours_in_domain(i, j, solver.len, solver.width)
                 coefmatrix =
                     [
-                        (1 / dt)  (bordernumber / h^2) ;
-                        (-1 * (2 + (epsilon^2 / h^2) * bordernumber))  1
+                        (1 / solver.dt)  (bordernumber / solver.h^2) ;
+                        (-1 * (2 + (solver.epsilon^2 / solver.h^2) * bordernumber))  1
                     ]
 
 
                 b =
                     [
                         (
-                            xi[i, j]
+                            solver.xi[i, j]
                             + discrete_G_weigted_neigbour_sum(
-                                i, j, mu, G, len, width
+                                i, j, solver.potential, G, solver.len, solver.width
                             )
-                            / h^2
+                            / solver.h^2
                         ),
                         (
-                            psi[i, j]
-                            - (epsilon^2 / h^2)
-                            * discrete_G_weigted_neigbour_sum(
-                                i, j, phase, G, len, width
+                            solver.psi[i, j]
+                            - (solver.epsilon^2 / solver.h^2)
+                            ,* discrete_G_weigted_neigbour_sum(
+                                i, j, solver.phase, G, solver.len, solver.width
                             )
                         )
                     ]
 
                 res = coefmatrix \ b
-                phase[i, j] = res[1]
-                mu[i, j] = res[2]
+                solver.phase[i, j] = res[1]
+                solver.potential[i, j] = res[2]
 
             end
         end
 
-        if adaptive && LinearAlgebra.norm(old_phase - phase) < 1e-8
+        if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
             print("SMOOTH terminated at $(k) succesfully")
             break
         end
     end
-     (phase, mu)
     end
 #+end_src
-** Test Data:
-For testing and later training, a multitude o different phasefields where used. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
 
-#+name:inputs
-| Size | blobs | blobsize | norm |
-|------+-------+----------+------|
-|   64 |    10 |       10 |    2 |
-|   64 |    10 |       10 |  100 |
-|  512 |    20 |       50 |    2 |
-
-#+name: testdata
-#+begin_src julia :eval never :tangle utils.jl
-function testdata(gridsize , blobs , radius ,norm)
-rngpoints = rand(1:gridsize, 2, 10)
-M = zeros(gridsize,gridsize) .- 1
-
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in eachindex(IndexCartesian(), M)
-            if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-                M[I] = 1
-            end
-    end
-end
-   return M
-end
-#+end_src
-
-#+name: fig:testinput
-#+begin_src julia :results file graphics  :file testdata.svg :noweb strip-export :async t :session jl :let :width 16px :height 9px :exports results
-let
+#+begin_src julia :results file graphics  :file smooth.svg :noweb strip-export :async t :exports results :output-dir images :session jl
 using Plots
 using LaTeXStrings
 using LinearAlgebra
+include("utils.jl")
 <<testdata>>
-p0 = heatmap(testdata(512 , 20 , 50, 2));
-p1 = heatmap(testdata(512 , 20 , 50 ,Inf));
-p2 = heatmap(testdata(64 , 10 , 10,2));
-p3 = heatmap(testdata(64 , 10 , 10 ,Inf));
-p = plot(p0,p1,p2,p3, aspectratio=:auto , layout=(2,2));
-savefig(p,"testdata.svg")
-end
+<<SMOOTH>>
+M = testdata(256, 20 , 40, 2);
+phase = zeros(size(M) .+ 2);
+phase[2:end-1,2:end-1] = M;
+mu = copy(phase);
+W_prime(x) = -x * (1-x^2)
+solver = multi_solver(
+    phase ,
+    zeros(size(phase)) ,
+    zeros(size(phase)) ,
+    zeros(size(phase)) ,
+    8e-3 ,1e-3 , 1e-3 ,
+    W_prime ,
+    size(M , 1) , size(M , 2) )
+set_xi_and_psi!(solver)
+SMOOTH!(solver, 2, true);
+p = heatmap(solver.phase, aspect_ratio=:equal);
+savefig(p,"images/smooth.svg")
 #+end_src
 
-#+caption: Examples of different phasefields used as initial condition later on
-#+RESULTS: fig:testinput
-[[file:testdata.svg]]
+#+RESULTS:
+[[file:images/smooth.svg]]
+
+** v-cycle
+The v-cycle of a two grid method  using pre and post smothing is then stated by
+#+begin_src julia :tangle nil :eval never
+function v_cycle(grid::Array{multi_solver}, level)
+
+    SMOOTH!(solver , 400, true)
+    solver = grid[level]
+
+    # extract (d,r) as array operations
+
+    dr = zeros((solver.len+ 2, solver.width+ 2, 2))
+
+    # TODO check array indicies
+    dr[2:end-1, 2:end-1, :] = [
+            [
+               [solver.xi[i,j] , solver.psi[i,j]] .- L(solver ,i,j)
+                for j in 2:(solver.width+ 1)
+            ]
+            for i in 2:(solver.len+ 1)
+        ]
+    )
+    d = dr[:, :, 0]
+    r = dr[:, :, 1]
+
+    # print(f"Max derivation d: {np.linalg.norm(d)}")
+    # print(f"Max derivation r: {np.linalg.norm(r)}")
+    restrict!(grid[level], grid[level + 1])
+    solver = grid[level + 1]
+
+    #TODO short newton iteration for
+
+    u_large = zeros((solver.len+ 2, solver.width+ 2))
+    v_large = zeros((solver.len+ 2, solver.width+ 2))
+
+    # solve for phi^ mu^ with L
+    for i in 2:(self.len+1)
+        for j in 2:(self.width+1)
+
+            # print(f"Max derivation u: {np.linalg.norm(u_large)}")
+            # print(f"Max derivation v: {np.linalg.norm(v_large)}")
+            end
+        end
+# smooth again:
+SMOOTH(800)
+end
+
+#+end_src
 
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
