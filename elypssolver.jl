@@ -1,40 +1,4 @@
 using ProgressBars
-"""
-small grid version
-
-Returns
----------------
-1 if index i,j is in bounds(without padding) and 0 else
-"""
-function G(i, j, len, width)
-    if 2 <= i <= len + 1 && 2 <= j <= width + 1
-        1.0
-    else
-        0.0
-    end
-end
-
-function neighbours_in_domain(i, j, len, width)
-    (
-        G(i + 0.5, j, len, width) +
-        G(i - 0.5, j, len, width) +
-        G(i, j + 0.5, len, width) +
-        G(i, j - 0.5, len, width)
-    )
-
-end
-
-"""
-discrete laplace operator weighted by boundry to ensure no flux boundry
-"""
-function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
-    (
-        G(i + 0.5, j, len, width) * arr[i+1, j] +
-        G(i - 0.5, j, len, width) * arr[i-1, j] +
-        G(i, j + 0.5, len, width) * arr[i, j+1] +
-        G(i, j - 0.5, len, width) * arr[i, j-1]
-    )
-end
 
 """
     elyps_solver(c,

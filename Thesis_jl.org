@@ -8,6 +8,107 @@ using Plots
 using LinearAlgebra
 #+end_src
 
+#+begin_src julia :tangle multisolver.jl :eval never
+include("/home/jon/Projects/julia_tst/utils.jl")
+#+end_src
+
+#+begin_src  julia :tangle utils.jl :eval never
+###############################################################################
+#                  Common Utility Functions For Multi Solvers                 #
+###############################################################################
+
+"""
+restricts an array on the small grid to an array in the large grid asserts size arr=2^n + 2 and returns ret=2^(n-1) + 2
+
+Returns
+---------------------------
+large grid array + padding
+"""
+function restrict(arr, G)
+    shape = (size(arr) .- 2) .÷ 2
+    ret = zeros(shape .+ 2)
+    for I in CartesianIndices(ret)[2:end-1, 2:end-1]
+        i, j = I.I
+        g = [
+            G(2 * i - 1, 2 * j - 1, (size(arr) .- 2)...),
+            G(2 * i - 1, 2 * j, (size(arr) .- 2)...),
+            G(2 * i, 2 * j - 1, (size(arr) .- 2)...),
+            G(2 * i, 2 * j, (size(arr) .- 2)...)
+        ]
+        if sum(g) == 0
+            ret[I] = 0
+        else
+            ret[I] = (
+                1 / sum(g)
+                ,*
+                dot(g,
+                    [
+                        arr[2*i-1, 2*j-1],
+                        arr[2*i-1, 2*j],
+                        arr[2*i, 2*j-1],
+                        arr[2*i, 2*j]
+                    ]
+                )
+            )
+        end
+    end
+    return ret
+end
+
+struct multi_solver
+    phase::Matrix{Float64}
+    potential::Matrix{Float64}
+    xi::Matrix{Float64}
+    psi::Matrix{Float64}
+    epsilon::Float64
+    h::Float64
+    dt::Float64
+    W_prime::Function
+    len::Int
+    width::Int
+
+end
+
+function testgrid(M, len)
+    grid = Array{multi_solver}(undef, len)
+    phase = zeros(size(M) .+ 2)
+    phase[2:end-1, 2:end-1] = M
+    W_prime(x) = -x * (1 - x^2)
+    h0 = 3e-3
+
+
+    for i = 1:len
+        grid[i] = multi_solver(zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            8e-3, h0 * 2^i, 1e-3,
+            W_prime,
+            size(M, 1) ÷ i, size(M, 2) ÷ i)
+
+    end
+    copyto!(grid[1].phase, phase)
+    return grid
+
+end
+"""
+    restrict!(smallgrid_solver::multi_solver , largegrid_solver::multi_solver)::multi_solver
+
+------------
+Requires
+----------
+smallgrid solver and largegid solvers to be multiple of 2 from each other bar padding eg. (66x66)->(34x34)
+
+
+TBW
+"""
+function restrict_solver!(smallgrid_solver::multi_solver, largegrid_solver::multi_solver)
+    copy!(largegrid_solver.phase , restrict(smallgrid_solver.phase , G))
+    copy!(largegrid_solver.potential , restrict(smallgrid_solver.potential , G))
+    return nothing
+end
+#+end_src
+
 * Cahn Hillard Equation Overview
 Partial Differential Equation (PDE) solving the state of a 2 Phase Fluid[cite:@Wu_2022]. The form of the Cahn Hillard Equation used for the remainder of this thesis is:
 where \( \phi\) is the so-called phase field. Demarking the different states of the fluids through an Interval \(I=[-1,1] \) and where \(\partial I = \{-1,1\} \) represents full state of one fluid. \(\varepsilon > 0 \) is  a positive constant
@@ -87,9 +188,43 @@ G(x,y) &=
 0 & (x,y) \not\in  \Omega
 \end{cases}
 \end{align*}
+
 To simplify notation the following abbreviations are used:
 
 Math: \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \) Code: ~discrete_weigted_neigbour_sum(i,j,...)~ and Math: \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \) Code: ~neighbours_in_domain(i,j,G)~ the expansion of \( \nabla_{d} \cdot G_{ij} \nabla_{d} f_{ij}= \Sigma_{G}f_{ij} - \Sigma_{G} \cdot f_{ij} \) .
+#+begin_src julia :tangle utils.jl :eval never
+"""
+    neighbours_in_domain(i, j, G, len, width)
+
+TBW
+counts neigbours in domain
+"""
+function neighbours_in_domain(i, j, G, len, width)
+    (
+        G(i + 0.5, j, len, width)
+        + G(i - 0.5, j, len, width)
+        + G(i, j + 0.5, len, width)
+        + G(i, j - 0.5, len, width)
+    )
+
+end
+
+"""
+    discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
+
+TBW
+--------
+sums all neighbours depending on wheter tey are in the domain determined by G
+"""
+function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
+    (
+        G(i + 0.5, j, len, width) * arr[i+1, j]
+        + G(i - 0.5, j, len, width) * arr[i-1, j]
+        + G(i, j + 0.5, len, width) * arr[i, j+1]
+        + G(i, j - 0.5, len, width) * arr[i, j-1]
+    )
+end
+#+end_src
 To account for boundry conditions and arbitrary shaped domains.
 The authors [cite:@SHIN20117441] then define the discrete CH Equation adapted for Domain, as:
 \begin{align*}
@@ -98,22 +233,6 @@ The authors [cite:@SHIN20117441] then define the discrete CH Equation adapted fo
 \end{align*}
 ** Test Data:
 For testing and later training, a multitude o different phasefields where used. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
-
-#+begin_src julia :tangle utils.jl :eval never
-struct multi_solver
-    phase::Matrix{Float64}
-    potential::Matrix{Float64}
-    xi::Matrix{Float64}
-    psi::Matrix{Float64}
-    epsilon::Float64
-    h::Float64
-    dt::Float64
-    W_prime::Function
-    len::UInt32
-    width::UInt32
-
-end
-#+end_src
 
 #+name:inputs
 | Size | blobs | blobsize | norm |
@@ -141,7 +260,7 @@ end
 #+end_src
 
 #+name: fig:testinput
-#+begin_src julia :results file graphics  :file testdata.svg :noweb strip-export :async t :session jl :let :width 16px :height 9px :exports results
+#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb strip-export    :exports results
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -150,7 +269,7 @@ p0 = heatmap(testdata(512, 20 , 50, 2));
 p1 = heatmap(testdata(512 , 20 , 50 ,Inf));
 p2 = heatmap(testdata(64 , 10 , 10,2));
 p3 = heatmap(testdata(64 , 10 , 10 ,Inf));
-p = plot(p0,p1,p2,p3, aspectratio=:auto , layout=(2,2));
+p = plot(p0,p1,p2,p3, aspectratio=:auto, layout=(2,2));
 savefig(p,"testdata.svg")
 #+end_src
 
@@ -169,6 +288,22 @@ G_{ij} &=
 \end{cases}
 \end{align*}
 
+#+begin_src julia :tangle utils.jl :eval never
+"""
+Boundry indicator function
+
+Returns
+---------------
+1 if index i,j is in bounds(without padding) and 0 else
+"""
+function G(i, j, len, width)
+    if 2 <= i <= len + 1 && 2 <= j <= width + 1
+        return 1.0
+    else
+        return 0.0
+    end
+end
+#+end_src
 ** PDE as Operator
 and derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)
 \begin{align*}
@@ -185,15 +320,16 @@ L
 \end{align*}
 implented as
 #+begin_src julia :tangle multisolver.jl :eval never
-using LinearAlgebra
-function L(solver::multi_solver, i, j)
+function L(solver::multi_solver,i,j)
     xi = solver.phase[i, j] / solver.dt -
-         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width) - neighbours_in_domain(i, j, solver.len, solver.width) * solver.potential[i, j]) / solver.h^2
-    psi = solver.epsilon^2 *
-          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width) / solver.h^2
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * solver.potential[i, j])/solver.h^2
+    psi = solver.epsilon^2/solver.h^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
            -
-           neighbours_in_domain(i, j, solver.len, solver.width) * solver.phase[i, j]) - 2 * solver.phase[i, j] + solver.potential[i, j]
-    return (xi, psi)
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * solver.phase[i, j]) - 2 * solver.phase[i, j] + solver.potential[i, j]
+    return [xi, psi]
 end
 #+end_src
 
@@ -204,23 +340,23 @@ DL\begin{pmatrix}
 \phi \\
 \mu
 \end{pmatrix} &= \begin{pmatrix}
-\frac{1}{\Delta t} & \Sigma_{G}  \\
-\Sigma_{G} - 2 & 1
+\frac{1}{\Delta t} & \frac{1}{h^2}\Sigma_{G}  \\
+-\frac{\varepsilon^2}{h^2}\Sigma_{G} - 2 & 1
 \end{pmatrix}
 \end{align*}
 implemented:
 #+begin_src julia :tangle multisolver.jl :eval never
 function dL(solver::multi_solver , i , j)
-    return [ 1/solver.dt neighbours_in_domain(i,j,G);
-             (neighbours_in_domain(i,j,G) - 2) 1]
+    return [ 1/solver.dt 1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width);
+             -1*solver.epsilon^2/solver.h^2 * (neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 #+end_src
 
 
 initialized as
-\[ (\zeta^n, \psi^n) =
+\[ (\zeta^n, \psi^n)^{T} =
 \left(\begin{smallmatrix}
-\frac{\phi_{ij}^{n+1}}{\Delta t}\\
+\frac{\phi_{ij}^{n}}{\Delta t}\\
 W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{smallmatrix}
 \right)
@@ -247,11 +383,7 @@ SMOOTH
 \end{align}
 and is implemented as:
 #+name:SMOOTH
-#+begin_src julia :tangle smooth.jl :eval never
-include("elypssolver.jl")
-
-
-
+#+begin_src julia :tangle multisolver.jl :eval never
 function SMOOTH!(
     solver::multi_solver,
     iterations,
@@ -259,39 +391,42 @@ function SMOOTH!(
 )
     for k = 1:iterations
         old_phase = copy(solver.phase)
-        for i = 2:(solver.len + 1)
-            for j = 2:(solver.width + 1)
-                bordernumber = neighbours_in_domain(i, j, solver.len, solver.width)
-                coefmatrix =
-                    [
-                        (1 / solver.dt)  (bordernumber / solver.h^2) ;
-                        (-1 * (2 + (solver.epsilon^2 / solver.h^2) * bordernumber))  1
-                    ]
+        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+            i, j = I.I
+            bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
+            coefmatrix =
+                [
+                    (1/solver.dt) (bordernumber/solver.h^2);
+                    (-1*(2+(solver.epsilon^2/solver.h^2)*bordernumber)) 1
+                ]
 
 
-                b =
-                    [
-                        (
-                            solver.xi[i, j]
-                            + discrete_G_weigted_neigbour_sum(
-                                i, j, solver.potential, G, solver.len, solver.width
-                            )
-                            / solver.h^2
-                        ),
-                        (
-                            solver.psi[i, j]
-                            - (solver.epsilon^2 / solver.h^2)
-                            ,* discrete_G_weigted_neigbour_sum(
-                                i, j, solver.phase, G, solver.len, solver.width
-                            )
+            b =
+                [
+                    (
+                        solver.xi[i, j]
+                        +
+                        discrete_G_weigted_neigbour_sum(
+                            i, j, solver.potential, G, solver.len, solver.width
                         )
-                    ]
+                        /
+                        solver.h^2
+                    ),
+                    (
+                        solver.psi[i, j]
+                        -
+                        (solver.epsilon^2 / solver.h^2)
+                        *
+                        discrete_G_weigted_neigbour_sum(
+                            i, j, solver.phase, G, solver.len, solver.width
+                        )
+                    )
+                ]
 
-                res = coefmatrix \ b
-                solver.phase[i, j] = res[1]
-                solver.potential[i, j] = res[2]
+            res = coefmatrix \ b
+            solver.phase[i, j] = res[1]
+            solver.potential[i, j] = res[2]
 
-            end
         end
 
         if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
@@ -299,7 +434,7 @@ function SMOOTH!(
             break
         end
     end
-    end
+end
 #+end_src
 
 #+begin_src julia :results file graphics  :file smooth.svg :noweb strip-export :async t :exports results :output-dir images :session jl
@@ -336,48 +471,123 @@ The v-cycle of a two grid method  using pre and post smothing is then stated by
 #+begin_src julia :tangle nil :eval never
 function v_cycle(grid::Array{multi_solver}, level)
 
-    SMOOTH!(solver , 400, true)
     solver = grid[level]
+    SMOOTH!(solver, 400, true)
+    print("Finished pre SMOOTHing")
 
     # extract (d,r) as array operations
 
-    dr = zeros((solver.len+ 2, solver.width+ 2, 2))
+    d = zeros(size(solver.phase))
+    r = zeros(size(solver.phase))
 
-    # TODO check array indicies
-    dr[2:end-1, 2:end-1, :] = [
-            [
-               [solver.xi[i,j] , solver.psi[i,j]] .- L(solver ,i,j)
-                for j in 2:(solver.width+ 1)
-            ]
-            for i in 2:(solver.len+ 1)
-        ]
-    )
-    d = dr[:, :, 0]
-    r = dr[:, :, 1]
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+        d[I], r[I] = [solver.xi[I], solver.psi[I]] - L(solver, I.I...)
+    end
 
     # print(f"Max derivation d: {np.linalg.norm(d)}")
     # print(f"Max derivation r: {np.linalg.norm(r)}")
-    restrict!(grid[level], grid[level + 1])
-    solver = grid[level + 1]
+    restrict_solver!(grid[level], grid[level+1])
+    solver = grid[level+1]
+    solution = deepcopy(solver)
 
+    d_large = zeros(size(solver.phase))
+    r_large = zeros(size(solver.phase))
+
+    d_large[2:end-1, 2:end-1] = restrict(d[2:end-1, 2:end-1])
+    r_large[2:end-1, 2:end-1] = restrict(r[2:end-1, 2:end-1])
+
+    u_large = zeros((solver.len + 2, solver.width + 2))
+    v_large = zeros((solver.len + 2, solver.width + 2))
     #TODO short newton iteration for
-
-    u_large = zeros((solver.len+ 2, solver.width+ 2))
-    v_large = zeros((solver.len+ 2, solver.width+ 2))
-
-    # solve for phi^ mu^ with L
-    for i in 2:(self.len+1)
-        for j in 2:(self.width+1)
-
-            # print(f"Max derivation u: {np.linalg.norm(u_large)}")
-            # print(f"Max derivation v: {np.linalg.norm(v_large)}")
-            end
+    for i = 1:5
+        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+            solution.phase[I], solution.potential[I] = L(solution, I.I...) .+ ((solver.phase[I], solver.potential[I]) .- ((d_large[I], r_large[I]) .+ L(solver, I.I...))) .\ dL(solver, I.I...)
         end
-# smooth again:
-SMOOTH(800)
+    end
+    print("Finished  largegrid")
+
+    u_large = solver.phase .- solution.phase
+    v_large = solver.potential .- solution.potential
+
+    solver = grid[level]
+
+    solver.phase[2:end-1, 2:end-1] += prolong(u_large[2:end-1, 2:end-1], (solver.len, solver.width))
+    solver.potential[2:end-1, 2:end-1] += prolong(v_large[2:end-1, 2:end-1], (solver.len, solver.width))
+    # smooth again:
+    SMOOTH!(solver, 800, true)
+    print("Finished post SMOOTHing")
+end
+#+end_src
+Sol let us have a look at how the internals look in the first iteration
+#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
+cd("/home/jon/Projects/julia_tst/")
+include("/home/jon/Projects/julia_tst/utils.jl")
+include("/home/jon/Projects/julia_tst/multisolver.jl")
+using Plots
+using LinearAlgebra
+M = testdata(64, 10, 15, 2)
+
+testgrd = testgrid(M, 2)
+p0 = heatmap(testgrd[1].phase, title="Initial State");
+solver = testgrd[1]
+set_xi_and_psi!(solver)
+SMOOTH!(solver, 400, true);
+p1 = heatmap(solver.phase, title="After Pre Smoothing");
+
+
+d = zeros(size(solver.phase))
+r = zeros(size(solver.phase))
+
+for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+    d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I...)
 end
 
+p2 = heatmap(d, title="Phase Residuals");
+level = 1
+
+restrict_solver!(testgrd[level], testgrd[level+1])
+solver =testgrd[level+1]
+solution = deepcopy(solver)
+
+
+
+d_large = restrict(d, G)
+r_large = restrict(r, G)
+
+println(" d $(norm(d_large))")
+println(" r $(norm(r_large))")
+
+u_large = zeros(size(d_large))
+v_large = zeros(size(d_large))
+
+
+for i = 1:10
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+
+        diffrence = L(solution, I.I...) .- [d_large[I], r_large[I]] .- L(solver, I.I...)
+        #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
+        diffrence = [d_large[I] , r_large[I]]
+
+        local ret = dL(solution , I.I...) \ diffrence
+        if I == CartesianIndex(2,2)  println("Diffrence: $(diffrence) , Ret: $(ret)") end
+
+        u_large[I] = ret[1]
+        v_large[I] = ret[2]
+    end
+    solution.phase .-= u_large
+    solution.potential .-= v_large
+end
+
+u_large = solution.phase - solver.phase
+
+# u_large , v_large = (solver.phase , solver.potential) .- (solution.phase , solution.potential)
+p3 = heatmap(u_large, title="error $(norm(u_large)) ")
+p = plot(p0, p1, p2,p3, layout=(2, 2));
+savefig(p, "images/v_cycle.svg")
 #+end_src
+
+#+RESULTS:
+[[file:images/v_cycle.svg]]
 
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
@@ -503,71 +713,8 @@ and \( dF(x) \)
 dF(x) &= - \frac{\Sigma_G}{h^2}    + \alpha
 \end{align*}
 the implementation then is the following:
-#+name: elyptical_PDE_solver
-#+begin_src python  :tangle test.py :eval never
-from numba import njit
-from numpy.typing import NDArray
-import numpy as np
-from multi_solver import neighbours_in_domain , discrete_G_weigted_neigbour_sum , __G_h
-
-@njit
-def elyptical_PDE_solver(
-    c: NDArray[np.float64],
-    phase: NDArray[np.float64],
-    len: int,
-    width: int,
-    alpha: float,
-    h: float,
-    n: int,
-) -> NDArray[np.float64]:
-    """
-    solves elyptical equation
-    """
-    maxiter = 10000
-    tol = 1.48e-4
-    for k in range(n):
-        for i in range(1, len + 1):
-            for j in range(1, width + 1):
-                bordernumber = neighbours_in_domain(i, j, len, width)
-                x = c[i, j]
-                for iter in range(maxiter):
-                    F = (
-                        -1
-                        ,* h**-2
-                        ,* discrete_G_weigted_neigbour_sum(i, j, c, __G_h, len, width)
-                        + h**-2 * bordernumber * x
-                        + alpha * x
-                        - alpha * phase[i, j]
-                    )
-
-                    dF = alpha + h**-2 * bordernumber
-
-                    if dF == 0:
-                        continue
-
-                    step = F / dF
-                    x = x - step
-                    if abs(step) < tol:
-                        break
-                c[i, j] = x
-    return c
-#+end_src
 
 as input we use :
-#+begin_src python :results graphics file output :eval never-export :file elyps.png :exports both
-<<imports>>
-from multi_solver_relaxed import CH_2D_Multigrid_Solver_relaxed , test_solver , plot
-<<elyptical_PDE_solver>>
-test_phase = tu.k_spheres_phase(15, 10, size=64)
-t = test_solver(test_phase)
-t.elyps_solver = elyptical_PDE_solver
-t.solve_elyps(100)
-sns.heatmap(t.c)
-plt.plot()
-#+end_src
-
-#+RESULTS:
-[[file:elyps.png]]
 
 **** Proposal2 Analytical solver
 solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
@@ -575,114 +722,9 @@ solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
 \end{align*}
 and can be translated to code as follows
-#+name: elyptical_PDE_solver_2
-#+begin_src python
-@njit
-def elyps_solver(
-    c: NDArray[np.float64],
-    phase: NDArray[np.float64],
-    len: int,
-    width: int,
-    alpha: float,
-    h: float,
-    n: int,
-) -> NDArray[np.float64]:
-    for k in range(n):
-        for i in range(1, len + 1):
-            for j in range(1, width + 1):
-                bordernumber = neighbours_in_domain(i, j, len, width)
-
-                c[i, j] = (
-                    -1* alpha * phase[i, j]
-                    + discrete_G_weigted_neigbour_sum(i, j, c, __G_h, len, width)
-                    / h**2
-                ) / (bordernumber / h**2 + alpha)
-    return c
-#+end_src
-
-#+RESULTS: elyptical_PDE_solver_2
-
-and looks like
-#+begin_src python :results file graphics output :file analytical_elyps.png
-<<imports>>
-from multi_solver_relaxed import CH_2D_Multigrid_Solver_relaxed , test_solver , plot
-<<elyptical_PDE_solver_2>>
-test_phase = tu.k_spheres_phase(15, 10, size=64)
-t = test_solver(test_phase)
-t.elyps_solver = elyps_solver
-t.alpha = 1001
-t.solve_elyps(100)
-sns.heatmap(t.c)
-plt.plot()
-#+end_src
-
-#+RESULTS:
-[[file:analytical_elyps.png]]
-
-
-#+begin_src python :results file graphics output :file diffrence_elyps.png :session aig
-<<imports>>
-from multi_solver_relaxed import CH_2D_Multigrid_Solver_relaxed , test_solver , plot
-<<elyptical_PDE_solver_2>>
-test_phase = tu.k_spheres_phase(15, 10, size=64)
-t = test_solver(test_phase)
-t.elyps_solver = elyps_solver
-t.alpha = 1001
-t.solve_elyps(40)
-prev  = np.array(t.c)
-t.solve_elyps(1)
-sns.heatmap(t.c - prev)
-plt.plot()
-#+end_src
-
-#+RESULTS:
-[[file:diffrence_elyps.png]]
 
 **** Proposal 4
 as the solver still exhibits unexpected behaviour, ie. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
-#+name: elyptical_PDE_solver_relaxed
-#+begin_src python
-@njit
-def elyps_solver(
-    c: NDArray[np.float64],
-    phase: NDArray[np.float64],
-    len: int,
-    width: int,
-    alpha: float,
-    h: float,
-    n: int,
-    delta = 0.9
-) -> NDArray[np.float64]:
-    for k in range(n):
-        for i in range(1, len + 1):
-            for j in range(1, width + 1):
-                bordernumber = neighbours_in_domain(i, j, len, width)
-
-                c_new = (
-                    alpha * phase[i, j]
-                    + discrete_G_weigted_neigbour_sum(i, j, c, __G_h, len, width)
-                    / h**2
-                ) / (bordernumber / h**2 + alpha)
-                c[i,j] = c[i,j] * delta + (1-delta) * c_new
-
-    return c
-#+end_src
-
-#+begin_src python :results file graphics output :file relaxed_elyps.png :session rel
-<<imports>>
-from multi_solver_relaxed import CH_2D_Multigrid_Solver_relaxed , test_solver , plot
-<<elyptical_PDE_solver_relaxed>>
-test_phase = tu.k_spheres_phase(15, 10, size=64)
-t = test_solver(test_phase)
-t.elyps_solver = elyps_solver
-t.alpha = 100000001
-t.solve_elyps(1000)
-sns.heatmap(t.c)
-plt.plot()
-#+end_src
-
-#+RESULTS:
-[[file:relaxed_elyps.png]]
 
 * References
 #+PRINT_BIBLIOGRAPHY:

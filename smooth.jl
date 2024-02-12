@@ -1,4 +1,3 @@
-include("elypssolver.jl")
 function SMOOTH!(
     solver::multi_solver,
     iterations,
@@ -41,7 +40,7 @@ function SMOOTH!(
             end
         end
 
-        if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-3
+        if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
             print("SMOOTH terminated at $(k) succesfully")
             break
         end
