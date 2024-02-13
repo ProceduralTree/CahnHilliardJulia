@@ -449,7 +449,7 @@ function SMOOTH!(
         end
 
         if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
-            print("SMOOTH terminated at $(k) succesfully")
+            #println("SMOOTH terminated at $(k) succesfully")
             break
         end
     end
@@ -492,7 +492,7 @@ function v_cycle(grid::Array{multi_solver}, level)
 
     solver = grid[level]
     SMOOTH!(solver, 400, true)
-    print("Finished pre SMOOTHing")
+    #println("Finished pre SMOOTHing")
 
     # extract (d,r) as array operations
 
@@ -512,8 +512,8 @@ function v_cycle(grid::Array{multi_solver}, level)
 d_large = restrict(d, G)
 r_large = restrict(r, G)
 
-println(" d $(norm(d_large))")
-println(" r $(norm(r_large))")
+#println(" d $(norm(d_large))")
+#println(" r $(norm(r_large))")
 
 u_large = zeros(size(d_large))
 v_large = zeros(size(d_large))
@@ -534,18 +534,18 @@ v_large = zeros(size(d_large))
         solution.phase .-= u_large
         solution.potential .-= v_large
     end
-    print("Finished  largegrid")
+    #println("Finished  largegrid")
 
     u_large = solver.phase .- solution.phase
     v_large = solver.potential .- solution.potential
 
     solver = grid[level]
 
-    solver.phase .+= prolong(u_large)
-    solver.potential .+= prolong(v_large)
+    solver.phase .+= prolong(u_large , G)
+    solver.potential .+= prolong(v_large, G)
     # smooth again:
     SMOOTH!(solver, 800, true)
-    print("Finished post SMOOTHing")
+    #println("Finished post SMOOTHing")
 end
 #+end_src
 Sol let us have a look at how the internals look in the first iteration
@@ -555,7 +555,7 @@ include("/home/jon/Projects/julia_tst/utils.jl")
 include("/home/jon/Projects/julia_tst/multisolver.jl")
 using Plots
 using LinearAlgebra
-M = testdata(128, 10, 15, 2)
+M = testdata(64, 10, 15, 2)
 
 testgrd = testgrid(M, 2)
 p0 = heatmap(testgrd[1].phase, title="Initial State");
@@ -624,10 +624,34 @@ savefig(p, "images/v_cycle.svg")
 
 and a few iterations of the V-cycle exhibit the following behaviour:
 
-#+begin_src julia-vterm :results file graphics  :file iteration.svg :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
+#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
 include("/home/jon/Projects/julia_tst/utils.jl")
 include("/home/jon/Projects/julia_tst/multisolver.jl")
+using Plots
+using LinearAlgebra
+using ProgressBars
+M = testdata(64, 1, 20 , 2)
+
+testgrd = testgrid(M, 2)
+solver = testgrd[1]
+set_xi_and_psi!(solver)
+
+pbar = ProgressBar(total = 1000)
+
+anim = @animate for i in 1:100
+    for j in 1:10
+        v_cycle(testgrd, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(testgrd[1])
+    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
+end
+gif(anim , "images/iteration.gif" , fps = 10)
 #+end_src
+
+#+RESULTS:
+[[file:images/iteration.gif]]
+
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
 \begin{align*}
