@@ -10,3 +10,4 @@
 *.log
 *.xml
 *.toc
+/.dir-locals.el
