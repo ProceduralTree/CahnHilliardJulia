@@ -624,7 +624,7 @@ savefig(p, "images/v_cycle.svg")
 
 and a few iterations of the V-cycle exhibit the following behaviour:
 
-#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
+#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl :eval never-export
 include("/home/jon/Projects/julia_tst/utils.jl")
 include("/home/jon/Projects/julia_tst/multisolver.jl")
 using Plots
