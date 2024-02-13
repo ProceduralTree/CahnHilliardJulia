@@ -9,7 +9,7 @@ using LinearAlgebra
 #+end_src
 
 #+begin_src julia :tangle multisolver.jl :eval never
-include("/home/jon/Projects/julia_tst/utils.jl")
+include(pwd() * "/" * "utils.jl")
 #+end_src
 
 #+begin_src  julia :tangle utils.jl :eval never
@@ -550,9 +550,8 @@ end
 #+end_src
 Sol let us have a look at how the internals look in the first iteration
 #+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
-cd("/home/jon/Projects/julia_tst/")
-include("/home/jon/Projects/julia_tst/utils.jl")
-include("/home/jon/Projects/julia_tst/multisolver.jl")
+include(pwd() * "/" * "utils.jl")
+include(pwd() * "/" * "utils.jl")
 using Plots
 using LinearAlgebra
 M = testdata(64, 10, 15, 2)
@@ -625,12 +624,12 @@ savefig(p, "images/v_cycle.svg")
 and a few iterations of the V-cycle exhibit the following behaviour:
 
 #+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl :eval never-export
-include("/home/jon/Projects/julia_tst/utils.jl")
-include("/home/jon/Projects/julia_tst/multisolver.jl")
+include(pwd() * "/" * "utils.jl")
+include(pwd() * "/" * "multisolver.jl")
 using Plots
 using LinearAlgebra
 using ProgressBars
-M = testdata(64, 1, 20 , 2)
+M = testdata(64, 10, 20 , 2)
 
 testgrd = testgrid(M, 2)
 solver = testgrd[1]
