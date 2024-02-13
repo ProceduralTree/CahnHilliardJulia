@@ -629,7 +629,6 @@ include(pwd() * "/" * "multisolver.jl")
 using Plots
 using LinearAlgebra
 using ProgressBars
-M = testdata(64, 10, 20 , 2)
 
 testgrd = testgrid(M, 2)
 solver = testgrd[1]
