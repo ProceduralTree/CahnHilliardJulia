@@ -55,6 +55,25 @@ function restrict(arr, G)
     return ret
 end
 
+"""
+    prolong(arr , G)
+
+interpolates int a smaller grid by a factor of 2
+
+"""
+function prolong(arr, G)
+    inner_shape = (size(arr).-2).*2
+    ret = zeros(inner_shape .+2)
+    ONE = oneunit(CartesianIndices(arr)[1])
+    for I in CartesianIndices(arr)[2:end-1, 2:end-1]
+        Ind = 2 * (I - ONE) + ONE
+        for J in (Ind - ONE):Ind
+            ret[J] = G(J.I... , inner_shape... ) * arr[I]
+        end
+    end
+    return ret
+end
+
 struct multi_solver
     phase::Matrix{Float64}
     potential::Matrix{Float64}
@@ -103,8 +122,8 @@ smallgrid solver and largegid solvers to be multiple of 2 from each other bar pa
 TBW
 """
 function restrict_solver!(smallgrid_solver::multi_solver, largegrid_solver::multi_solver)
-    copy!(largegrid_solver.phase , restrict(smallgrid_solver.phase , G))
-    copy!(largegrid_solver.potential , restrict(smallgrid_solver.potential , G))
+    copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
+    copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
 end
 #+end_src
@@ -320,15 +339,15 @@ L
 \end{align*}
 implented as
 #+begin_src julia :tangle multisolver.jl :eval never
-function L(solver::multi_solver,i,j)
+function L(solver::multi_solver,i,j , phi , mu)
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
-          neighbours_in_domain(i, j, G, solver.len, solver.width) * solver.potential[i, j])/solver.h^2
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
     psi = solver.epsilon^2/solver.h^2 *
           (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
            -
-           neighbours_in_domain(i, j, G, solver.len, solver.width) * solver.phase[i, j]) - 2 * solver.phase[i, j] + solver.potential[i, j]
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
     return [xi, psi]
 end
 #+end_src
@@ -347,8 +366,8 @@ DL\begin{pmatrix}
 implemented:
 #+begin_src julia :tangle multisolver.jl :eval never
 function dL(solver::multi_solver , i , j)
-    return [ 1/solver.dt 1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width);
-             -1*solver.epsilon^2/solver.h^2 * (neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 #+end_src
 
@@ -468,7 +487,7 @@ savefig(p,"images/smooth.svg")
 
 ** v-cycle
 The v-cycle of a two grid method  using pre and post smothing is then stated by
-#+begin_src julia :tangle nil :eval never
+#+begin_src julia :tangle multisolver.jl :eval never
 function v_cycle(grid::Array{multi_solver}, level)
 
     solver = grid[level]
@@ -481,7 +500,7 @@ function v_cycle(grid::Array{multi_solver}, level)
     r = zeros(size(solver.phase))
 
     for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]] - L(solver, I.I...)
+        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
     end
 
     # print(f"Max derivation d: {np.linalg.norm(d)}")
@@ -490,19 +509,30 @@ function v_cycle(grid::Array{multi_solver}, level)
     solver = grid[level+1]
     solution = deepcopy(solver)
 
-    d_large = zeros(size(solver.phase))
-    r_large = zeros(size(solver.phase))
+d_large = restrict(d, G)
+r_large = restrict(r, G)
 
-    d_large[2:end-1, 2:end-1] = restrict(d[2:end-1, 2:end-1])
-    r_large[2:end-1, 2:end-1] = restrict(r[2:end-1, 2:end-1])
+println(" d $(norm(d_large))")
+println(" r $(norm(r_large))")
 
-    u_large = zeros((solver.len + 2, solver.width + 2))
-    v_large = zeros((solver.len + 2, solver.width + 2))
+u_large = zeros(size(d_large))
+v_large = zeros(size(d_large))
+
     #TODO short newton iteration for
-    for i = 1:5
+    for i = 1:300
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-            solution.phase[I], solution.potential[I] = L(solution, I.I...) .+ ((solver.phase[I], solver.potential[I]) .- ((d_large[I], r_large[I]) .+ L(solver, I.I...))) .\ dL(solver, I.I...)
+
+            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
+            #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
+            #diffrence = [d_large[I] , r_large[I]]
+
+            local ret = dL(solution, I.I...) \ diffrence
+
+            u_large[I] = ret[1]
+            v_large[I] = ret[2]
         end
+        solution.phase .-= u_large
+        solution.potential .-= v_large
     end
     print("Finished  largegrid")
 
@@ -511,8 +541,8 @@ function v_cycle(grid::Array{multi_solver}, level)
 
     solver = grid[level]
 
-    solver.phase[2:end-1, 2:end-1] += prolong(u_large[2:end-1, 2:end-1], (solver.len, solver.width))
-    solver.potential[2:end-1, 2:end-1] += prolong(v_large[2:end-1, 2:end-1], (solver.len, solver.width))
+    solver.phase .+= prolong(u_large)
+    solver.potential .+= prolong(v_large)
     # smooth again:
     SMOOTH!(solver, 800, true)
     print("Finished post SMOOTHing")
@@ -525,7 +555,7 @@ include("/home/jon/Projects/julia_tst/utils.jl")
 include("/home/jon/Projects/julia_tst/multisolver.jl")
 using Plots
 using LinearAlgebra
-M = testdata(64, 10, 15, 2)
+M = testdata(128, 10, 15, 2)
 
 testgrd = testgrid(M, 2)
 p0 = heatmap(testgrd[1].phase, title="Initial State");
@@ -539,7 +569,7 @@ d = zeros(size(solver.phase))
 r = zeros(size(solver.phase))
 
 for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-    d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I...)
+    d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I] , solver.potential[I])
 end
 
 p2 = heatmap(d, title="Phase Residuals");
@@ -561,15 +591,18 @@ u_large = zeros(size(d_large))
 v_large = zeros(size(d_large))
 
 
-for i = 1:10
+f(phi , mu , I)  = L(solution, I.I..., phi, mu) .- [d_large[I], r_large[I]] .- L(solver, I.I... , solver.phase[I] , solver.potential[I])
+
+for i = 1:300
     for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
 
-        diffrence = L(solution, I.I...) .- [d_large[I], r_large[I]] .- L(solver, I.I...)
+
+        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I... , solver.phase[I] , solver.potential[I])
         #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
-        diffrence = [d_large[I] , r_large[I]]
+        #diffrence = [d_large[I] , r_large[I]]
 
         local ret = dL(solution , I.I...) \ diffrence
-        if I == CartesianIndex(2,2)  println("Diffrence: $(diffrence) , Ret: $(ret)") end
+        #if I == CartesianIndex(2,2)  println("Diffrence: $(diffrence) , Ret: $(ret)") end
 
         u_large[I] = ret[1]
         v_large[I] = ret[2]
@@ -578,7 +611,7 @@ for i = 1:10
     solution.potential .-= v_large
 end
 
-u_large = solution.phase - solver.phase
+#u_large = solution.phase - solver.phase
 
 # u_large , v_large = (solver.phase , solver.potential) .- (solution.phase , solution.potential)
 p3 = heatmap(u_large, title="error $(norm(u_large)) ")
@@ -589,6 +622,12 @@ savefig(p, "images/v_cycle.svg")
 #+RESULTS:
 [[file:images/v_cycle.svg]]
 
+and a few iterations of the V-cycle exhibit the following behaviour:
+
+#+begin_src julia-vterm :results file graphics  :file iteration.svg :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl
+include("/home/jon/Projects/julia_tst/utils.jl")
+include("/home/jon/Projects/julia_tst/multisolver.jl")
+#+end_src
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
 \begin{align*}

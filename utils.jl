@@ -40,6 +40,25 @@ function restrict(arr, G)
     return ret
 end
 
+"""
+    prolong(arr , G)
+
+interpolates int a smaller grid by a factor of 2
+
+"""
+function prolong(arr, G)
+    inner_shape = (size(arr).-2).*2
+    ret = zeros(inner_shape .+2)
+    ONE = oneunit(CartesianIndices(arr)[1])
+    for I in CartesianIndices(arr)[2:end-1, 2:end-1]
+        Ind = 2 * (I - ONE) + ONE
+        for J in (Ind - ONE):Ind
+            ret[J] = G(J.I... , inner_shape... ) * arr[I]
+        end
+    end
+    return ret
+end
+
 struct multi_solver
     phase::Matrix{Float64}
     potential::Matrix{Float64}
@@ -88,8 +107,8 @@ smallgrid solver and largegid solvers to be multiple of 2 from each other bar pa
 TBW
 """
 function restrict_solver!(smallgrid_solver::multi_solver, largegrid_solver::multi_solver)
-    copy!(largegrid_solver.phase , restrict(smallgrid_solver.phase , G))
-    copy!(largegrid_solver.potential , restrict(smallgrid_solver.potential , G))
+    copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
+    copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
 end
 
