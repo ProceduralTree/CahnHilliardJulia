@@ -554,7 +554,7 @@ include(pwd() * "/" * "utils.jl")
 include(pwd() * "/" * "utils.jl")
 using Plots
 using LinearAlgebra
-M = testdata(64, 10, 15, 2)
+M = testdata(256, 10, 50 , 2)
 
 testgrd = testgrid(M, 2)
 p0 = heatmap(testgrd[1].phase, title="Initial State");
