@@ -45,3 +45,35 @@ rand(10,10)
  0.193185   0.960618  0.0802141  0.979389      0.9731     0.432008  0.618607
  0.521807   0.103692  0.844004   0.810899      0.687499   0.687568  0.427784
 #+end_example
+
+#+begin_src julia-vterm
+include(pwd() * "/" * "utils.jl")
+include(pwd() * "/" * "multisolver.jl")
+using Plots
+using LinearAlgebra
+using ProgressBars
+
+SIZE =64
+M = testdata(SIZE, 10, 32 , 2)
+testgrd = testgrid(M, 2)
+solver = testgrd[1]
+set_xi_and_psi!(solver)
+#
+n=200
+pbar = ProgressBar(total = 10*n)
+massbal = zeros(0)
+anim = @animate for i in 1:n
+    for j in 1:10
+        v_cycle(testgrd, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(testgrd[1])
+    h = heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none , legend=false, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal )
+    push!(massbal , norm(testgrd[1].phase))
+    p = plot(1:i , massbal , xlim=(1,n), aspect_ratio=:equal )
+    plot(h, p;)
+end
+gif(anim , "images/iteration_4.gif" , fps = 10)
+#+end_src
+
+#+RESULTS:

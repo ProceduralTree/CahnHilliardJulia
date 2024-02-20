@@ -210,6 +210,11 @@ G(x,y) &=
 
 To simplify notation the following abbreviations are used:
 
+| Math                                                                                                                                                                                                                         | Code                                     |
+| \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \) | ~discrete_weigted_neigbour_sum(i,j,...)~ |
+| \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)                                                                                                                              | ~neighbours_in_domain(i,j,G)~            |
+
+
 Math: \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \) Code: ~discrete_weigted_neigbour_sum(i,j,...)~ and Math: \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \) Code: ~neighbours_in_domain(i,j,G)~ the expansion of \( \nabla_{d} \cdot G_{ij} \nabla_{d} f_{ij}= \Sigma_{G}f_{ij} - \Sigma_{G} \cdot f_{ij} \) .
 #+begin_src julia :tangle utils.jl :eval never
 """
