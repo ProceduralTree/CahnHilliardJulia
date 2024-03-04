@@ -69,7 +69,7 @@ function SMOOTH!(
     end
 end
 
-function v_cycle(grid::Array{multi_solver}, level)
+function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver}
 
     solver = grid[level]
     SMOOTH!(solver, 400, true)

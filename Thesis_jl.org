@@ -62,13 +62,13 @@ interpolates int a smaller grid by a factor of 2
 
 """
 function prolong(arr, G)
-    inner_shape = (size(arr).-2).*2
-    ret = zeros(inner_shape .+2)
+    inner_shape = (size(arr) .- 2) .* 2
+    ret = zeros(inner_shape .+ 2)
     ONE = oneunit(CartesianIndices(arr)[1])
     for I in CartesianIndices(arr)[2:end-1, 2:end-1]
         Ind = 2 * (I - ONE) + ONE
-        for J in (Ind - ONE):Ind
-            ret[J] = G(J.I... , inner_shape... ) * arr[I]
+        for J in (Ind-ONE):Ind
+            ret[J] = G(J.I..., inner_shape...) * arr[I]
         end
     end
     return ret
@@ -125,6 +125,30 @@ function testgrid(M, len)
     return grid
 
 end
+
+function relaxed_testgrid(M, len)
+    grid = Array{relaxed_multi_solver}(undef, len)
+    phase = zeros(size(M) .+ 2)
+    phase[2:end-1, 2:end-1] = M
+    W_prime(x) = -x * (1 - x^2)
+    h0 = 3e-3
+
+    for i = 1:len
+        grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            8e-3, h0 * 2^i, 1e-3,
+            W_prime,
+            size(M, 1) ÷ i, size(M, 2) ÷ i,
+            1000001)
+
+    end
+    copyto!(grid[1].phase, phase)
+    return grid
+end
+
 """
     restrict!(smallgrid_solver::multi_solver , largegrid_solver::multi_solver)::multi_solver
 
@@ -139,7 +163,7 @@ Returns
     nothing. mutatest largegid in place to represent the smallgrid
 
 """
-function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:Union{multi_solver,relaxed_multi_solver}}
     copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
     copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
@@ -163,6 +187,7 @@ In practice it enables linear interpolation between different formulas on differ
 ** TODO Derivation from paper
 *** Free energy
 The Cahn Hillard Equations can be motivated Using a *Ginzburg Landau* type free energy equation:
+#+name: eq:energy
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
@@ -511,7 +536,7 @@ savefig(p,"images/smooth.svg")
 ** v-cycle
 The v-cycle of a two grid method  using pre and post smothing is then stated by
 #+begin_src julia :tangle multisolver.jl :eval never
-function v_cycle(grid::Array{multi_solver}, level)
+function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver}
 
     solver = grid[level]
     SMOOTH!(solver, 400, true)
@@ -661,7 +686,7 @@ pbar = ProgressBar(total = 1000)
 
 anim = @animate for i in 1:100
     for j in 1:10
-        v_cycle(testgrd, 1)
+        v_cycle!(testgrd, 1)
         update(pbar)
         end
     set_xi_and_psi!(testgrd[1])
@@ -673,6 +698,15 @@ gif(anim , "images/iteration.gif" , fps = 10)
 #+RESULTS:
 [[file:images/iteration.gif]]
 
+* Numerical Evaluation
+The analytical Chan-Hilliard equation exhibits mass conservation [[eq:massbal]] and a decrease in Energy \( E_{bulk} \) [[eq:energy]]. Therefore dicretisations of those concepts are used as necessary conditions for a good solution. Furthermore, since \( E_{bulk} \) is closely correlated with potential Energy \( \mu \), we evauate this diffrence as quality if convergence.
+** Energy Evaluations
+As discrete energy measure we use
+\begin{align*}
+E^{\text{bulk}} = \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G_{ij}\nabla \phi_{ij} |^2 + W\left(\frac{\phi_{i+1j} +\phi_{ij+1}+2*\phi_{ij}}{4}\right) \, dx
+\end{align*}
+** Massbalance
+massbalance is calculated by
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
 \begin{align*}
@@ -703,17 +737,33 @@ L
 \end{pmatrix}
 \end{align*}
 
-#+begin_src julia :tangle multisolver.jl :eval never
+#+begin_src julia :tangle multi_relaxed.jl :eval never
 function L(solver::relaxed_multi_solver,i,j , phi , mu)
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
           neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2/solver.h^2 * solver.alpha
-          (solver.c[I] - phi) - 2 * phi + mu
+    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - 2 * solver.phase[i,j] - solver.potential[i,j]
     return [xi, psi]
 end
 #+end_src
+and its relaxed derivaitve
+\begin{align*}
+DL\begin{pmatrix}
+\phi \\
+\mu
+\end{pmatrix} &= \begin{pmatrix}
+\frac{1}{\Delta t} & \frac{1}{h^2}\Sigma_{G}  \\
+- \varepsilon^2 \alpha  - 2 & 1
+\end{pmatrix}
+\end{align*}
+#+begin_src julia :tangle multi_relaxed.jl :eval never
+function dL(solver::relaxed_multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
+    end
+#+end_src
+
 *** SMOOTH
 and correspondingly the SMOOTH operation expands to:
 \begin{align*}
@@ -722,7 +772,7 @@ SMOOTH( (\phi^{n+1,m}_{ij})^\alpha, \mu^{n + \frac{1}{2},m}_{ji}, L_h , \zeta ^n
 
 #+name: eq:discrete_relaxed_smooth
 \begin{align*}
-  \frac{1}{h^2}\left(G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}\right)\overline{\mu}^{n + \frac{1}{2},m}_{ji} &=
+  -\frac{1}{h^2}\left(G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}\right)\overline{\mu}^{n + \frac{1}{2},m}_{ji} &=
   \frac{(\phi ^{n+1,m}_{ij})^\alpha}{\Delta t} - \zeta^n_{ij} \\
 &- \frac{1}{h^2} (\\
 &G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j}\\
@@ -750,9 +800,15 @@ And the derivative for the iteration is
 \frac{d}{dx} y  &= \frac{1}{\Delta t}
 \end{align*}
 **** Proposal2
-solve  for \( \overline{\mu_{ij}^{n+1,m}}  \)  and \( (\overline{\phi_{ij}^{n+1,m}})^{\alpha} \). This was not done in the original paper as the there required System of linear equations was solved numerically. The relaxation simplifies the it to one dimension, and enables exact solutions:
+solve  for \( \overline{\mu_{ij}^{n+1,m}}  \)  and \( (\overline{\phi_{ij}^{n+1,m}})^{\alpha} \). This was not done in the original paper as the there required System of linear equations was solved numerically. The relaxation simplifies the it to one dimension, and enables explicit solutions:
 
 Let \( \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1} \) and \( \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}} \). Then [[eq:discrete_relaxed_smooth]] solves as
+
+the first equation then writes as
+\begin{align*}
+-\frac{\Sigma_G}{h^2} \ \mu_{ij}^{n+\frac{1}{2},m} = \frac{\phi_{ij}^{n+1,m}}{\Delta t} - \zeta_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2}
+\end{align*}
+and the second
 \begin{align*}
 \varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
@@ -767,7 +823,7 @@ Let \( \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  
 solved for \( \phi_{ij}^{n+1\alpha}\) and the Smoothing Operator then follows:
 #+name: SMOOTH_relaxed
 #+begin_src julia :eval never :tangle multi_relaxed.jl :file f.jl
-function SMOOTH_relaxed!(
+function SMOOTH!(
     solver::relaxed_multi_solver,
     iterations,
     adaptive
@@ -779,9 +835,9 @@ function SMOOTH_relaxed!(
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
 
 
-            solver.phase[I] = (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.h^2 / bordernumber * ( -1*solver.xi[I]  - discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) / solver.h^2 ) - solver.psi[I]) / (solver.epsilon^2 * solver.alpha  + 2 + solver.h^2 / (bordernumber*solver.dt))
+            solver.phase[I] = (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.h^2 / bordernumber * ( -solver.xi[I]  - discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) / solver.h^2 ) - solver.psi[I]) / (solver.epsilon^2 * solver.alpha  + 2 + solver.h^2 / (bordernumber*solver.dt))
 
-            solver.potential[I] = (solver.phase[I]/solver.dt - solver.h^-2 * discrete_weigted_neighbour_sum(i,j, solver.potential[I] , G , solver.len , solver.width)) / (solver.h^2/bordernumber)
+            solver.potential[I] = (solver.phase[I]/solver.dt - solver.xi[I] - discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)/solver.h^2) * (-solver.h^2/bordernumber)
         end
 
         if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-10
@@ -792,31 +848,18 @@ function SMOOTH_relaxed!(
 end
 #+end_src
 
-#+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb yes
+#+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb yes :session
 using Plots
 using LaTeXStrings
 using LinearAlgebra
 include(pwd() * "/"*"/utils.jl")
 <<SMOOTH_relaxed>>
-SIZE = 512
-M = testdata(SIZE, 20 , 40, 2);
+SIZE =64
+M = testdata(SIZE, 5 , 8, 2);
 phase = zeros(size(M) .+ 2);
 phase[2:end-1,2:end-1] = M;
 mu = copy(phase);
 W_prime(x) = -x * (1-x^2)
-solver = relaxed_multi_solver(
-    phase ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    8e-3 ,1e-3 , 1e-3 ,
-    W_prime ,
-    size(M , 1) , size(M , 2),
-    1000001
-)
-set_xi_and_psi!(solver)
-p1 = heatmap(solver.phase, aspect_ratio=:equal, title="without solving c" , xlim=(2,SIZE) , ylim=(2,SIZE));
 <<elyps_solver>>
 solver = relaxed_multi_solver(
     phase ,
@@ -831,18 +874,17 @@ solver = relaxed_multi_solver(
 )
 set_xi_and_psi!(solver)
 elyps_solver!(solver , 2000)
-SMOOTH_relaxed!(solver, 200, true);
+SMOOTH!(solver, 1000, true);
 p2 = heatmap(solver.phase, aspect_ratio=:equal, title="with solving c" , xlim=(2,SIZE) , ylim=(2,SIZE));
-p = plot(p1 , p2)
-savefig(p,"images/smooth_relaxed.svg")
+savefig(p2,"images/smooth_relaxed.svg")
 #+end_src
 
 #+RESULTS:
 [[file:images/smooth_relaxed.svg]]
-*** Relaxed Equation Operator L
 *** Relaxed V-cycle
+As The diffrence between both methods is abstracted away in the operators, the relaxed V-cycle Is Identical to its original counterpart. And therefore reused.
 #+begin_src julia :tangle multi_relaxed.jl :eval never
-function relaxed_v_cycle(grid::Array{multi_solver}, level)
+function v_cycle!(grid::Array{relaxed_multi_solver}, level)
 
     solver = grid[level]
     SMOOTH!(solver, 400, true)
@@ -902,13 +944,40 @@ v_large = zeros(size(d_large))
     #println("Finished post SMOOTHing")
 end
 #+end_src
+testing:
 
-#+begin_src julia :tangle multisolver.jl :eval never
-function dL(solver::multi_solver , i , j)
-    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
-    end
+#+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb strip-export :async t :exports results :output-dir images  :tangle plot.jl :session jl :eval never-export
+include(pwd() * "/" * "utils.jl")
+include(pwd() * "/" * "multisolver.jl")
+include(pwd() * "/" * "multi_relaxed.jl")
+include(pwd() * "/" * "elypssolver.jl")
+using Plots
+using LinearAlgebra
+using ProgressBars
+M = testdata(32, 5, 8 , 2)
+
+testgrd = relaxed_testgrid(M, 2)
+println("Hi")
+solver = testgrd[1]
+set_xi_and_psi!(solver)
+
+pbar = ProgressBar(total = 10000)
+
+anim = @animate for i in 1:1000
+    elyps_solver!(solver , 1000)
+    for j in 1:10
+        v_cycle!(testgrd, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(testgrd[1])
+    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
+end
+gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 #+end_src
+
+#+RESULTS:
+[[file:images/iteration_relaxed2.gif]]
+
 ** Elliptical PDE:
 on order to solve the relaxed CH Equation the following PDE as to be solved in Each additional time step:
 or in terms of the characteristic function:
@@ -963,7 +1032,7 @@ solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \end{align*}
 and can be translated to code as follows
 #+name: elyps_solver
-#+begin_src julia :eval never
+#+begin_src julia :eval never :tangle elypssolver.jl
 using ProgressBars
 
 """
@@ -979,7 +1048,7 @@ using ProgressBars
 TBW
 """
 function elyps_solver!(solver::relaxed_multi_solver, n)
-    for k in ProgressBar(1:n)
+    for k in 1:n
         for i = 2:(solver.len+1)
             for j = 2:(solver.width+1)
                 bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)

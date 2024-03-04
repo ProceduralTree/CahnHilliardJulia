@@ -12,19 +12,18 @@ using ProgressBars
 
 TBW
 """
-function elyps_solver(c, phase, len, width, alpha, h, n)
-    for k in ProgressBar(1:n)
-        for i = 2:(len+1)
-            for j = 2:(width+1)
-                bordernumber = neighbours_in_domain(i, j, len, width)
-                c[i, j] =
+function elyps_solver!(solver::relaxed_multi_solver, n)
+    for k in 1:n
+        for i = 2:(solver.len+1)
+            for j = 2:(solver.width+1)
+                bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)
+                solver.c[i, j] =
                     (
-                        alpha * phase[i, j] +
-                        discrete_G_weigted_neigbour_sum(i, j, c, G, len, width) / h^2
-                    ) / (bordernumber / h^2 + alpha)
+                        solver.alpha * solver.phase[i, j] +
+                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) / solver.h^2
+                    ) / (bordernumber / solver.h^2 + solver.alpha)
 
             end
         end
     end
-    c
 end
