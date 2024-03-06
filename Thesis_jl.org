@@ -703,10 +703,25 @@ The analytical Chan-Hilliard equation exhibits mass conservation [[eq:massbal]] 
 ** Energy Evaluations
 As discrete energy measure we use
 \begin{align*}
-E^{\text{bulk}} = \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G_{ij}\nabla \phi_{ij} |^2 + W\left(\frac{\phi_{i+1j} +\phi_{ij+1}+2*\phi_{ij}}{4}\right) \, dx
+E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{ij} |^2 + W\left(\phi_{ij}\right) \, dx \\
+&= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}D_x\phi_{i+\frac{1}{2}j} ^2 + G_{ij+\frac{1}{2}}D_y\phi_{ij+\frac{1}{2}}^2  + W\left(\phi_{ij}\right) \, dx \\
 \end{align*}
+#+begin_src julia :tangle utils.jl :eval never
+function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    energy = 0
+    dx = CartesianIndex(1,0)
+    dy = CartesianIndex(0,1)
+    W(x) = 1/4 * (1-x^2)^2
+    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
+        i,j = I.I
+        energy += solver.epsilon^2 / 2 * G(i+ 0.5,j ,solver.len, solver.width) * (solver.phase[I+dx] - solver.phase[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.phase[I+dy] - solver.phase[I])^2 + W(solver.phase[I])
+        end
+   return energy
+end
+#+end_src
 ** Massbalance
 massbalance is calculated by
+** Tests
 * Relaxed Problem
 In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
 \begin{align*}

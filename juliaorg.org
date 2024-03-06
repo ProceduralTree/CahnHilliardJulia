@@ -1,6 +1,6 @@
 #+title: Juliaorg
 
-
+* Julia Tests
 #+begin_src julia :results file graphics :file plot.svg
 using Plots
 heatmap(rand(100,100));
@@ -46,6 +46,7 @@ rand(10,10)
  0.521807   0.103692  0.844004   0.810899      0.687499   0.687568  0.427784
 #+end_example
 
+* Solver tests
 #+begin_src julia-vterm
 include(pwd() * "/" * "utils.jl")
 include(pwd() * "/" * "multisolver.jl")
@@ -115,6 +116,42 @@ anim = @animate for i in 1:n
     set_description(pbar, "massbal: $(massbal[1]-massbal[i])")
 end
 gif(anim , "images/sphere_3.gif" , fps = 10)
+#+end_src
+
+#+begin_src julia-vterm
+using Plots
+using LinearAlgebra
+using ProgressBars
+include(pwd() * "/" * "utils.jl")
+include(pwd() * "/" * "multisolver.jl")
+
+SIZE =32
+M = fill(-1,SIZE,SIZE)
+incirc = filter(x-> norm(x.I .- (SIZE/2 , SIZE/2), Inf) < 8 , CartesianIndices(M))
+M[incirc] .= 1
+
+testgrd = testgrid(M, 2)
+solver = testgrd[1]
+set_xi_and_psi!(solver)
+#
+n=100
+pbar = ProgressBar(total = 10*n)
+energy = zeros(0)
+oldphase = testgrd[1].phase
+anim = @animate for i in 1:n
+    for j in 1:10
+        v_cycle!(testgrd, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(testgrd[1])
+    h = heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none , legend=false, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "phasefield with size $SIZE" )
+    push!(energy , bulk_energy(testgrd[1]))
+    p = plot(1:i , energy, xlim=(1,n),  title = "Bulk energy")
+    plot(h, p;)
+    oldphase = testgrd[1].phase
+    set_description(pbar, "energy: $(energy[i])")
+end
+gif(anim , "images/energy_square.gif" , fps = 10)
 #+end_src
 
 #+RESULTS:
