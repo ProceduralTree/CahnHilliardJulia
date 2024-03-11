@@ -186,21 +186,6 @@ function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
     )
 end
 
-function testdata(gridsize , blobs , radius ,norm)
-rngpoints = rand(1:gridsize, 2, blobs)
-M = zeros(gridsize,gridsize) .- 1
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in CartesianIndices(M)
-        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-            M[I] = 1
-        end
-    end
-end
-M
-
-end
-
 """
 Boundry indicator function
 
@@ -222,6 +207,21 @@ function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_mult
     solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
     solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
     return nothing
+end
+
+function testdata(gridsize , blobs , radius ,norm)
+rngpoints = rand(1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
+
 end
 
 function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}

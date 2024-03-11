@@ -47,7 +47,7 @@ rand(10,10)
 #+end_example
 
 * Solver tests
-#+begin_src julia-vterm
+#+begin_src julia-vterm :results output
 include(pwd() * "/" * "utils.jl")
 include(pwd() * "/" * "multisolver.jl")
 using Plots
@@ -61,12 +61,12 @@ solver = testgrd[1]
 set_xi_and_psi!(solver)
 #
 n=100
-pbar = ProgressBar(total = 10*n)
+pbar = ProgressBar(total = 100*n)
 massbal = zeros(0)
 oldphase = testgrd[1].phase
 anim = @animate for i in 1:n
-    for j in 1:10
-        v_cycle(testgrd, 1)
+    for j in 1:100
+        v_cycle!(testgrd, 1)
         update(pbar)
         end
     set_xi_and_psi!(testgrd[1])

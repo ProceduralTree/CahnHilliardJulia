@@ -17,6 +17,58 @@ function dL(solver::multi_solver , i , j)
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 
+function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver}
+
+    solver = grid[level]
+    #pre SMOOTHing:
+    SMOOTH!(solver, 400, true)
+
+    d = zeros(size(solver.phase))
+    r = zeros(size(solver.phase))
+
+    # calculate error between L and expected values
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
+    end
+
+    restrict_solver!(grid[level], grid[level+1])
+    solver = grid[level+1]
+    solution = deepcopy(solver)
+
+    d_large = restrict(d, G)
+    r_large = restrict(r, G)
+
+
+    u_large = zeros(size(d_large))
+    v_large = zeros(size(d_large))
+
+    #Newton Iteration for solving smallgrid
+    for i = 1:300
+        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+
+            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
+            #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
+            #diffrence = [d_large[I] , r_large[I]]
+
+            local ret = dL(solution, I.I...) \ diffrence
+
+            u_large[I] = ret[1]
+            v_large[I] = ret[2]
+        end
+        solution.phase .-= u_large
+        solution.potential .-= v_large
+    end
+
+    u_large = solver.phase .- solution.phase
+    v_large = solver.potential .- solution.potential
+
+    solver = grid[level]
+
+    solver.phase .+= prolong(u_large , G)
+    solver.potential .+= prolong(v_large, G)
+    SMOOTH!(solver, 800, true)
+end
+
 function SMOOTH!(
     solver::multi_solver,
     iterations,
@@ -27,12 +79,8 @@ function SMOOTH!(
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-            coefmatrix =
-                [
-                    (1/solver.dt) (bordernumber/solver.h^2);
-                    (-1*(2+(solver.epsilon^2/solver.h^2)*bordernumber)) 1
-                ]
 
+            coefmatrix = dL(solver, i,j )
 
             b =
                 [
@@ -67,64 +115,4 @@ function SMOOTH!(
             break
         end
     end
-end
-
-function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver}
-
-    solver = grid[level]
-    SMOOTH!(solver, 400, true)
-    #println("Finished pre SMOOTHing")
-
-    # extract (d,r) as array operations
-
-    d = zeros(size(solver.phase))
-    r = zeros(size(solver.phase))
-
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-    end
-
-    # print(f"Max derivation d: {np.linalg.norm(d)}")
-    # print(f"Max derivation r: {np.linalg.norm(r)}")
-    restrict_solver!(grid[level], grid[level+1])
-    solver = grid[level+1]
-    solution = deepcopy(solver)
-
-d_large = restrict(d, G)
-r_large = restrict(r, G)
-
-#println(" d $(norm(d_large))")
-#println(" r $(norm(r_large))")
-
-u_large = zeros(size(d_large))
-v_large = zeros(size(d_large))
-
-    #TODO short newton iteration for
-    for i = 1:300
-        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-
-            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-            #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
-            #diffrence = [d_large[I] , r_large[I]]
-
-            local ret = dL(solution, I.I...) \ diffrence
-
-            u_large[I] = ret[1]
-            v_large[I] = ret[2]
-        end
-        solution.phase .-= u_large
-        solution.potential .-= v_large
-    end
-    #println("Finished  largegrid")
-
-    u_large = solver.phase .- solution.phase
-    v_large = solver.potential .- solution.potential
-
-    solver = grid[level]
-
-    solver.phase .+= prolong(u_large , G)
-    solver.potential .+= prolong(v_large, G)
-    # smooth again:
-    SMOOTH!(solver, 800, true)
-    #println("Finished post SMOOTHing")
 end
