@@ -1,0 +1,17 @@
+* Inbox
+** TODO Add Proof
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Derivation by mass balance][Derivation by mass balance]]
+** TODO Write derivation from Paper
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Derivation by mass balance][Derivation by mass balance]]
+** TODO Proof reading with Hasel
+In combination with fixing my Indicie errors and adding better Explanations for my work.
+[[file:~/Projects/julia_tst/meeting.org::*Weird Behaviour In sphere tests][Weird Behaviour In sphere tests]]
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
+** TODO test making the solver fully explicit
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
+** TODO Plot \( \phi \) and \( c \) nexto to each other for relaxed solver
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
+** TODO change from gaus seidel to jacoby
+[[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
+** TODO Test Grid refinment
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]

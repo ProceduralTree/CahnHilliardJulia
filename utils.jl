@@ -221,7 +221,6 @@ for p in axes(rngpoints , 2)
     end
 end
 M
-
 end
 
 function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-03-11 Mon 14:11 -->
+<!-- 2024-03-12 Tue 20:53 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bachelor Thesis</title>
@@ -193,6 +193,7 @@
     { background-color: #ffff00; color: #000000; font-weight: bold; }
   .org-svg { }
 </style>
+<link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 <script>
   window.MathJax = {
     tex: {
@@ -233,237 +234,29 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgb119709">1. Utility functions</a></li>
-<li><a href="#orgf03fcf0">2. Cahn Hillard Equation Overview</a>
-<ul>
-<li><a href="#org3b6aab8">2.1. <span class="todo TODO">TODO</span> Derivation from paper</a>
-<ul>
-<li><a href="#orgb57367b">2.1.1. Free energy</a></li>
-<li><a href="#org0f2f60f">2.1.2. Derivation by mass balance</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#org7f3c21b">3. Baseline Multigrid solver:</a>
-<ul>
-<li><a href="#org855c11b">3.1. Discretization:</a></li>
-<li><a href="#org319d37f">3.2. adaptations to the simplified problem</a></li>
-<li><a href="#org86809c9">3.3. PDE as Operator</a></li>
-<li><a href="#org22797be">3.4. v-cycle</a></li>
-<li><a href="#orgf0e6e29">3.5. SMOOTH Operator</a></li>
-<li><a href="#orgb4a8c0c">3.6. Test Data:</a></li>
-</ul>
-</li>
-<li><a href="#org17fc3ec">4. Numerical Evaluation</a>
-<ul>
-<li><a href="#org23901b8">4.1. Energy Evaluations</a></li>
-<li><a href="#org35f7bc9">4.2. Massbalance</a></li>
-<li><a href="#org5b99192">4.3. Tests</a></li>
-</ul>
-</li>
-<li><a href="#orga0f19b5">5. Relaxed Problem</a>
-<ul>
-<li><a href="#orgeb2d0ff">5.1. relaxed operators:</a>
-<ul>
-<li><a href="#org619e939">5.1.1. L Relaxed</a></li>
-<li><a href="#org07cb943">5.1.2. SMOOTH</a></li>
-<li><a href="#org92e1081">5.1.3. Relaxed V-cycle</a></li>
-</ul>
-</li>
-<li><a href="#orge5371ba">5.2. Elliptical PDE:</a>
-<ul>
-<li><a href="#orge4a059a">5.2.1. Discretization</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#orge57a709">6. References</a></li>
+<li><a href="#org914b6ba">1. Cahn Hillard Equation Overview</a></li>
+<li><a href="#org8297123">2. Baseline Multigrid solver:</a></li>
+<li><a href="#org8984637">3. Numerical Evaluation</a></li>
+<li><a href="#orgd9e31bf">4. Relaxed Problem</a></li>
+<li><a href="#orgaf13637">5. References</a></li>
 </ul>
 </div>
 </div>
-<div id="outline-container-orgb119709" class="outline-2">
-<h2 id="orgb119709"><span class="section-number-2">1.</span> Utility functions</h2>
+<div id="outline-container-org914b6ba" class="outline-2">
+<h2 id="org914b6ba"><span class="section-number-2">1.</span> Cahn Hillard Equation Overview</h2>
 <div class="outline-text-2" id="text-1">
-<div class="org-src-container">
-<pre class="src src-julia">include(pwd() <span style="color: #bb9200;">*</span> <span style="color: #718c00;">"/"</span> <span style="color: #bb9200;">*</span> <span style="color: #718c00;">"utils.jl"</span>)
-</pre>
-</div>
-
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8e908c;">###############################################################################</span>
-<span style="color: #8e908c;">#                  </span><span style="color: #8e908c;">Common Utility Functions For Multi Solvers                 #</span>
-<span style="color: #8e908c;">###############################################################################</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">restricts an array on the small grid to an array in the large grid asserts size arr=2^n + 2 and returns ret=2^(n-1) + 2</span>
-
-<span style="color: #718c00;">Returns</span>
-<span style="color: #718c00;">---------------------------</span>
-<span style="color: #718c00;">large grid array + padding</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">restrict</span>(arr, G)
-    shape = (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>) .&#247; <span style="color: #f5871f; font-weight: bold;">2</span>
-    ret = zeros(shape .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>)
-    <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(ret)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
-        i, j = I.I
-        g = [
-            G(<span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> i <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> j <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">1</span>, (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>)...),
-            G(<span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> i <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> j, (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>)...),
-            G(<span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> i, <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> j <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">1</span>, (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>)...),
-            G(<span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> i, <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> j, (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>)...)
-        ]
-        <span style="color: #8959a8;">if</span> sum(g) <span style="color: #bb9200;">==</span> <span style="color: #f5871f; font-weight: bold;">0</span>
-            ret[I] = <span style="color: #f5871f; font-weight: bold;">0</span>
-        <span style="color: #8959a8;">else</span>
-            ret[I] = (
-                <span style="color: #f5871f; font-weight: bold;">1</span> <span style="color: #bb9200;">/</span> sum(g)
-                <span style="color: #bb9200;">*</span>
-                dot(g,
-                    [
-                        arr[<span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>i<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>j<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>],
-                        arr[<span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>i<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>j],
-                        arr[<span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>i, <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>j<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>],
-                        arr[<span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>i, <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>j]
-                    ]
-                )
-            )
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">return</span> ret
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    prolong(arr , G)</span>
-
-<span style="color: #718c00;">interpolates int a smaller grid by a factor of 2</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">prolong</span>(arr, G)
-    inner_shape = (size(arr) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>) <span style="color: #bb9200;">.*</span> <span style="color: #f5871f; font-weight: bold;">2</span>
-    ret = zeros(inner_shape .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>)
-    ONE = oneunit(CartesianIndices(arr)[<span style="color: #f5871f; font-weight: bold;">1</span>])
-    <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(arr)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
-        Ind = <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> (I <span style="color: #bb9200;">-</span> ONE) <span style="color: #bb9200;">+</span> ONE
-        <span style="color: #8959a8;">for</span> J <span style="color: #8959a8;">in</span> (Ind<span style="color: #bb9200;">-</span>ONE):Ind
-            ret[J] = G(J.I..., inner_shape...) <span style="color: #bb9200;">*</span> arr[I]
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">return</span> ret
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #8959a8;">struct</span> <span style="color: #bb9200;">multi_solver</span>
-    phase<span style="color: #bb9200;">::Matrix</span>{Float64}
-    potential<span style="color: #bb9200;">::Matrix</span>{Float64}
-    xi<span style="color: #bb9200;">::Matrix</span>{Float64}
-    psi<span style="color: #bb9200;">::Matrix</span>{Float64}
-    epsilon<span style="color: #bb9200;">::Float64</span>
-    h<span style="color: #bb9200;">::Float64</span>
-    dt<span style="color: #bb9200;">::Float64</span>
-    W_prime<span style="color: #bb9200;">::Function</span>
-    len<span style="color: #bb9200;">::Int</span>
-    width<span style="color: #bb9200;">::Int</span>
-
-<span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">struct</span> <span style="color: #bb9200;">relaxed_multi_solver</span>
-    phase<span style="color: #bb9200;">::Matrix</span>{Float64}
-    potential<span style="color: #bb9200;">::Matrix</span>{Float64}
-    xi<span style="color: #bb9200;">::Matrix</span>{Float64}
-    psi<span style="color: #bb9200;">::Matrix</span>{Float64}
-    c<span style="color: #bb9200;">::Matrix</span>{Float64}
-    epsilon<span style="color: #bb9200;">::Float64</span>
-    h<span style="color: #bb9200;">::Float64</span>
-    dt<span style="color: #bb9200;">::Float64</span>
-    W_prime<span style="color: #bb9200;">::Function</span>
-    len<span style="color: #bb9200;">::Int</span>
-    width<span style="color: #bb9200;">::Int</span>
-    alpha<span style="color: #bb9200;">::Float64</span>
-
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">testgrid</span>(M, len)
-    grid = Array{multi_solver}(<span style="color: #f5871f;">undef</span>, len)
-    phase = zeros(size(M) .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>)
-    phase[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>] = M
-    <span style="color: #4271ae;">W_prime</span>(x) = <span style="color: #bb9200;">-</span>x <span style="color: #bb9200;">*</span> (<span style="color: #f5871f; font-weight: bold;">1</span> <span style="color: #bb9200;">-</span> x<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>)
-    h0 = <span style="color: #f5871f; font-weight: bold;">3e-3</span>
-
-
-    <span style="color: #8959a8;">for</span> i <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:len
-        grid[i] = multi_solver(zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            <span style="color: #f5871f; font-weight: bold;">8e-3</span>, h0 <span style="color: #bb9200;">*</span> <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">^</span>i, <span style="color: #f5871f; font-weight: bold;">1e-3</span>,
-            W_prime,
-            size(M, <span style="color: #f5871f; font-weight: bold;">1</span>) &#247; i, size(M, <span style="color: #f5871f; font-weight: bold;">2</span>) &#247; i)
-
-    <span style="color: #8959a8;">end</span>
-    copyto!(grid[<span style="color: #f5871f; font-weight: bold;">1</span>].phase, phase)
-    <span style="color: #8959a8;">return</span> grid
-
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">relaxed_testgrid</span>(M, len)
-    grid = Array{relaxed_multi_solver}(<span style="color: #f5871f;">undef</span>, len)
-    phase = zeros(size(M) .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>)
-    phase[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>] = M
-    <span style="color: #4271ae;">W_prime</span>(x) = <span style="color: #bb9200;">-</span>x <span style="color: #bb9200;">*</span> (<span style="color: #f5871f; font-weight: bold;">1</span> <span style="color: #bb9200;">-</span> x<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>)
-    h0 = <span style="color: #f5871f; font-weight: bold;">3e-3</span>
-
-    <span style="color: #8959a8;">for</span> i <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:len
-        grid[i] = relaxed_multi_solver(zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            zeros(size(M) .&#247; i .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>),
-            <span style="color: #f5871f; font-weight: bold;">8e-3</span>, h0 <span style="color: #bb9200;">*</span> <span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">^</span>i, <span style="color: #f5871f; font-weight: bold;">1e-3</span>,
-            W_prime,
-            size(M, <span style="color: #f5871f; font-weight: bold;">1</span>) &#247; i, size(M, <span style="color: #f5871f; font-weight: bold;">2</span>) &#247; i,
-            <span style="color: #f5871f; font-weight: bold;">1000001</span>)
-
-    <span style="color: #8959a8;">end</span>
-    copyto!(grid[<span style="color: #f5871f; font-weight: bold;">1</span>].phase, phase)
-    <span style="color: #8959a8;">return</span> grid
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    restrict!(smallgrid_solver::multi_solver , largegrid_solver::multi_solver)::multi_solver</span>
-
-<span style="color: #718c00;">------------</span>
-<span style="color: #718c00;">Requires</span>
-<span style="color: #718c00;">----------</span>
-<span style="color: #718c00;">smallgrid solver and largegid solvers to be multiple of 2 from each other bar padding eg. (66x66)-&gt;(34x34)</span>
-
-<span style="color: #718c00;">------------</span>
-<span style="color: #718c00;">Returns</span>
-<span style="color: #718c00;">------------</span>
-<span style="color: #718c00;">    nothing. mutatest largegid in place to represent the smallgrid</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">restrict_solver!</span>(smallgrid_solver<span style="color: #bb9200;">::T</span>, largegrid_solver<span style="color: #bb9200;">::T</span>) <span style="color: #8959a8;">where</span> {T<span style="color: #bb9200;">&lt;:Union</span>{multi_solver,relaxed_multi_solver}}
-    copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
-    copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
-    <span style="color: #8959a8;">return</span> <span style="color: #f5871f;">nothing</span>
-<span style="color: #8959a8;">end</span>
-</pre>
-</div>
-</div>
-</div>
-<div id="outline-container-orgf03fcf0" class="outline-2">
-<h2 id="orgf03fcf0"><span class="section-number-2">2.</span> Cahn Hillard Equation Overview</h2>
-<div class="outline-text-2" id="text-2">
 <p>
-Partial Differential Equation (PDE) solving the state of a 2 Phase Fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the Cahn Hillard Equation used for the remainder of this thesis is:
-where \( \phi\) is the so-called phase field. Demarking the different states of the fluids through an Interval \(I=[-1,1] \) and where \(\partial I = \{-1,1\} \) represents full state of one fluid. \(\varepsilon > 0 \) is  a positive constant
+Partial Differential Equation (PDE) solving the state of a two Phase Fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the Cahn Hillard Equation used for the remainder of this thesis is:
+where \( \phi\) is the so-called phase field. Demarking the different states of the fluids through an Interval \(I=[-1,1] \) and where \(\partial I = \{-1,1\} \) represents full state of one fluid. \(\varepsilon > 0 \) is a positive constant
 </p>
 \begin{align}
-\label{org518af36}
-\phi _t(x,t) &= \Delta  \mu \\
+\label{org793c8b3}
+\phi _t(x,t) &= \Delta \mu \\
 \mu &= - \varepsilon^2 \Delta \phi   + W'(\phi)
 \end{align}
 
 <p>
-, and \(\mu\) is the chemical potential(<a href="#citeproc_bib_item_2">Wu 2022</a>). While the Cahn Hillard exist in a more general form taking the fluid&rsquo;s mobility \(M(\Phi) \) into account, we will assume \(M(\Phi) = 1 \), simplifying the CH-Equations used in (<a href="#citeproc_bib_item_2">Wu 2022</a>) (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) to what is stated above.
+, and \(\mu\) is the chemical potential(<a href="#citeproc_bib_item_2">Wu 2022</a>). While the Cahn-Hillard equation exist in a more general form taking the fluid&rsquo;s mobility \(M(\Phi) \) into account, we will assume \(M(\Phi) = 1 \), simplifying the CH-Equations used in (<a href="#citeproc_bib_item_2">Wu 2022</a>) (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) to what is stated above.
 </p>
 
 
@@ -472,22 +265,22 @@ The Advantages of the Cahn Hillard Approach as compared to traditional fluid dyn
 In practice it enables linear interpolation between different formulas on different phases
 </p>
 </div>
-<div id="outline-container-org3b6aab8" class="outline-3">
-<h3 id="org3b6aab8"><span class="section-number-3">2.1.</span> <span class="todo TODO">TODO</span> Derivation from paper</h3>
-<div class="outline-text-3" id="text-2-1">
+<div id="outline-container-orgb9b7b9f" class="outline-3">
+<h3 id="orgb9b7b9f"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
+<div class="outline-text-3" id="text-1-1">
 </div>
-<div id="outline-container-orgb57367b" class="outline-4">
-<h4 id="orgb57367b"><span class="section-number-4">2.1.1.</span> Free energy</h4>
-<div class="outline-text-4" id="text-2-1-1">
+<div id="outline-container-org58e8019" class="outline-4">
+<h4 id="org58e8019"><span class="section-number-4">1.1.1.</span> Free energy</h4>
+<div class="outline-text-4" id="text-1-1-1">
 <p>
 The Cahn Hillard Equations can be motivated Using a <b>Ginzburg Landau</b> type free energy equation:
 </p>
 \begin{align*}
-\label{org3810f02}
+\label{org278616c}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
 <p>
-where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing.&ldquo;&rdquo; (<a href="#citeproc_bib_item_2">Wu 2022</a>) and will be approximated in further calculations as \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as used in(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)
+where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing.&ldquo;&rdquo; (<a href="#citeproc_bib_item_2">Wu 2022</a>) and we approximate it in further calculations as \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) like in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)
 </p>
 
 <p>
@@ -498,20 +291,20 @@ The chemical potential then follows as derivative of Energy in respect to time.
 \end{align*}
 </div>
 </div>
-<div id="outline-container-org0f2f60f" class="outline-4">
-<h4 id="org0f2f60f"><span class="section-number-4">2.1.2.</span> Derivation by mass balance</h4>
-<div class="outline-text-4" id="text-2-1-2">
+<div id="outline-container-org4d0910b" class="outline-4">
+<h4 id="org4d0910b"><span class="section-number-4">1.1.2.</span> <span class="todo TODO">TODO</span> Derivation by mass balance</h4>
+<div class="outline-text-4" id="text-1-1-2">
 <p>
-The Cahn Hillard equation then can be motivated as follows:
+We motivate the Cahn Hillard equation as follows:
 consider
 </p>
 \begin{equation}
-\label{orga3add3c}
+\label{org007c7ae}
     \partial_t \phi + \nabla J = 0
 \end{equation}
 <p>
-where <b>J</b> is mass flux. \eqref{orga3add3c} then states that the change in mass balances the change of the phasefield.
-Using the no-flux boundry conditions:
+where <b>J</b> is mass flux. \eqref{org007c7ae} then states that the change in mass balances the change of the phase field.
+Using the no-flux boundary conditions:
 </p>
 \begin{align}
 J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
@@ -535,7 +328,7 @@ which conceptionally sets mass flux to equalize the potential energy gradient, l
 \partial_n \phi = 0
 \end{align*}
 <p>
-ie no flow leaves and potential on the border doesn&rsquo;t change.
+i.e. no flow leaves and potential on the border doesn&rsquo;t change.
 Then for \(\phi \) then follows:
 </p>
 \begin{align*}
@@ -549,16 +342,16 @@ hence the Free Energy is decreasing in time.
 </div>
 </div>
 </div>
-<div id="outline-container-org7f3c21b" class="outline-2">
-<h2 id="org7f3c21b"><span class="section-number-2">3.</span> Baseline Multigrid solver:</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org8297123" class="outline-2">
+<h2 id="org8297123"><span class="section-number-2">2.</span> Baseline Multigrid solver:</h2>
+<div class="outline-text-2" id="text-2">
 <p>
-As baseline for further experiments a two grid method based on finite differences by(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>). Is used.
+As baseline for further experiments we use a two grid method based on finite differences by(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
 </p>
 </div>
-<div id="outline-container-org855c11b" class="outline-3">
-<h3 id="org855c11b"><span class="section-number-3">3.1.</span> Discretization:</h3>
-<div class="outline-text-3" id="text-3-1">
+<div id="outline-container-orgbf69217" class="outline-3">
+<h3 id="orgbf69217"><span class="section-number-3">2.1.</span> Discretization:</h3>
+<div class="outline-text-3" id="text-2-1">
 <p>
 it discretizes the phasefield and potential energy \( \phi, \mu \) into a grid wise functions \(\phi_{ij}, \mu_{ij} \) and defines the partial derivatives \( D_xf_{ij}, \ D_yf_{ij} \) using the differential quotients:
 </p>
@@ -569,12 +362,12 @@ D_xf_{i+\frac{1}{2} j} &= \frac{f_{i+1j} - f_{ij}}{h} & D_yf_{ij+\frac{1}{2}} &=
 for \( \nabla f, \Delta f \) then follows:
 </p>
 \begin{align*}
-\label{org6752332}
+\label{org0636f83}
 \nabla_d f_{ij} &= (D_x f_{i+1j} , \ D_y f_{ij+1}) \\
  \Delta_d f_{ij} &= \frac{D_x f_{i+\frac{1}{2}j} -  D_x f_{i-\frac{1}{2}j} + D_y f_{ij+\frac{1}{2}} - D_y f_{ij-\frac{1}{2}}}{h} = \nabla_d \cdot  \nabla_d f_{ij}
 \end{align*}
 <p>
-the authors further adapt the discretized phasefield by the characteristic function of the domain \( \Omega\):
+the authors(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) further adapt the discretized phase field by the characteristic function of the domain \( \Omega\):
 </p>
 \begin{align*}
 G(x,y) &=
@@ -585,7 +378,7 @@ G(x,y) &=
 \end{align*}
 
 <p>
-To simplify notation the following abbreviations are used:
+To simplify notation we use the following abbreviations:
 </p>
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
@@ -619,55 +412,40 @@ To simplify notation the following abbreviations are used:
 </tbody>
 </table>
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    neighbours_in_domain(i, j, G, len, width)</span>
-
-<span style="color: #718c00;">TBW</span>
-<span style="color: #718c00;">counts neigbours in domain</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">neighbours_in_domain</span>(i, j, G, len, width)
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">neighbours_in_domain</span>(i, j, G, len, width)
     (
-        G(i <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, j, len, width)
-        <span style="color: #bb9200;">+</span> G(i <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, j, len, width)
-        <span style="color: #bb9200;">+</span> G(i, j <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, len, width)
-        <span style="color: #bb9200;">+</span> G(i, j <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, len, width)
+        G(i <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, j, len, width)
+        <span style="color: #f0c674;">+</span> G(i <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, j, len, width)
+        <span style="color: #f0c674;">+</span> G(i, j <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, len, width)
+        <span style="color: #f0c674;">+</span> G(i, j <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, len, width)
     )
 
-<span style="color: #8959a8;">end</span>
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)</span>
-
-<span style="color: #718c00;">TBW</span>
-<span style="color: #718c00;">--------</span>
-<span style="color: #718c00;">sums all neighbours depending on wheter tey are in the domain determined by G</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">discrete_G_weigted_neigbour_sum</span>(i, j, arr, G, len, width)
+<span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">function</span> <span style="color: #81a2be;">discrete_G_weigted_neigbour_sum</span>(i, j, arr, G, len, width)
     (
-        G(i <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, j, len, width) <span style="color: #bb9200;">*</span> arr[i<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>, j]
-        <span style="color: #bb9200;">+</span> G(i <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, j, len, width) <span style="color: #bb9200;">*</span> arr[i<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, j]
-        <span style="color: #bb9200;">+</span> G(i, j <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, len, width) <span style="color: #bb9200;">*</span> arr[i, j<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>]
-        <span style="color: #bb9200;">+</span> G(i, j <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>, len, width) <span style="color: #bb9200;">*</span> arr[i, j<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+        G(i <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, j, len, width) <span style="color: #f0c674;">*</span> arr[i<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>, j]
+        <span style="color: #f0c674;">+</span> G(i <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, j, len, width) <span style="color: #f0c674;">*</span> arr[i<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, j]
+        <span style="color: #f0c674;">+</span> G(i, j <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, len, width) <span style="color: #f0c674;">*</span> arr[i, j<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>]
+        <span style="color: #f0c674;">+</span> G(i, j <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">0.5</span>, len, width) <span style="color: #f0c674;">*</span> arr[i, j<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
     )
-<span style="color: #8959a8;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 
 <p>
-The for the solver necessary modified Laplacians \( \nabla_d (G \nabla_df_{ij}) \)then are written as
+We can then write for the solver necessary modified Laplacian \( \nabla_d (G \nabla_df_{ij}) \) as
 </p>
 \begin{align*}
 \nabla_{d}(G \nabla_df_{ij}) &= \frac{\Sigma_Gf_{ij} - \Sigma_G\cdot f_{ij}}{h^2}
 \end{align*}
 
-
 <p>
-To account for no flux boundry conditions and arbitrary shaped domains.
+To account for no flux boundary conditions and arbitrary shaped domains.
 The authors (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) then define the discrete CH Equation adapted for Domain, as:
 </p>
 
 \begin{align}
-\label{org6ef971d}
+\label{org721eaad}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
  \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
 \end{align}
@@ -676,12 +454,12 @@ and derive from these implicit equations a numerical scheme.
 </p>
 </div>
 </div>
-<div id="outline-container-org319d37f" class="outline-3">
-<h3 id="org319d37f"><span class="section-number-3">3.2.</span> adaptations to the simplified problem</h3>
-<div class="outline-text-3" id="text-3-2">
+<div id="outline-container-orge95991f" class="outline-3">
+<h3 id="orge95991f"><span class="section-number-3">2.2.</span> adaptations to the simplified problem</h3>
+<div class="outline-text-3" id="text-2-2">
 <p>
-even tough this work uses rectangular domains, the adaptation of the algorithm is simplified by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
-Therefore, the internal representation of the adapted algorithm considers phasefield and potential field \( \phi , \mu \) as 2D arrays of shape \( (N_x + 2 , N_y + 2) \) in order to accommodate padding. Where N<sub>x</sub> and N<sub>y</sub> are the number of steps in x-/y-Direction respectively.
+even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
+Therefore, the internal representation of the adapted algorithm considers phase field and potential field \( \phi , \mu \) as 2D arrays of shape \( (N_x + 2 , N_y + 2) \) in order to accommodate padding. Where N<sub>x</sub> and N<sub>y</sub> are the number of steps in x-/y-Direction respectively.
 Hence, we define the discrete domain function as:
 </p>
 \begin{align*}
@@ -693,29 +471,32 @@ G_{ij} &=
 \end{align*}
 
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">Boundry indicator function</span>
+<pre class="src src-julia"><span style="color: #b5bd68;">"""</span>
+<span style="color: #b5bd68;">Boundry indicator function</span>
 
-<span style="color: #718c00;">Returns</span>
-<span style="color: #718c00;">---------------</span>
-<span style="color: #718c00;">1 if index i,j is in bounds(without padding) and 0 else</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">G</span>(i, j, len, width)
-    <span style="color: #8959a8;">if</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">&lt;=</span> i <span style="color: #bb9200;">&lt;=</span> len <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">1</span> <span style="color: #bb9200;">&amp;&amp;</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">&lt;=</span> j <span style="color: #bb9200;">&lt;=</span> width <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">1</span>
-        <span style="color: #8959a8;">return</span> <span style="color: #f5871f; font-weight: bold;">1.0</span>
-    <span style="color: #8959a8;">else</span>
-        <span style="color: #8959a8;">return</span> <span style="color: #f5871f; font-weight: bold;">0.0</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+<span style="color: #b5bd68;">Returns</span>
+<span style="color: #b5bd68;">---------------</span>
+<span style="color: #b5bd68;">1 if index i,j is in bounds(without padding) and 0 else</span>
+<span style="color: #b5bd68;">"""</span>
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">G</span>(i, j, len, width)
+    <span style="color: #b294bb;">if</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">&lt;=</span> i <span style="color: #f0c674;">&lt;=</span> len <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">1</span> <span style="color: #f0c674;">&amp;&amp;</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">&lt;=</span> j <span style="color: #f0c674;">&lt;=</span> width <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">1</span>
+        <span style="color: #b294bb;">return</span> <span style="color: #de935f; font-weight: bold;">1.0</span>
+    <span style="color: #b294bb;">else</span>
+        <span style="color: #b294bb;">return</span> <span style="color: #de935f; font-weight: bold;">0.0</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-org86809c9" class="outline-3">
-<h3 id="org86809c9"><span class="section-number-3">3.3.</span> PDE as Operator</h3>
-<div class="outline-text-3" id="text-3-3">
+<div id="outline-container-org3f17583" class="outline-3">
+<h3 id="org3f17583"><span class="section-number-3">2.3.</span> PDE as Operator</h3>
+<div class="outline-text-3" id="text-2-3">
 <p>
-and derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)
+and derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)
 </p>
 \begin{align*}
 L
@@ -730,21 +511,21 @@ L
 \end{pmatrix}
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">L</span>(solver<span style="color: #bb9200;">::multi_solver</span>,i,j , phi , mu)
-    xi = solver.phase[i, j] <span style="color: #bb9200;">/</span> solver.dt <span style="color: #bb9200;">-</span>
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">L</span>(solver<span style="color: #f0c674;">::multi_solver</span>,i,j , phi , mu)
+    xi = solver.phase[i, j] <span style="color: #f0c674;">/</span> solver.dt <span style="color: #f0c674;">-</span>
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          <span style="color: #bb9200;">-</span>
-          neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #bb9200;">*</span> mu )<span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
-    psi = solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span>
+          <span style="color: #f0c674;">-</span>
+          neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #f0c674;">*</span> mu )<span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+    psi = solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span>
           (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
-           <span style="color: #bb9200;">-</span>
-           neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #bb9200;">*</span> phi) <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> phi <span style="color: #bb9200;">+</span> mu
-    <span style="color: #8959a8;">return</span> [xi, psi]
-<span style="color: #8959a8;">end</span>
+           <span style="color: #f0c674;">-</span>
+           neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #f0c674;">*</span> phi) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> phi <span style="color: #f0c674;">+</span> mu
+    <span style="color: #b294bb;">return</span> [xi, psi]
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 <p>
-this operator follows from \eqref{org6ef971d} by separating implicit and explicit terms \( L \) an d   \( (\zeta^n_{ij} , \psi^n_{ij})^T \) respectivly.
+this operator follows from \eqref{org721eaad} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \) respectively.
 </p>
 \begin{align*}
 \begin{pmatrix}
@@ -759,16 +540,16 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{pmatrix}
 \end{align*}
 <p>
-Due to being explicit, everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \) is known. Those values are commuted once for every time step, and stored.
+Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \). We compute those values  once for every time step, and store them.
 </p>
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">set_xi_and_psi!</span>(solver<span style="color: #bb9200;">::T</span>) <span style="color: #8959a8;">where</span> T <span style="color: #bb9200;">&lt;:</span> <span style="color: #bb9200;">Union</span>{multi_solver , relaxed_multi_solver}
-    <span style="color: #4271ae;">xi_init</span>(x) = x <span style="color: #bb9200;">/</span> solver.dt
-    <span style="color: #4271ae;">psi_init</span>(x) = solver.W_prime(x) <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> x
-    solver.xi[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>] = xi_init.(solver.phase[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>,<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>])
-    solver.psi[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>] = psi_init.(solver.phase[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>,<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>])
-    <span style="color: #8959a8;">return</span> <span style="color: #f5871f;">nothing</span>
-<span style="color: #8959a8;">end</span>
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">set_xi_and_psi!</span>(solver<span style="color: #f0c674;">::T</span>) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{multi_solver , relaxed_multi_solver}
+    <span style="color: #81a2be;">xi_init</span>(x) = x <span style="color: #f0c674;">/</span> solver.dt
+    <span style="color: #81a2be;">psi_init</span>(x) = solver.W_prime(x) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> x
+    solver.xi[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = xi_init.(solver.phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>])
+    solver.psi[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = psi_init.(solver.phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>])
+    <span style="color: #b294bb;">return</span> <span style="color: #de935f;">nothing</span>
+<span style="color: #b294bb;">end</span>
 
 </pre>
 </div>
@@ -787,17 +568,17 @@ DL\begin{pmatrix}
 \end{pmatrix}
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">dL</span>(solver<span style="color: #bb9200;">::multi_solver</span> , i , j)
-    <span style="color: #8959a8;">return</span> [ (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">/</span>solver.dt) (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">*</span>solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> neighbours_in_domain(i,j,G,solver.len , solver.width) <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>) <span style="color: #f5871f; font-weight: bold;">1</span>]
-    <span style="color: #8959a8;">end</span>
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">dL</span>(solver<span style="color: #f0c674;">::multi_solver</span> , i , j)
+    <span style="color: #b294bb;">return</span> [ (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.dt) (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">*</span>neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">*</span>solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> neighbours_in_domain(i,j,G,solver.len , solver.width) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span>) <span style="color: #de935f; font-weight: bold;">1</span>]
+    <span style="color: #b294bb;">end</span>
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-org22797be" class="outline-3">
-<h3 id="org22797be"><span class="section-number-3">3.4.</span> v-cycle</h3>
-<div class="outline-text-3" id="text-3-4">
+<div id="outline-container-org8b3f7ff" class="outline-3">
+<h3 id="org8b3f7ff"><span class="section-number-3">2.4.</span> v-cycle</h3>
+<div class="outline-text-3" id="text-2-4">
 <p>
 The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) of a V-cycle multigrid method derived from previously stated operators. Specificly we use a two grid implementation consisting of
 </p>
@@ -808,25 +589,25 @@ The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, an
 </ol>
 
 <p>
-The v-cycle of a two grid method  using pre and post smothing is then stated by:
+The v-cycle of a two grid method  using pre and post smoothing is then stated by:
 </p>
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">v_cycle!</span>(grid<span style="color: #bb9200;">::Array</span>{T}, level) <span style="color: #8959a8;">where</span> T <span style="color: #bb9200;">&lt;:</span> <span style="color: #bb9200;">Union</span>{multi_solver , relaxed_multi_solver}
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">v_cycle!</span>(grid<span style="color: #f0c674;">::Array</span>{T}, level) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{multi_solver , relaxed_multi_solver}
 
     solver = grid[level]
-    <span style="color: #8e908c;">#</span><span style="color: #8e908c;">pre SMOOTHing:</span>
-    SMOOTH!(solver, <span style="color: #f5871f; font-weight: bold;">400</span>, <span style="color: #f5871f;">true</span>)
+    <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">pre SMOOTHing:</span>
+    SMOOTH!(solver, <span style="color: #de935f; font-weight: bold;">400</span>, <span style="color: #de935f;">true</span>)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
 
-    <span style="color: #8e908c;"># </span><span style="color: #8e908c;">calculate error between L and expected values</span>
-    <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]] .<span style="color: #bb9200;">-</span> L(solver, I.I..., solver.phase[I], solver.potential[I])
-    <span style="color: #8959a8;">end</span>
+    <span style="color: #5a5b5a;"># </span><span style="color: #5a5b5a;">calculate error between L and expected values</span>
+    <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
+        d[I], r[I] = [solver.xi[I], solver.psi[I]] .<span style="color: #f0c674;">-</span> L(solver, I.I..., solver.phase[I], solver.potential[I])
+    <span style="color: #b294bb;">end</span>
 
-    restrict_solver!(grid[level], grid[level<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>])
-    solver = grid[level<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+    restrict_solver!(grid[level], grid[level<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>])
+    solver = grid[level<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>]
     solution = deepcopy(solver)
 
     d_large = restrict(d, G)
@@ -836,59 +617,77 @@ The v-cycle of a two grid method  using pre and post smothing is then stated by:
     u_large = zeros(size(d_large))
     v_large = zeros(size(d_large))
 
-    <span style="color: #8e908c;">#</span><span style="color: #8e908c;">Newton Iteration for solving smallgrid</span>
-    <span style="color: #8959a8;">for</span> i <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:<span style="color: #f5871f; font-weight: bold;">300</span>
-        <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+    <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">Newton Iteration for solving smallgrid</span>
+    <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">300</span>
+        <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
 
-            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .<span style="color: #bb9200;">-</span> [d_large[I], r_large[I]] .<span style="color: #bb9200;">-</span> L(solver, I.I..., solver.phase[I], solver.potential[I])
-            <span style="color: #8e908c;">#</span><span style="color: #8e908c;">diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))</span>
-            <span style="color: #8e908c;">#</span><span style="color: #8e908c;">diffrence = [d_large[I] , r_large[I]]</span>
+            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .<span style="color: #f0c674;">-</span> [d_large[I], r_large[I]] .<span style="color: #f0c674;">-</span> L(solver, I.I..., solver.phase[I], solver.potential[I])
+            <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))</span>
+            <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">diffrence = [d_large[I] , r_large[I]]</span>
 
-            <span style="color: #8959a8;">local</span> ret = dL(solution, I.I...) <span style="color: #bb9200;">\</span> diffrence
+            <span style="color: #b294bb;">local</span> ret = dL(solution, I.I...) <span style="color: #f0c674;">\</span> diffrence
 
-            u_large[I] = ret[<span style="color: #f5871f; font-weight: bold;">1</span>]
-            v_large[I] = ret[<span style="color: #f5871f; font-weight: bold;">2</span>]
-        <span style="color: #8959a8;">end</span>
-        solution.phase .<span style="color: #bb9200;">-=</span> u_large
-        solution.potential .<span style="color: #bb9200;">-=</span> v_large
-    <span style="color: #8959a8;">end</span>
+            u_large[I] = ret[<span style="color: #de935f; font-weight: bold;">1</span>]
+            v_large[I] = ret[<span style="color: #de935f; font-weight: bold;">2</span>]
+        <span style="color: #b294bb;">end</span>
+        solution.phase .<span style="color: #f0c674;">-=</span> u_large
+        solution.potential .<span style="color: #f0c674;">-=</span> v_large
+    <span style="color: #b294bb;">end</span>
 
-    u_large = solver.phase .<span style="color: #bb9200;">-</span> solution.phase
-    v_large = solver.potential .<span style="color: #bb9200;">-</span> solution.potential
+    u_large = solver.phase .<span style="color: #f0c674;">-</span> solution.phase
+    v_large = solver.potential .<span style="color: #f0c674;">-</span> solution.potential
 
     solver = grid[level]
 
-    solver.phase .<span style="color: #bb9200;">+=</span> prolong(u_large , G)
-    solver.potential .<span style="color: #bb9200;">+=</span> prolong(v_large, G)
-    SMOOTH!(solver, <span style="color: #f5871f; font-weight: bold;">800</span>, <span style="color: #f5871f;">true</span>)
-<span style="color: #8959a8;">end</span>
+    solver.phase .<span style="color: #f0c674;">+=</span> prolong(u_large , G)
+    solver.potential .<span style="color: #f0c674;">+=</span> prolong(v_large, G)
+    SMOOTH!(solver, <span style="color: #de935f; font-weight: bold;">800</span>, <span style="color: #de935f;">true</span>)
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 <p>
-So let&rsquo;s have a closer look at the internals, namely the phasefield after pre-SMOOTHing \( \bar{\phi} \), the phase residuals  of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on corsest level.
+So let&rsquo;s take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
 </p>
 
-<div id="orgc6a31b1" class="figure">
+<div id="orge26250d" class="figure">
 <p><img src="images/v_cycle.svg" alt="v_cycle.svg" class="org-svg" />
 </p>
 </div>
 
 <p>
-and a few iterations of the V-cycle exhibit the following behaviour:
+and a few iterations of the V-cycle exhibit the following behavior:
 </p>
 
+<div class="org-src-container">
+<pre class="src src-julia-vterm">
+set_xi_and_psi!(solver)
 
-<div id="org62739cb" class="figure">
+pbar = ProgressBar(total = <span style="color: #de935f; font-weight: bold;">1000</span>)
+
+anim = <span style="color: #c5c8c6; font-weight: bold;">@animate</span> <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">100</span>
+    <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">10</span>
+        v_cycle!(testgrd, <span style="color: #de935f; font-weight: bold;">1</span>)
+        update(pbar)
+        <span style="color: #b294bb;">end</span>
+    set_xi_and_psi!(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>])
+    heatmap(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>].phase , clim =(<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">1</span>) , framestyle=<span style="color: #de935f;">:none</span> )
+<span style="color: #b294bb;">end</span>
+gif(anim , <span style="color: #b5bd68;">"images/iteration.gif"</span> , fps = <span style="color: #de935f; font-weight: bold;">10</span>)
+</pre>
+</div>
+
+
+<div id="orga91ec33" class="figure">
 <p><img src="images/iteration.gif" alt="iteration.gif" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-orgf0e6e29" class="outline-3">
-<h3 id="orgf0e6e29"><span class="section-number-3">3.5.</span> SMOOTH Operator</h3>
-<div class="outline-text-3" id="text-3-5">
+<div id="outline-container-orgba8a8e7" class="outline-3">
+<h3 id="orgba8a8e7"><span class="section-number-3">2.5.</span> SMOOTH Operator</h3>
+<div class="outline-text-3" id="text-2-5">
 <p>
-Gaus-Seidel Smoothing is derived by
+(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)derive Gaus-Seidel Smoothing by:
 </p>
 \begin{align*}
 L
@@ -910,17 +709,17 @@ solved for \( \phi , \mu \).
 SMOOTH
 \end{align}
 <p>
-and is implemented as:
+and we implement it as
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="orga5bbd04"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">SMOOTH!</span>(
-    solver<span style="color: #bb9200;">::multi_solver</span>,
+<pre class="src src-julia" id="orgbc53faa"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
+    solver<span style="color: #f0c674;">::multi_solver</span>,
     iterations,
     adaptive
 )
-    <span style="color: #8959a8;">for</span> k <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:iterations
+    <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:iterations
         old_phase = copy(solver.phase)
-        <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+        <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
 
@@ -930,54 +729,54 @@ and is implemented as:
                 [
                     (
                         solver.xi[i, j]
-                        <span style="color: #bb9200;">+</span>
+                        <span style="color: #f0c674;">+</span>
                         discrete_G_weigted_neigbour_sum(
                             i, j, solver.potential, G, solver.len, solver.width
                         )
-                        <span style="color: #bb9200;">/</span>
-                        solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
+                        <span style="color: #f0c674;">/</span>
+                        solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
                     ),
                     (
                         solver.psi[i, j]
-                        <span style="color: #bb9200;">-</span>
-                        (solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>)
-                        <span style="color: #bb9200;">*</span>
+                        <span style="color: #f0c674;">-</span>
+                        (solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>)
+                        <span style="color: #f0c674;">*</span>
                         discrete_G_weigted_neigbour_sum(
                             i, j, solver.phase, G, solver.len, solver.width
                         )
                     )
                 ]
 
-            res = coefmatrix <span style="color: #bb9200;">\</span> b
-            solver.phase[i, j] = res[<span style="color: #f5871f; font-weight: bold;">1</span>]
-            solver.potential[i, j] = res[<span style="color: #f5871f; font-weight: bold;">2</span>]
+            res = coefmatrix <span style="color: #f0c674;">\</span> b
+            solver.phase[i, j] = res[<span style="color: #de935f; font-weight: bold;">1</span>]
+            solver.potential[i, j] = res[<span style="color: #de935f; font-weight: bold;">2</span>]
 
-        <span style="color: #8959a8;">end</span>
+        <span style="color: #b294bb;">end</span>
 
-        <span style="color: #8959a8;">if</span> adaptive <span style="color: #bb9200;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #bb9200;">-</span> solver.phase) <span style="color: #bb9200;">&lt;</span> <span style="color: #f5871f; font-weight: bold;">1e-8</span>
-            <span style="color: #8e908c;">#</span><span style="color: #8e908c;">println("SMOOTH terminated at $(k) succesfully")</span>
-            <span style="color: #8959a8;">break</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+        <span style="color: #b294bb;">if</span> adaptive <span style="color: #f0c674;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #f0c674;">-</span> solver.phase) <span style="color: #f0c674;">&lt;</span> <span style="color: #de935f; font-weight: bold;">1e-8</span>
+            <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">println("SMOOTH terminated at $(k) succesfully")</span>
+            <span style="color: #b294bb;">break</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 
 
-<div id="org22f5ea6" class="figure">
+<div id="org270a9b2" class="figure">
 <p><img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-orgb4a8c0c" class="outline-3">
-<h3 id="orgb4a8c0c"><span class="section-number-3">3.6.</span> Test Data:</h3>
-<div class="outline-text-3" id="text-3-6">
+<div id="outline-container-org8d14d9c" class="outline-3">
+<h3 id="org8d14d9c"><span class="section-number-3">2.6.</span> Test Data:</h3>
+<div class="outline-text-3" id="text-2-6">
 <p>
-For testing and later training, a multitude o different phasefields where used. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
+For testing and later training we use a multitude o different phase fields. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
 </p>
 
-<table id="org90d9de9" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<table id="org0ff5359" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
 <colgroup>
@@ -1022,25 +821,24 @@ For testing and later training, a multitude o different phasefields where used. 
 </table>
 
 <div class="org-src-container">
-<pre class="src src-julia" id="orgad3ddca"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">testdata</span>(gridsize , blobs , radius ,norm)
-rngpoints = rand(<span style="color: #f5871f; font-weight: bold;">1</span>:gridsize, <span style="color: #f5871f; font-weight: bold;">2</span>, blobs)
-M = zeros(gridsize,gridsize) .<span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">1</span>
-<span style="color: #8959a8;">for</span> p <span style="color: #8959a8;">in</span> axes(rngpoints , <span style="color: #f5871f; font-weight: bold;">2</span>)
+<pre class="src src-julia" id="orgd6e78a3"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">testdata</span>(gridsize , blobs , radius ,norm)
+rngpoints = rand(<span style="color: #de935f; font-weight: bold;">1</span>:gridsize, <span style="color: #de935f; font-weight: bold;">2</span>, blobs)
+M = zeros(gridsize,gridsize) .<span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">1</span>
+<span style="color: #b294bb;">for</span> p <span style="color: #b294bb;">in</span> axes(rngpoints , <span style="color: #de935f; font-weight: bold;">2</span>)
     point = rngpoints[:, p]
-    <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(M)
-        <span style="color: #8959a8;">if</span> (LinearAlgebra.norm(point .<span style="color: #bb9200;">-</span> I.I  , norm) <span style="color: #bb9200;">&lt;</span> radius)
-            M[I] = <span style="color: #f5871f; font-weight: bold;">1</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+    <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(M)
+        <span style="color: #b294bb;">if</span> (LinearAlgebra.norm(point .<span style="color: #f0c674;">-</span> I.I  , norm) <span style="color: #f0c674;">&lt;</span> radius)
+            M[I] = <span style="color: #de935f; font-weight: bold;">1</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 M
-
-<span style="color: #8959a8;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 
 
-<div id="org782e977" class="figure">
+<div id="org5074efd" class="figure">
 <p><img src="testdata.svg" alt="testdata.svg" class="org-svg" />
 </p>
 <p><span class="figure-number">Figure 1: </span>Examples of different phasefields used as initial condition later on</p>
@@ -1048,16 +846,16 @@ M
 </div>
 </div>
 </div>
-<div id="outline-container-org17fc3ec" class="outline-2">
-<h2 id="org17fc3ec"><span class="section-number-2">4.</span> Numerical Evaluation</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org8984637" class="outline-2">
+<h2 id="org8984637"><span class="section-number-2">3.</span> Numerical Evaluation</h2>
+<div class="outline-text-2" id="text-3">
 <p>
-The analytical Chan-Hilliard equation exhibits mass conservation \eqref{orga3add3c} and a decrease in Energy \( E_{bulk} \) \eqref{org3810f02}. Therefore dicretisations of those concepts are used as necessary conditions for a good solution. Furthermore, since \( E_{bulk} \) is closely correlated with potential Energy \( \mu \), we evauate this diffrence as quality if convergence.
+The analytical Chan-Hilliard equation exhibits mass conservation \eqref{org007c7ae} and a decrease in Energy \( E_{bulk} \) \eqref{org278616c}. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with potential Energy \( \mu \), we evaluate this difference as quality of convergence.
 </p>
 </div>
-<div id="outline-container-org23901b8" class="outline-3">
-<h3 id="org23901b8"><span class="section-number-3">4.1.</span> Energy Evaluations</h3>
-<div class="outline-text-3" id="text-4-1">
+<div id="outline-container-org7f00e51" class="outline-3">
+<h3 id="org7f00e51"><span class="section-number-3">3.1.</span> Energy Evaluations</h3>
+<div class="outline-text-3" id="text-3-1">
 <p>
 As discrete energy measure we use
 </p>
@@ -1066,91 +864,109 @@ E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{
 &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}D_x\phi_{i+\frac{1}{2}j} ^2 + G_{ij+\frac{1}{2}}D_y\phi_{ij+\frac{1}{2}}^2  + W\left(\phi_{ij}\right) \, dx \\
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">bulk_energy</span>(solver<span style="color: #bb9200;">::T</span>) <span style="color: #8959a8;">where</span> T <span style="color: #bb9200;">&lt;:</span> <span style="color: #bb9200;">Union</span>{multi_solver , relaxed_multi_solver}
-    energy = <span style="color: #f5871f; font-weight: bold;">0</span>
-    dx = CartesianIndex(<span style="color: #f5871f; font-weight: bold;">1</span>,<span style="color: #f5871f; font-weight: bold;">0</span>)
-    dy = CartesianIndex(<span style="color: #f5871f; font-weight: bold;">0</span>,<span style="color: #f5871f; font-weight: bold;">1</span>)
-    <span style="color: #4271ae;">W</span>(x) = <span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">/</span><span style="color: #f5871f; font-weight: bold;">4</span> <span style="color: #bb9200;">*</span> (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">-</span>x<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>)<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
-    <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>,<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">bulk_energy</span>(solver<span style="color: #f0c674;">::T</span>) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{multi_solver , relaxed_multi_solver}
+    energy = <span style="color: #de935f; font-weight: bold;">0</span>
+    dx = CartesianIndex(<span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">0</span>)
+    dy = CartesianIndex(<span style="color: #de935f; font-weight: bold;">0</span>,<span style="color: #de935f; font-weight: bold;">1</span>)
+    <span style="color: #81a2be;">W</span>(x) = <span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span><span style="color: #de935f; font-weight: bold;">4</span> <span style="color: #f0c674;">*</span> (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">-</span>x<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>)<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+    <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
         i,j = I.I
-        energy <span style="color: #bb9200;">+=</span> solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> G(i<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">0.5</span>,j ,solver.len, solver.width) <span style="color: #bb9200;">*</span> (solver.phase[I<span style="color: #bb9200;">+</span>dx] <span style="color: #bb9200;">-</span> solver.phase[I])<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> G(i,j<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">0.5</span>,solver.len ,solver.width) <span style="color: #bb9200;">*</span> (solver.phase[I<span style="color: #bb9200;">+</span>dy] <span style="color: #bb9200;">-</span> solver.phase[I])<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> W(solver.phase[I])
-        <span style="color: #8959a8;">end</span>
-   <span style="color: #8959a8;">return</span> energy
-<span style="color: #8959a8;">end</span>
+        energy <span style="color: #f0c674;">+=</span> solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> G(i<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">0.5</span>,j ,solver.len, solver.width) <span style="color: #f0c674;">*</span> (solver.phase[I<span style="color: #f0c674;">+</span>dx] <span style="color: #f0c674;">-</span> solver.phase[I])<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> G(i,j<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">0.5</span>,solver.len ,solver.width) <span style="color: #f0c674;">*</span> (solver.phase[I<span style="color: #f0c674;">+</span>dy] <span style="color: #f0c674;">-</span> solver.phase[I])<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> W(solver.phase[I])
+        <span style="color: #b294bb;">end</span>
+   <span style="color: #b294bb;">return</span> energy
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-org35f7bc9" class="outline-3">
-<h3 id="org35f7bc9"><span class="section-number-3">4.2.</span> Massbalance</h3>
-<div class="outline-text-3" id="text-4-2">
+<div id="outline-container-org648d9ff" class="outline-3">
+<h3 id="org648d9ff"><span class="section-number-3">3.2.</span> Massbalance</h3>
+<div class="outline-text-3" id="text-3-2">
 <p>
-massbalance is calculated by
-</p>
-</div>
-</div>
-<div id="outline-container-org5b99192" class="outline-3">
-<h3 id="org5b99192"><span class="section-number-3">4.3.</span> Tests</h3>
-</div>
-</div>
-<div id="outline-container-orga0f19b5" class="outline-2">
-<h2 id="orga0f19b5"><span class="section-number-2">5.</span> Relaxed Problem</h2>
-<div class="outline-text-2" id="text-5">
-<p>
-In effort to decrease the order of complexity, the following relaxation to the classical Cahn Hillard Equation is proposed:
+we calculate mass balance as:
 </p>
 \begin{align*}
-\partial_t \phi^\alpha  &= \Delta \mu \\
-\mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
+bal &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{|\{(i,j) \in \Omega\}|}
 \end{align*}
 <p>
-that in turn requires solving an additional PDE each time-step to calculate \(c\).
+such that \( b = 1 \) means there is only phase one \( \phi \equiv 1 \) and \( b = -1 \) only phase -1 \( \phi \equiv -1 \)
+</p>
+</div>
+</div>
+<div id="outline-container-orgd945418" class="outline-3">
+<h3 id="orgd945418"><span class="section-number-3">3.3.</span> Tests</h3>
+</div>
+</div>
+<div id="outline-container-orgd9e31bf" class="outline-2">
+<h2 id="orgd9e31bf"><span class="section-number-2">4.</span> Relaxed Problem</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+In effort to decrease the order of complexity, we propose the following relaxation to the classical Cahn Hillard Equation:
+</p>
+\begin{align}
+\label{orgf123ba3}
+\partial_t \phi^\alpha  &= \Delta \mu \\
+\mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
+\end{align}
+<p>
+this in turn requires solving an additional PDE each time-step to calculate \(c\).
  \( c \) is the solution of the following elliptical PDE:
 </p>
 \begin{align*}
 - \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha
 \end{align*}
-</div>
-<div id="outline-container-orgeb2d0ff" class="outline-3">
-<h3 id="orgeb2d0ff"><span class="section-number-3">5.1.</span> relaxed operators:</h3>
-<div class="outline-text-3" id="text-5-1">
 <p>
-we then adapt the multi-grid solver proposed earlier to the relaxed Problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org6752332},
+As ansatz for the numerical solver we propose
+</p>
+\begin{align}
+\label{org4e2aad8}
+\frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \\
+ \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
+\end{align}
+<p>
+this approach is inspired by \eqref{org4e2aad8} adapted to the relaxed Cahn-Hiliard equation \eqref{orgf123ba3}.
+</p>
+</div>
+<div id="outline-container-org02bb484" class="outline-3">
+<h3 id="org02bb484"><span class="section-number-3">4.1.</span> relaxed operators:</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+we then adapt the multi-grid solver proposed earlier to the relaxed Problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org0636f83},
 and expand them
 </p>
 </div>
-<div id="outline-container-org619e939" class="outline-4">
-<h4 id="org619e939"><span class="section-number-4">5.1.1.</span> L Relaxed</h4>
-<div class="outline-text-4" id="text-5-1-1">
+<div id="outline-container-org115b352" class="outline-4">
+<h4 id="org115b352"><span class="section-number-4">4.1.1.</span> L Relaxed</h4>
+<div class="outline-text-4" id="text-4-1-1">
 <p>
 for the reformulation of the iteration in terms of Operator \(L\) then follows:
 </p>
 \begin{align*}
 L
 \begin{pmatrix}
-(\phi ^{n+1})^\alpha \\
-\mu^{n+1}
+\phi ^{n+1,\alpha} \\
+\mu^{n+\frac{1}{2},\alpha}
 \end{pmatrix}
 &=
 \begin{pmatrix}
-\frac{(\phi^{n+1,m}_{ij})^\alpha}{\Delta t} - \nabla _d \cdot (G_{ji} \nabla _d \mu^{n + \frac{1}{2},m}_{ji}) \\
-\varepsilon ^2 \alpha (c^\alpha - (\phi^{n+1,m}_{ij})^\alpha) - 2(\phi ^{n+1,m}_{ij})^\alpha -\mu^{n + \frac{1}{2},m}_{ji}
+\frac{\phi^{n+1,m,\alpha}_{ij}}{\Delta t} - \nabla _d \cdot (G_{ji} \nabla _d \mu^{n + \frac{1}{2},m,\alpha}_{ji}) \\
+\varepsilon ^2 \alpha (c^\alpha - \phi^{n+1,m,\alpha}_{ij}) - 2\phi ^{n+1,m,\alpha}_{ij} -\mu^{n + \frac{1}{2},m,\alpha}_{ji}
 \end{pmatrix}
 \end{align*}
 
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">L</span>(solver<span style="color: #bb9200;">::relaxed_multi_solver</span>,i,j , phi , mu)
-    xi = solver.phase[i, j] <span style="color: #bb9200;">/</span> solver.dt <span style="color: #bb9200;">-</span>
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">L</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span>,i,j , phi , mu)
+    xi = solver.phase[i, j] <span style="color: #f0c674;">/</span> solver.dt <span style="color: #f0c674;">-</span>
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          <span style="color: #bb9200;">-</span>
-          neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #bb9200;">*</span> mu )<span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
-    psi = solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha<span style="color: #bb9200;">*</span>(solver.c[i,j] <span style="color: #bb9200;">-</span> phi) <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.phase[i,j] <span style="color: #bb9200;">-</span> solver.potential[i,j]
-    <span style="color: #8959a8;">return</span> [xi, psi]
-<span style="color: #8959a8;">end</span>
+          <span style="color: #f0c674;">-</span>
+          neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #f0c674;">*</span> mu )<span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+    psi = solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha<span style="color: #f0c674;">*</span>(solver.c[i,j] <span style="color: #f0c674;">-</span> phi) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.phase[i,j] <span style="color: #f0c674;">-</span> solver.potential[i,j]
+    <span style="color: #b294bb;">return</span> [xi, psi]
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 <p>
-and its relaxed derivaitve
+and its relaxed derivative
 </p>
 \begin{align*}
 DL\begin{pmatrix}
@@ -1162,56 +978,35 @@ DL\begin{pmatrix}
 \end{pmatrix}
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">dL</span>(solver<span style="color: #bb9200;">::relaxed_multi_solver</span> , i , j)
-    <span style="color: #8959a8;">return</span> [ (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">/</span>solver.dt) (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">*</span>neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (<span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">*</span>solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha  <span style="color: #bb9200;">-</span> <span style="color: #f5871f; font-weight: bold;">2</span>) <span style="color: #f5871f; font-weight: bold;">1</span>]
-    <span style="color: #8959a8;">end</span>
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">dL</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span> , i , j)
+    <span style="color: #b294bb;">return</span> [ (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.dt) (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">*</span>neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">*</span>solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha  <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span>) <span style="color: #de935f; font-weight: bold;">1</span>]
+    <span style="color: #b294bb;">end</span>
 </pre>
 </div>
 </div>
 </div>
-<div id="outline-container-org07cb943" class="outline-4">
-<h4 id="org07cb943"><span class="section-number-4">5.1.2.</span> SMOOTH</h4>
-<div class="outline-text-4" id="text-5-1-2">
+<div id="outline-container-orgd5d47f8" class="outline-4">
+<h4 id="orgd5d47f8"><span class="section-number-4">4.1.2.</span> SMOOTH</h4>
+<div class="outline-text-4" id="text-4-1-2">
 <p>
 and correspondingly the SMOOTH operation expands to:
 </p>
 \begin{align*}
-SMOOTH( (\phi^{n+1,m}_{ij})^\alpha, \mu^{n + \frac{1}{2},m}_{ji}, L_h , \zeta ^n , \psi ^n )
+SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \zeta^{n,\alpha} , \psi^{n,\alpha} )
 \end{align*}
 
 \begin{align}
-\label{orgd10e934}
-  -\frac{\Sigma_G}{h^2}\overline{\mu}^{n + \frac{1}{2},m}_{ji} &= \frac{(\phi ^{n+1,m}_{ij})^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
- \varepsilon ^2 \alpha (\overline{\phi} ^{n+1,m}_{ij})^\alpha + 2 \phi ^{n+1,m}_{ij} &= \varepsilon ^2 \alpha c^\alpha  -\mu^{n + \frac{1}{2},m}_{ji}  - \psi_{ij}
+\label{orgdd91d06}
+  -\frac{\Sigma_G}{h^2}\overline{\mu}^{n + \frac{1}{2},m,\alpha}_{ji} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
+ \varepsilon ^2 \alpha \overline{\phi} ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha}
 \end{align}
 </div>
 <ol class="org-ol">
-<li><a id="orgb87cc54"></a>Proposal1<br />
-<div class="outline-text-5" id="text-5-1-2-1">
+<li><a id="org30e20c0"></a>Proposal2<br />
+<div class="outline-text-5" id="text-4-1-2-1">
 <p>
-Since the resulting system no longer is linear, (albeit simpler in Dimension), we propose a newton method to solve second equation (in conjunction with the first one) hopefully solving this converges faster than the original multiple SMOOTH Iterations.
- The iteration solves for \( (\phi ^{n+1,m}_{ij})^\alpha = x \) as free variable. Therefore, it follows for \( F(x) \)
-</p>
-\begin{align*}
-F(x)  &= \varepsilon ^2 x^\alpha + 2x - \varepsilon^2 c^\alpha  + y + \psi_{ij} \\
-y &= \frac{x}{\Delta t} - \zeta^n_{ij} \\
-&- \frac{1}{h^2}\left(G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-1j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+1}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-1} \mu^{n + \frac{1}{2},m}_{ij-1}\right) \\
-&\cdot  \left(G_{i+1j} + G_{i-1j} + G_{ij+1} + G_{ij-1}\right)^{-1} \\
-\end{align*}
-<p>
-And the derivative for the iteration is
-</p>
-        \begin{align*}
-\frac{d}{dx} F(x)&= \alpha \varepsilon^2 x^{\alpha-1} + 2 + \frac{d}{dx} y  \\
-\frac{d}{dx} y  &= \frac{1}{\Delta t}
-\end{align*}
-</div>
-</li>
-<li><a id="org28f41bd"></a>Proposal2<br />
-<div class="outline-text-5" id="text-5-1-2-2">
-<p>
-solve  for \( \overline{\mu_{ij}^{n+1,m}}  \)  and \( (\overline{\phi_{ij}^{n+1,m}})^{\alpha} \). This was not done in the original paper as the there required System of linear equations was solved numerically. The relaxation simplifies the it to one dimension, and enables explicit solutions:
+solve for \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) as the there required System of linear equations was solved numerically. The relaxation simplifies it to one dimension, and enables explicit solutions:
 </p>
 \begin{align*}
 \varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
@@ -1229,138 +1024,143 @@ solve  for \( \overline{\mu_{ij}^{n+1,m}}  \)  and \( (\overline{\phi_{ij}^{n+1,
 (\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi^\alpha = \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
 \end{align*}
 <p>
-solved for \( \phi_{ij}^{n+1\alpha}\) and the Smoothing Operator then follows:
+solved for \( \phi_{ij}^{n+1\alpha}\) the Smoothing Operator then follows:
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="org50cc18d"><span style="color: #8959a8;">function</span> <span style="color: #4271ae;">SMOOTH!</span>(
-    solver<span style="color: #bb9200;">::relaxed_multi_solver</span>,
+<pre class="src src-julia" id="org90d12a0"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
+    solver<span style="color: #f0c674;">::relaxed_multi_solver</span>,
     iterations,
     adaptive
 )
-    <span style="color: #8959a8;">for</span> k <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:iterations
+    <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:iterations
         old_phase = copy(solver.phase)
-        <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+        <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
 
 
-            solver.phase[I] = (solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha <span style="color: #bb9200;">*</span> solver.c[I] <span style="color: #bb9200;">-</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> bordernumber <span style="color: #bb9200;">*</span> ( <span style="color: #bb9200;">-</span>solver.xi[I]  <span style="color: #bb9200;">-</span> discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> ) <span style="color: #bb9200;">-</span> solver.psi[I]) <span style="color: #bb9200;">/</span> (solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha  <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> (bordernumber<span style="color: #bb9200;">*</span>solver.dt))
+            solver.phase[I] = (solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha <span style="color: #f0c674;">*</span> solver.c[I] <span style="color: #f0c674;">-</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> bordernumber <span style="color: #f0c674;">*</span> ( <span style="color: #f0c674;">-</span>solver.xi[I]  <span style="color: #f0c674;">-</span> discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> ) <span style="color: #f0c674;">-</span> solver.psi[I]) <span style="color: #f0c674;">/</span> (solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha  <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> (bordernumber<span style="color: #f0c674;">*</span>solver.dt))
 
-            solver.potential[I] = (solver.phase[I]<span style="color: #bb9200;">/</span>solver.dt <span style="color: #bb9200;">-</span> solver.xi[I] <span style="color: #bb9200;">-</span> discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)<span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>) <span style="color: #bb9200;">*</span> (<span style="color: #bb9200;">-</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">/</span>bordernumber)
-        <span style="color: #8959a8;">end</span>
+            solver.potential[I] = (solver.phase[I]<span style="color: #f0c674;">/</span>solver.dt <span style="color: #f0c674;">-</span> solver.xi[I] <span style="color: #f0c674;">-</span> discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)<span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>) <span style="color: #f0c674;">*</span> (<span style="color: #f0c674;">-</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>bordernumber)
+        <span style="color: #b294bb;">end</span>
 
-        <span style="color: #8959a8;">if</span> adaptive <span style="color: #bb9200;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #bb9200;">-</span> solver.phase) <span style="color: #bb9200;">&lt;</span> <span style="color: #f5871f; font-weight: bold;">1e-10</span>
-            <span style="color: #8e908c;">#</span><span style="color: #8e908c;">println("SMOOTH terminated at $(k) succesfully")</span>
-            <span style="color: #8959a8;">break</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+        <span style="color: #b294bb;">if</span> adaptive <span style="color: #f0c674;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #f0c674;">-</span> solver.phase) <span style="color: #f0c674;">&lt;</span> <span style="color: #de935f; font-weight: bold;">1e-10</span>
+            <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">println("SMOOTH terminated at $(k) succesfully")</span>
+            <span style="color: #b294bb;">break</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-julia-vterm"><span style="color: #8959a8;">using</span> Plots
-<span style="color: #8959a8;">using</span> LaTeXStrings
-<span style="color: #8959a8;">using</span> LinearAlgebra
-include(pwd() <span style="color: #bb9200;">*</span><span style="color: #718c00;">"/utils.jl"</span>)
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">SMOOTH!</span>(
-    solver<span style="color: #bb9200;">::relaxed_multi_solver</span>,
+<pre class="src src-julia-vterm"><span style="color: #b294bb;">using</span> Plots
+<span style="color: #b294bb;">using</span> LaTeXStrings
+<span style="color: #b294bb;">using</span> LinearAlgebra
+include(pwd() <span style="color: #f0c674;">*</span><span style="color: #b5bd68;">"/utils.jl"</span>)
+<span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
+    solver<span style="color: #f0c674;">::relaxed_multi_solver</span>,
     iterations,
     adaptive
 )
-    <span style="color: #8959a8;">for</span> k <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">1</span>:iterations
+    <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:iterations
         old_phase = copy(solver.phase)
-        <span style="color: #8959a8;">for</span> I <span style="color: #8959a8;">in</span> CartesianIndices(solver.phase)[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>, <span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>]
+        <span style="color: #b294bb;">for</span> I <span style="color: #b294bb;">in</span> CartesianIndices(solver.phase)[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
 
 
-            solver.phase[I] = (solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha <span style="color: #bb9200;">*</span> solver.c[I] <span style="color: #bb9200;">-</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> bordernumber <span style="color: #bb9200;">*</span> ( <span style="color: #bb9200;">-</span>solver.xi[I]  <span style="color: #bb9200;">-</span> discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> ) <span style="color: #bb9200;">-</span> solver.psi[I]) <span style="color: #bb9200;">/</span> (solver.epsilon<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">*</span> solver.alpha  <span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">/</span> (bordernumber<span style="color: #bb9200;">*</span>solver.dt))
+            solver.phase[I] = (solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha <span style="color: #f0c674;">*</span> solver.c[I] <span style="color: #f0c674;">-</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> bordernumber <span style="color: #f0c674;">*</span> ( <span style="color: #f0c674;">-</span>solver.xi[I]  <span style="color: #f0c674;">-</span> discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> ) <span style="color: #f0c674;">-</span> solver.psi[I]) <span style="color: #f0c674;">/</span> (solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> solver.alpha  <span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">/</span> (bordernumber<span style="color: #f0c674;">*</span>solver.dt))
 
-            solver.potential[I] = (solver.phase[I]<span style="color: #bb9200;">/</span>solver.dt <span style="color: #bb9200;">-</span> solver.xi[I] <span style="color: #bb9200;">-</span> discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)<span style="color: #bb9200;">/</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>) <span style="color: #bb9200;">*</span> (<span style="color: #bb9200;">-</span>solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span><span style="color: #bb9200;">/</span>bordernumber)
-        <span style="color: #8959a8;">end</span>
+            solver.potential[I] = (solver.phase[I]<span style="color: #f0c674;">/</span>solver.dt <span style="color: #f0c674;">-</span> solver.xi[I] <span style="color: #f0c674;">-</span> discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)<span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>) <span style="color: #f0c674;">*</span> (<span style="color: #f0c674;">-</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>bordernumber)
+        <span style="color: #b294bb;">end</span>
 
-        <span style="color: #8959a8;">if</span> adaptive <span style="color: #bb9200;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #bb9200;">-</span> solver.phase) <span style="color: #bb9200;">&lt;</span> <span style="color: #f5871f; font-weight: bold;">1e-10</span>
-            <span style="color: #8e908c;">#</span><span style="color: #8e908c;">println("SMOOTH terminated at $(k) succesfully")</span>
-            <span style="color: #8959a8;">break</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
-SIZE =<span style="color: #f5871f; font-weight: bold;">64</span>
-M = testdata(SIZE, <span style="color: #f5871f; font-weight: bold;">5</span> , <span style="color: #f5871f; font-weight: bold;">8</span>, <span style="color: #f5871f; font-weight: bold;">2</span>);
-phase = zeros(size(M) .<span style="color: #bb9200;">+</span> <span style="color: #f5871f; font-weight: bold;">2</span>);
-phase[<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>,<span style="color: #f5871f; font-weight: bold;">2</span>:<span style="color: #8959a8;">end</span><span style="color: #bb9200;">-</span><span style="color: #f5871f; font-weight: bold;">1</span>] = M;
+        <span style="color: #b294bb;">if</span> adaptive <span style="color: #f0c674;">&amp;&amp;</span> LinearAlgebra.norm(old_phase <span style="color: #f0c674;">-</span> solver.phase) <span style="color: #f0c674;">&lt;</span> <span style="color: #de935f; font-weight: bold;">1e-10</span>
+            <span style="color: #5a5b5a;">#</span><span style="color: #5a5b5a;">println("SMOOTH terminated at $(k) succesfully")</span>
+            <span style="color: #b294bb;">break</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
+SIZE =<span style="color: #de935f; font-weight: bold;">64</span>
+M = testdata(SIZE, <span style="color: #de935f; font-weight: bold;">5</span> , <span style="color: #de935f; font-weight: bold;">8</span>, <span style="color: #de935f; font-weight: bold;">2</span>);
+phase = zeros(size(M) .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>);
+phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = M;
 mu = copy(phase);
-<span style="color: #4271ae;">W_prime</span>(x) = <span style="color: #bb9200;">-</span>x <span style="color: #bb9200;">*</span> (<span style="color: #f5871f; font-weight: bold;">1</span><span style="color: #bb9200;">-</span>x<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>)
-<span style="color: #8959a8;">using</span> ProgressBars
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    elyps_solver(c,</span>
-<span style="color: #718c00;">    phase,</span>
-<span style="color: #718c00;">    len,</span>
-<span style="color: #718c00;">    width,</span>
-<span style="color: #718c00;">    alpha,</span>
-<span style="color: #718c00;">    h,</span>
-<span style="color: #718c00;">    n</span>
-<span style="color: #718c00;">)</span>
-
-<span style="color: #718c00;">TBW</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">elyps_solver!</span>(solver<span style="color: #bb9200;">::relaxed_multi_solver</span>, n)
-    <span style="color: #8959a8;">for</span> k <span style="color: #8959a8;">in</span> <span style="color: #f5871f; font-weight: bold;">1</span>:n
-        <span style="color: #8959a8;">for</span> i <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">2</span>:(solver.len<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>)
-            <span style="color: #8959a8;">for</span> j <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">2</span>:(solver.width<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>)
+<span style="color: #81a2be;">W_prime</span>(x) = <span style="color: #f0c674;">-</span>x <span style="color: #f0c674;">*</span> (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">-</span>x<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>)
+<span style="color: #b294bb;">function</span> <span style="color: #81a2be;">elyps_solver!</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span>, n)
+    <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:n
+        <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.len<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
+            <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.width<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
                 bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)
                 solver.c[i, j] =
                     (
-                        solver.alpha <span style="color: #bb9200;">*</span> solver.phase[i, j] <span style="color: #bb9200;">+</span>
-                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
-                    ) <span style="color: #bb9200;">/</span> (bordernumber <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> solver.alpha)
+                        solver.alpha <span style="color: #f0c674;">*</span> solver.phase[i, j] <span style="color: #f0c674;">+</span>
+                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+                    ) <span style="color: #f0c674;">/</span> (bordernumber <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> solver.alpha)
 
-            <span style="color: #8959a8;">end</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+            <span style="color: #b294bb;">end</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 solver = relaxed_multi_solver(
     phase ,
     zeros(size(phase)) ,
     zeros(size(phase)) ,
     zeros(size(phase)) ,
     zeros(size(phase)) ,
-    <span style="color: #f5871f; font-weight: bold;">8e-3</span> ,<span style="color: #f5871f; font-weight: bold;">1e-3</span> , <span style="color: #f5871f; font-weight: bold;">1e-3</span> ,
+    <span style="color: #de935f; font-weight: bold;">8e-3</span> ,<span style="color: #de935f; font-weight: bold;">1e-3</span> , <span style="color: #de935f; font-weight: bold;">1e-3</span> ,
     W_prime ,
-    size(M , <span style="color: #f5871f; font-weight: bold;">1</span>) , size(M , <span style="color: #f5871f; font-weight: bold;">2</span>),
-    <span style="color: #f5871f; font-weight: bold;">1000001</span>
+    size(M , <span style="color: #de935f; font-weight: bold;">1</span>) , size(M , <span style="color: #de935f; font-weight: bold;">2</span>),
+    <span style="color: #de935f; font-weight: bold;">1000001</span>
 )
 set_xi_and_psi!(solver)
-elyps_solver!(solver , <span style="color: #f5871f; font-weight: bold;">2000</span>)
-SMOOTH!(solver, <span style="color: #f5871f; font-weight: bold;">1000</span>, <span style="color: #f5871f;">true</span>);
-p2 = heatmap(solver.phase, aspect_ratio=<span style="color: #f5871f;">:equal</span>, title=<span style="color: #718c00;">"with solving c"</span> , xlim=(<span style="color: #f5871f; font-weight: bold;">2</span>,SIZE) , ylim=(<span style="color: #f5871f; font-weight: bold;">2</span>,SIZE));
-savefig(p2,<span style="color: #718c00;">"images/smooth_relaxed.svg"</span>)
+elyps_solver!(solver , <span style="color: #de935f; font-weight: bold;">2000</span>)
+SMOOTH!(solver, <span style="color: #de935f; font-weight: bold;">1000</span>, <span style="color: #de935f;">true</span>);
+p2 = heatmap(solver.phase, aspect_ratio=<span style="color: #de935f;">:equal</span>, title=<span style="color: #b5bd68;">"with solving c"</span> , xlim=(<span style="color: #de935f; font-weight: bold;">2</span>,SIZE) , ylim=(<span style="color: #de935f; font-weight: bold;">2</span>,SIZE));
+savefig(p2,<span style="color: #b5bd68;">"images/smooth_relaxed.svg"</span>)
 </pre>
 </div>
 </div>
 </li>
 </ol>
 </div>
-<div id="outline-container-org92e1081" class="outline-4">
-<h4 id="org92e1081"><span class="section-number-4">5.1.3.</span> Relaxed V-cycle</h4>
-<div class="outline-text-4" id="text-5-1-3">
+<div id="outline-container-org59e9df0" class="outline-4">
+<h4 id="org59e9df0"><span class="section-number-4">4.1.3.</span> Relaxed V-cycle</h4>
+<div class="outline-text-4" id="text-4-1-3">
 <p>
-As The diffrence between both methods is abstracted away in the operators, the relaxed V-cycle Is Identical to its original counterpart. And therefore reused.
-testing:
+As The difference between both methods is abstracted away in the operators, the relaxed V-cycle Is Identical to its original counterpart. And therefore reused.
+Testing:
 </p>
+<div class="org-src-container">
+<pre class="src src-julia-vterm">
+set_xi_and_psi!(solver)
 
-<div id="orge4d4c72" class="figure">
+pbar = ProgressBar(total = <span style="color: #de935f; font-weight: bold;">1000</span>)
+
+anim = <span style="color: #c5c8c6; font-weight: bold;">@animate</span> <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">100</span>
+    elyps_solver!(solver , <span style="color: #de935f; font-weight: bold;">1000</span>)
+    <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">10</span>
+        v_cycle!(testgrd, <span style="color: #de935f; font-weight: bold;">1</span>)
+        update(pbar)
+        <span style="color: #b294bb;">end</span>
+    set_xi_and_psi!(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>])
+    heatmap(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>].phase , clim =(<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">1</span>) , framestyle=<span style="color: #de935f;">:none</span> )
+<span style="color: #b294bb;">end</span>
+gif(anim , <span style="color: #b5bd68;">"images/iteration_relaxed2.gif"</span> , fps = <span style="color: #de935f; font-weight: bold;">10</span>)
+</pre>
+</div>
+
+
+<div id="orgee16d64" class="figure">
 <p><img src="images/iteration_relaxed2.gif" alt="iteration_relaxed2.gif" />
 </p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-orge5371ba" class="outline-3">
-<h3 id="orge5371ba"><span class="section-number-3">5.2.</span> Elliptical PDE:</h3>
-<div class="outline-text-3" id="text-5-2">
+<div id="outline-container-orga6bdccd" class="outline-3">
+<h3 id="orga6bdccd"><span class="section-number-3">4.2.</span> Elliptical PDE:</h3>
+<div class="outline-text-3" id="text-4-2">
 <p>
 on order to solve the relaxed CH Equation the following PDE as to be solved in Each additional time step:
 or in terms of the characteristic function:
@@ -1369,14 +1169,14 @@ or in terms of the characteristic function:
 - \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha
 \end{align*}
 <p>
-Similarly to the first solver this PDE is solved with a finite difference scheme using the same discretisations as before:
+Similarly to the first solver this PDE is solved with a finite difference scheme using the same discretization as before:
 </p>
 </div>
-<div id="outline-container-orge4a059a" class="outline-4">
-<h4 id="orge4a059a"><span class="section-number-4">5.2.1.</span> Discretization</h4>
-<div class="outline-text-4" id="text-5-2-1">
+<div id="outline-container-org85ad083" class="outline-4">
+<h4 id="org85ad083"><span class="section-number-4">4.2.1.</span> Discretization</h4>
+<div class="outline-text-4" id="text-4-2-1">
 <p>
-the Discretization of the PDE expands the differential opperators in the same way and proposes an equivalent scheme for solving.
+the Discretization of the PIE expands the differential operators in the same way and proposes an equivalent scheme for solving.
 </p>
 \begin{align*}
 - \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
@@ -1400,18 +1200,18 @@ the Discretization of the PDE expands the differential opperators in the same wa
 
 
 <p>
-As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elyptical PDE can be stated as:
+As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 </p>
 \begin{align}
-\label{org17749d5}
+\label{org3ca23f2}
 -\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
 \end{align}
 </div>
 <ol class="org-ol">
-<li><a id="org888e61b"></a><span class="done DONE">DONE</span> Proposal1 Newton Solver<br />
-<div class="outline-text-5" id="text-5-2-1-1">
+<li><a id="org5e87a8f"></a><span class="done DONE">DONE</span> Proposal1 Newton Solver<br />
+<div class="outline-text-5" id="text-4-2-1-1">
 <p>
-And then we propose a simple newton Iteration to solve  \eqref{org17749d5}  for \( x = c^\alpha_{ij} \):
+And then we propose a simple newton Iteration to solve  \eqref{org3ca23f2}  for \( x = c^\alpha_{ij} \):
 Let \( F, dF \) be:
 </p>
 \begin{align*}
@@ -1429,14 +1229,14 @@ the implementation then is the following:
 </p>
 
 <p>
-as input we use :
+as input, we use :
 </p>
 </div>
 </li>
-<li><a id="org7cb97e0"></a>Proposal2  solver<br />
-<div class="outline-text-5" id="text-5-2-1-2">
+<li><a id="org7980e78"></a>Proposal2  solver<br />
+<div class="outline-text-5" id="text-4-2-1-2">
 <p>
-solving \eqref{org17749d5} for \(c_{ij}^\alpha \) then results in.
+solving \eqref{org3ca23f2} for \(c_{ij}^\alpha \) then results in.
 </p>
 \begin{align*}
 \left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
@@ -1445,53 +1245,32 @@ solving \eqref{org17749d5} for \(c_{ij}^\alpha \) then results in.
 and can be translated to code as follows
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="org8748d87"><span style="color: #8959a8;">using</span> ProgressBars
-
-<span style="color: #718c00;">"""</span>
-<span style="color: #718c00;">    elyps_solver(c,</span>
-<span style="color: #718c00;">    phase,</span>
-<span style="color: #718c00;">    len,</span>
-<span style="color: #718c00;">    width,</span>
-<span style="color: #718c00;">    alpha,</span>
-<span style="color: #718c00;">    h,</span>
-<span style="color: #718c00;">    n</span>
-<span style="color: #718c00;">)</span>
-
-<span style="color: #718c00;">TBW</span>
-<span style="color: #718c00;">"""</span>
-<span style="color: #8959a8;">function</span> <span style="color: #4271ae;">elyps_solver!</span>(solver<span style="color: #bb9200;">::relaxed_multi_solver</span>, n)
-    <span style="color: #8959a8;">for</span> k <span style="color: #8959a8;">in</span> <span style="color: #f5871f; font-weight: bold;">1</span>:n
-        <span style="color: #8959a8;">for</span> i <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">2</span>:(solver.len<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>)
-            <span style="color: #8959a8;">for</span> j <span style="color: #8959a8;">=</span> <span style="color: #f5871f; font-weight: bold;">2</span>:(solver.width<span style="color: #bb9200;">+</span><span style="color: #f5871f; font-weight: bold;">1</span>)
+<pre class="src src-julia" id="orgba6f3fe"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">elyps_solver!</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span>, n)
+    <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:n
+        <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.len<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
+            <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.width<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
                 bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)
                 solver.c[i, j] =
                     (
-                        solver.alpha <span style="color: #bb9200;">*</span> solver.phase[i, j] <span style="color: #bb9200;">+</span>
-                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span>
-                    ) <span style="color: #bb9200;">/</span> (bordernumber <span style="color: #bb9200;">/</span> solver.h<span style="color: #bb9200;">^</span><span style="color: #f5871f; font-weight: bold;">2</span> <span style="color: #bb9200;">+</span> solver.alpha)
+                        solver.alpha <span style="color: #f0c674;">*</span> solver.phase[i, j] <span style="color: #f0c674;">+</span>
+                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+                    ) <span style="color: #f0c674;">/</span> (bordernumber <span style="color: #f0c674;">/</span> solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">+</span> solver.alpha)
 
-            <span style="color: #8959a8;">end</span>
-        <span style="color: #8959a8;">end</span>
-    <span style="color: #8959a8;">end</span>
-<span style="color: #8959a8;">end</span>
+            <span style="color: #b294bb;">end</span>
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">end</span>
 </pre>
 </div>
-</div>
-</li>
-<li><a id="orgf7a223d"></a><span class="done DONE">DONE</span> Proposal 4<br />
-<div class="outline-text-5" id="text-5-2-1-3">
-<p>
-as the solver still exhibits unexpected behaviour, ie. it doesn&rsquo;t seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
-</p>
 </div>
 </li>
 </ol>
 </div>
 </div>
 </div>
-<div id="outline-container-orge57a709" class="outline-2">
-<h2 id="orge57a709"><span class="section-number-2">6.</span> References</h2>
-<div class="outline-text-2" id="text-6">
+<div id="outline-container-orgaf13637" class="outline-2">
+<h2 id="orgaf13637"><span class="section-number-2">5.</span> References</h2>
+<div class="outline-text-2" id="text-5">
 <style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Shin, Jaemin, Darae Jeong, and Junseok Kim. 2011. “A Conservative Numerical Method for the Cahn–Hilliard Equation in Complex Domains.” <i>Journal of Computational Physics</i> 230 (19): 7441–55. <a href="https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009">https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009</a>.</div>
   <div class="csl-entry"><a id="citeproc_bib_item_2"></a>Wu, Hao. 2022. “A Review on the Cahnhilliard Equation: Classical Results and Recent Advances in Dynamic Boundary Conditions.” <i>Electronic Research Archive</i> 30 (8): 2788–2832. <a href="https://doi.org/10.3934/era.2022143">https://doi.org/10.3934/era.2022143</a>.</div>
@@ -1501,7 +1280,7 @@ as the solver still exhibits unexpected behaviour, ie. it doesn&rsquo;t seem to 
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Jonathan Ulmer</p>
-<p class="date">Created: 2024-03-11 Mon 14:11</p>
+<p class="date">Created: 2024-03-12 Tue 20:53</p>
 </div>
 </body>
 </html>
