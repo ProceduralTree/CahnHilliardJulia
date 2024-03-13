@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-03-12 Tue 20:53 -->
+<!-- 2024-03-13 Wed 12:45 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bachelor Thesis</title>
@@ -234,23 +234,23 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org914b6ba">1. Cahn Hillard Equation Overview</a></li>
-<li><a href="#org8297123">2. Baseline Multigrid solver:</a></li>
-<li><a href="#org8984637">3. Numerical Evaluation</a></li>
-<li><a href="#orgd9e31bf">4. Relaxed Problem</a></li>
-<li><a href="#orgaf13637">5. References</a></li>
+<li><a href="#org8881833">1. Cahn Hillard Equation Overview</a></li>
+<li><a href="#org8ad943d">2. Baseline Multigrid solver:</a></li>
+<li><a href="#orgf1617b5">3. Numerical Evaluation</a></li>
+<li><a href="#org8eea65f">4. Relaxed Problem</a></li>
+<li><a href="#org282e7d0">5. References</a></li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org914b6ba" class="outline-2">
-<h2 id="org914b6ba"><span class="section-number-2">1.</span> Cahn Hillard Equation Overview</h2>
+<div id="outline-container-org8881833" class="outline-2">
+<h2 id="org8881833"><span class="section-number-2">1.</span> Cahn Hillard Equation Overview</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 Partial Differential Equation (PDE) solving the state of a two Phase Fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the Cahn Hillard Equation used for the remainder of this thesis is:
 where \( \phi\) is the so-called phase field. Demarking the different states of the fluids through an Interval \(I=[-1,1] \) and where \(\partial I = \{-1,1\} \) represents full state of one fluid. \(\varepsilon > 0 \) is a positive constant
 </p>
 \begin{align}
-\label{org793c8b3}
+\label{org27a8bf4}
 \phi _t(x,t) &= \Delta \mu \\
 \mu &= - \varepsilon^2 \Delta \phi   + W'(\phi)
 \end{align}
@@ -265,18 +265,18 @@ The Advantages of the Cahn Hillard Approach as compared to traditional fluid dyn
 In practice it enables linear interpolation between different formulas on different phases
 </p>
 </div>
-<div id="outline-container-orgb9b7b9f" class="outline-3">
-<h3 id="orgb9b7b9f"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
+<div id="outline-container-org8335a57" class="outline-3">
+<h3 id="org8335a57"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
 <div class="outline-text-3" id="text-1-1">
 </div>
-<div id="outline-container-org58e8019" class="outline-4">
-<h4 id="org58e8019"><span class="section-number-4">1.1.1.</span> Free energy</h4>
+<div id="outline-container-org1217d39" class="outline-4">
+<h4 id="org1217d39"><span class="section-number-4">1.1.1.</span> Free energy</h4>
 <div class="outline-text-4" id="text-1-1-1">
 <p>
 The Cahn Hillard Equations can be motivated Using a <b>Ginzburg Landau</b> type free energy equation:
 </p>
 \begin{align*}
-\label{org278616c}
+\label{org113704d}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
 <p>
@@ -291,19 +291,19 @@ The chemical potential then follows as derivative of Energy in respect to time.
 \end{align*}
 </div>
 </div>
-<div id="outline-container-org4d0910b" class="outline-4">
-<h4 id="org4d0910b"><span class="section-number-4">1.1.2.</span> <span class="todo TODO">TODO</span> Derivation by mass balance</h4>
+<div id="outline-container-org15fd01e" class="outline-4">
+<h4 id="org15fd01e"><span class="section-number-4">1.1.2.</span> <span class="todo TODO">TODO</span> Derivation by mass balance</h4>
 <div class="outline-text-4" id="text-1-1-2">
 <p>
 We motivate the Cahn Hillard equation as follows:
 consider
 </p>
 \begin{equation}
-\label{org007c7ae}
+\label{orgdfe207e}
     \partial_t \phi + \nabla J = 0
 \end{equation}
 <p>
-where <b>J</b> is mass flux. \eqref{org007c7ae} then states that the change in mass balances the change of the phase field.
+where <b>J</b> is mass flux. \eqref{orgdfe207e} then states that the change in mass balances the change of the phase field.
 Using the no-flux boundary conditions:
 </p>
 \begin{align}
@@ -342,15 +342,15 @@ hence the Free Energy is decreasing in time.
 </div>
 </div>
 </div>
-<div id="outline-container-org8297123" class="outline-2">
-<h2 id="org8297123"><span class="section-number-2">2.</span> Baseline Multigrid solver:</h2>
+<div id="outline-container-org8ad943d" class="outline-2">
+<h2 id="org8ad943d"><span class="section-number-2">2.</span> Baseline Multigrid solver:</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 As baseline for further experiments we use a two grid method based on finite differences by(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
 </p>
 </div>
-<div id="outline-container-orgbf69217" class="outline-3">
-<h3 id="orgbf69217"><span class="section-number-3">2.1.</span> Discretization:</h3>
+<div id="outline-container-orgc1e9a86" class="outline-3">
+<h3 id="orgc1e9a86"><span class="section-number-3">2.1.</span> Discretization:</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 it discretizes the phasefield and potential energy \( \phi, \mu \) into a grid wise functions \(\phi_{ij}, \mu_{ij} \) and defines the partial derivatives \( D_xf_{ij}, \ D_yf_{ij} \) using the differential quotients:
@@ -362,7 +362,7 @@ D_xf_{i+\frac{1}{2} j} &= \frac{f_{i+1j} - f_{ij}}{h} & D_yf_{ij+\frac{1}{2}} &=
 for \( \nabla f, \Delta f \) then follows:
 </p>
 \begin{align*}
-\label{org0636f83}
+\label{orgf9ba54c}
 \nabla_d f_{ij} &= (D_x f_{i+1j} , \ D_y f_{ij+1}) \\
  \Delta_d f_{ij} &= \frac{D_x f_{i+\frac{1}{2}j} -  D_x f_{i-\frac{1}{2}j} + D_y f_{ij+\frac{1}{2}} - D_y f_{ij-\frac{1}{2}}}{h} = \nabla_d \cdot  \nabla_d f_{ij}
 \end{align*}
@@ -445,7 +445,7 @@ The authors (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) then 
 </p>
 
 \begin{align}
-\label{org721eaad}
+\label{org0a9e81c}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
  \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
 \end{align}
@@ -454,8 +454,8 @@ and derive from these implicit equations a numerical scheme.
 </p>
 </div>
 </div>
-<div id="outline-container-orge95991f" class="outline-3">
-<h3 id="orge95991f"><span class="section-number-3">2.2.</span> adaptations to the simplified problem</h3>
+<div id="outline-container-org35b04fd" class="outline-3">
+<h3 id="org35b04fd"><span class="section-number-3">2.2.</span> adaptations to the simplified problem</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
@@ -492,8 +492,8 @@ G_{ij} &=
 </div>
 </div>
 </div>
-<div id="outline-container-org3f17583" class="outline-3">
-<h3 id="org3f17583"><span class="section-number-3">2.3.</span> PDE as Operator</h3>
+<div id="outline-container-orga198e33" class="outline-3">
+<h3 id="orga198e33"><span class="section-number-3">2.3.</span> PDE as Operator</h3>
 <div class="outline-text-3" id="text-2-3">
 <p>
 and derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)
@@ -525,7 +525,7 @@ L
 </pre>
 </div>
 <p>
-this operator follows from \eqref{org721eaad} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \) respectively.
+this operator follows from \eqref{org0a9e81c} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \) respectively.
 </p>
 \begin{align*}
 \begin{pmatrix}
@@ -576,8 +576,8 @@ DL\begin{pmatrix}
 </div>
 </div>
 </div>
-<div id="outline-container-org8b3f7ff" class="outline-3">
-<h3 id="org8b3f7ff"><span class="section-number-3">2.4.</span> v-cycle</h3>
+<div id="outline-container-org212f0bf" class="outline-3">
+<h3 id="org212f0bf"><span class="section-number-3">2.4.</span> v-cycle</h3>
 <div class="outline-text-3" id="text-2-4">
 <p>
 The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) of a V-cycle multigrid method derived from previously stated operators. Specificly we use a two grid implementation consisting of
@@ -649,7 +649,7 @@ The v-cycle of a two grid method  using pre and post smoothing is then stated by
 So let&rsquo;s take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
 </p>
 
-<div id="orge26250d" class="figure">
+<div id="org6925d3d" class="figure">
 <p><img src="images/v_cycle.svg" alt="v_cycle.svg" class="org-svg" />
 </p>
 </div>
@@ -677,14 +677,14 @@ gif(anim , <span style="color: #b5bd68;">"images/iteration.gif"</span> , fps = <
 </div>
 
 
-<div id="orga91ec33" class="figure">
+<div id="org3342b3f" class="figure">
 <p><img src="images/iteration.gif" alt="iteration.gif" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-orgba8a8e7" class="outline-3">
-<h3 id="orgba8a8e7"><span class="section-number-3">2.5.</span> SMOOTH Operator</h3>
+<div id="outline-container-org0cc551a" class="outline-3">
+<h3 id="org0cc551a"><span class="section-number-3">2.5.</span> SMOOTH Operator</h3>
 <div class="outline-text-3" id="text-2-5">
 <p>
 (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)derive Gaus-Seidel Smoothing by:
@@ -712,7 +712,7 @@ SMOOTH
 and we implement it as
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="orgbc53faa"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
+<pre class="src src-julia" id="org5f8ef35"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
     solver<span style="color: #f0c674;">::multi_solver</span>,
     iterations,
     adaptive
@@ -763,20 +763,20 @@ and we implement it as
 </div>
 
 
-<div id="org270a9b2" class="figure">
+<div id="org18bdde0" class="figure">
 <p><img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-org8d14d9c" class="outline-3">
-<h3 id="org8d14d9c"><span class="section-number-3">2.6.</span> Test Data:</h3>
+<div id="outline-container-org53d1643" class="outline-3">
+<h3 id="org53d1643"><span class="section-number-3">2.6.</span> Test Data:</h3>
 <div class="outline-text-3" id="text-2-6">
 <p>
 For testing and later training we use a multitude o different phase fields. Notably an assortment of randomly placed circles, squares, and arbitrary generated values
 </p>
 
-<table id="org0ff5359" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+<table id="orga9e86e2" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
 <colgroup>
@@ -821,7 +821,7 @@ For testing and later training we use a multitude o different phase fields. Nota
 </table>
 
 <div class="org-src-container">
-<pre class="src src-julia" id="orgd6e78a3"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">testdata</span>(gridsize , blobs , radius ,norm)
+<pre class="src src-julia" id="orgd0c2985"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">testdata</span>(gridsize , blobs , radius ,norm)
 rngpoints = rand(<span style="color: #de935f; font-weight: bold;">1</span>:gridsize, <span style="color: #de935f; font-weight: bold;">2</span>, blobs)
 M = zeros(gridsize,gridsize) .<span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">1</span>
 <span style="color: #b294bb;">for</span> p <span style="color: #b294bb;">in</span> axes(rngpoints , <span style="color: #de935f; font-weight: bold;">2</span>)
@@ -838,7 +838,7 @@ M
 </div>
 
 
-<div id="org5074efd" class="figure">
+<div id="org79054b6" class="figure">
 <p><img src="testdata.svg" alt="testdata.svg" class="org-svg" />
 </p>
 <p><span class="figure-number">Figure 1: </span>Examples of different phasefields used as initial condition later on</p>
@@ -846,15 +846,15 @@ M
 </div>
 </div>
 </div>
-<div id="outline-container-org8984637" class="outline-2">
-<h2 id="org8984637"><span class="section-number-2">3.</span> Numerical Evaluation</h2>
+<div id="outline-container-orgf1617b5" class="outline-2">
+<h2 id="orgf1617b5"><span class="section-number-2">3.</span> Numerical Evaluation</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-The analytical Chan-Hilliard equation exhibits mass conservation \eqref{org007c7ae} and a decrease in Energy \( E_{bulk} \) \eqref{org278616c}. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with potential Energy \( \mu \), we evaluate this difference as quality of convergence.
+The analytical Chan-Hilliard equation exhibits mass conservation \eqref{orgdfe207e} and a decrease in Energy \( E_{bulk} \) \eqref{org113704d}. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with potential Energy \( \mu \), we evaluate this difference as quality of convergence.
 </p>
 </div>
-<div id="outline-container-org7f00e51" class="outline-3">
-<h3 id="org7f00e51"><span class="section-number-3">3.1.</span> Energy Evaluations</h3>
+<div id="outline-container-org33a591d" class="outline-3">
+<h3 id="org33a591d"><span class="section-number-3">3.1.</span> Energy Evaluations</h3>
 <div class="outline-text-3" id="text-3-1">
 <p>
 As discrete energy measure we use
@@ -879,8 +879,8 @@ E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{
 </div>
 </div>
 </div>
-<div id="outline-container-org648d9ff" class="outline-3">
-<h3 id="org648d9ff"><span class="section-number-3">3.2.</span> Massbalance</h3>
+<div id="outline-container-orgb766cb8" class="outline-3">
+<h3 id="orgb766cb8"><span class="section-number-3">3.2.</span> Massbalance</h3>
 <div class="outline-text-3" id="text-3-2">
 <p>
 we calculate mass balance as:
@@ -893,18 +893,18 @@ such that \( b = 1 \) means there is only phase one \( \phi \equiv 1 \) and \( b
 </p>
 </div>
 </div>
-<div id="outline-container-orgd945418" class="outline-3">
-<h3 id="orgd945418"><span class="section-number-3">3.3.</span> Tests</h3>
+<div id="outline-container-org32f6cfb" class="outline-3">
+<h3 id="org32f6cfb"><span class="section-number-3">3.3.</span> Tests</h3>
 </div>
 </div>
-<div id="outline-container-orgd9e31bf" class="outline-2">
-<h2 id="orgd9e31bf"><span class="section-number-2">4.</span> Relaxed Problem</h2>
+<div id="outline-container-org8eea65f" class="outline-2">
+<h2 id="org8eea65f"><span class="section-number-2">4.</span> Relaxed Problem</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 In effort to decrease the order of complexity, we propose the following relaxation to the classical Cahn Hillard Equation:
 </p>
 \begin{align}
-\label{orgf123ba3}
+\label{orgbba3da1}
 \partial_t \phi^\alpha  &= \Delta \mu \\
 \mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
 \end{align}
@@ -919,24 +919,24 @@ this in turn requires solving an additional PDE each time-step to calculate \(c\
 As ansatz for the numerical solver we propose
 </p>
 \begin{align}
-\label{org4e2aad8}
+\label{orgd52a361}
 \frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \\
  \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
 \end{align}
 <p>
-this approach is inspired by \eqref{org4e2aad8} adapted to the relaxed Cahn-Hiliard equation \eqref{orgf123ba3}.
+this approach is inspired by \eqref{orgd52a361} adapted to the relaxed Cahn-Hiliard equation \eqref{org0a9e81c}.
 </p>
 </div>
-<div id="outline-container-org02bb484" class="outline-3">
-<h3 id="org02bb484"><span class="section-number-3">4.1.</span> relaxed operators:</h3>
+<div id="outline-container-org53c7b6d" class="outline-3">
+<h3 id="org53c7b6d"><span class="section-number-3">4.1.</span> relaxed operators:</h3>
 <div class="outline-text-3" id="text-4-1">
 <p>
-we then adapt the multi-grid solver proposed earlier to the relaxed Problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org0636f83},
-and expand them
+we then adapt the multi-grid solver proposed earlier to the relaxed Problem by replacing the differential operators by their discrete counterparts as defined in \eqref{orgf9ba54c},
+and expand the m
 </p>
 </div>
-<div id="outline-container-org115b352" class="outline-4">
-<h4 id="org115b352"><span class="section-number-4">4.1.1.</span> L Relaxed</h4>
+<div id="outline-container-org816e9ab" class="outline-4">
+<h4 id="org816e9ab"><span class="section-number-4">4.1.1.</span> L Relaxed</h4>
 <div class="outline-text-4" id="text-4-1-1">
 <p>
 for the reformulation of the iteration in terms of Operator \(L\) then follows:
@@ -986,8 +986,8 @@ DL\begin{pmatrix}
 </div>
 </div>
 </div>
-<div id="outline-container-orgd5d47f8" class="outline-4">
-<h4 id="orgd5d47f8"><span class="section-number-4">4.1.2.</span> SMOOTH</h4>
+<div id="outline-container-org57926b7" class="outline-4">
+<h4 id="org57926b7"><span class="section-number-4">4.1.2.</span> SMOOTH</h4>
 <div class="outline-text-4" id="text-4-1-2">
 <p>
 and correspondingly the SMOOTH operation expands to:
@@ -997,16 +997,13 @@ SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \ze
 \end{align*}
 
 \begin{align}
-\label{orgdd91d06}
+\label{org3dc2a52}
   -\frac{\Sigma_G}{h^2}\overline{\mu}^{n + \frac{1}{2},m,\alpha}_{ji} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
  \varepsilon ^2 \alpha \overline{\phi} ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha}
 \end{align}
-</div>
-<ol class="org-ol">
-<li><a id="org30e20c0"></a>Proposal2<br />
-<div class="outline-text-5" id="text-4-1-2-1">
+
 <p>
-solve for \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) as the there required System of linear equations was solved numerically. The relaxation simplifies it to one dimension, and enables explicit solutions:
+we then solve directly for \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) as the there required System of linear equations was solved numerically. The relaxation simplifies it to one dimension, and enables explicit solutions:
 </p>
 \begin{align*}
 \varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
@@ -1027,7 +1024,7 @@ solve for \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n
 solved for \( \phi_{ij}^{n+1\alpha}\) the Smoothing Operator then follows:
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="org90d12a0"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
+<pre class="src src-julia" id="org8790a14"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">SMOOTH!</span>(
     solver<span style="color: #f0c674;">::relaxed_multi_solver</span>,
     iterations,
     adaptive
@@ -1121,14 +1118,12 @@ savefig(p2,<span style="color: #b5bd68;">"images/smooth_relaxed.svg"</span>)
 </pre>
 </div>
 </div>
-</li>
-</ol>
 </div>
-<div id="outline-container-org59e9df0" class="outline-4">
-<h4 id="org59e9df0"><span class="section-number-4">4.1.3.</span> Relaxed V-cycle</h4>
+<div id="outline-container-org0590255" class="outline-4">
+<h4 id="org0590255"><span class="section-number-4">4.1.3.</span> Relaxed V-cycle</h4>
 <div class="outline-text-4" id="text-4-1-3">
 <p>
-As The difference between both methods is abstracted away in the operators, the relaxed V-cycle Is Identical to its original counterpart. And therefore reused.
+As The difference between both methods is abstracted away in the operators, the relaxed V-cycle Is Identical to its original counterpart. And therefore reused. When solving the only additional step is solving the elliptical equation
 Testing:
 </p>
 <div class="org-src-container">
@@ -1151,15 +1146,15 @@ gif(anim , <span style="color: #b5bd68;">"images/iteration_relaxed2.gif"</span> 
 </div>
 
 
-<div id="orgee16d64" class="figure">
+<div id="org649ad37" class="figure">
 <p><img src="images/iteration_relaxed2.gif" alt="iteration_relaxed2.gif" />
 </p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-orga6bdccd" class="outline-3">
-<h3 id="orga6bdccd"><span class="section-number-3">4.2.</span> Elliptical PDE:</h3>
+<div id="outline-container-org881c384" class="outline-3">
+<h3 id="org881c384"><span class="section-number-3">4.2.</span> Elliptical PDE:</h3>
 <div class="outline-text-3" id="text-4-2">
 <p>
 on order to solve the relaxed CH Equation the following PDE as to be solved in Each additional time step:
@@ -1172,8 +1167,8 @@ or in terms of the characteristic function:
 Similarly to the first solver this PDE is solved with a finite difference scheme using the same discretization as before:
 </p>
 </div>
-<div id="outline-container-org85ad083" class="outline-4">
-<h4 id="org85ad083"><span class="section-number-4">4.2.1.</span> Discretization</h4>
+<div id="outline-container-orgcd0fa64" class="outline-4">
+<h4 id="orgcd0fa64"><span class="section-number-4">4.2.1.</span> Discretization</h4>
 <div class="outline-text-4" id="text-4-2-1">
 <p>
 the Discretization of the PIE expands the differential operators in the same way and proposes an equivalent scheme for solving.
@@ -1203,15 +1198,15 @@ the Discretization of the PIE expands the differential operators in the same way
 As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 </p>
 \begin{align}
-\label{org3ca23f2}
+\label{org62b360a}
 -\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
 \end{align}
 </div>
 <ol class="org-ol">
-<li><a id="org5e87a8f"></a><span class="done DONE">DONE</span> Proposal1 Newton Solver<br />
+<li><a id="orgb13e238"></a><span class="done DONE">DONE</span> Proposal1 Newton Solver<br />
 <div class="outline-text-5" id="text-4-2-1-1">
 <p>
-And then we propose a simple newton Iteration to solve  \eqref{org3ca23f2}  for \( x = c^\alpha_{ij} \):
+And then we propose a simple newton Iteration to solve  \eqref{org62b360a}  for \( x = c^\alpha_{ij} \):
 Let \( F, dF \) be:
 </p>
 \begin{align*}
@@ -1233,10 +1228,10 @@ as input, we use :
 </p>
 </div>
 </li>
-<li><a id="org7980e78"></a>Proposal2  solver<br />
+<li><a id="orgbb01d80"></a>Proposal2  solver<br />
 <div class="outline-text-5" id="text-4-2-1-2">
 <p>
-solving \eqref{org3ca23f2} for \(c_{ij}^\alpha \) then results in.
+solving \eqref{org62b360a} for \(c_{ij}^\alpha \) then results in.
 </p>
 \begin{align*}
 \left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
@@ -1245,7 +1240,7 @@ solving \eqref{org3ca23f2} for \(c_{ij}^\alpha \) then results in.
 and can be translated to code as follows
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="orgba6f3fe"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">elyps_solver!</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span>, n)
+<pre class="src src-julia" id="org6ea4e11"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">elyps_solver!</span>(solver<span style="color: #f0c674;">::relaxed_multi_solver</span>, n)
     <span style="color: #b294bb;">for</span> k <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:n
         <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.len<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
             <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">2</span>:(solver.width<span style="color: #f0c674;">+</span><span style="color: #de935f; font-weight: bold;">1</span>)
@@ -1268,8 +1263,8 @@ and can be translated to code as follows
 </div>
 </div>
 </div>
-<div id="outline-container-orgaf13637" class="outline-2">
-<h2 id="orgaf13637"><span class="section-number-2">5.</span> References</h2>
+<div id="outline-container-org282e7d0" class="outline-2">
+<h2 id="org282e7d0"><span class="section-number-2">5.</span> References</h2>
 <div class="outline-text-2" id="text-5">
 <style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Shin, Jaemin, Darae Jeong, and Junseok Kim. 2011. “A Conservative Numerical Method for the Cahn–Hilliard Equation in Complex Domains.” <i>Journal of Computational Physics</i> 230 (19): 7441–55. <a href="https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009">https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009</a>.</div>
@@ -1280,7 +1275,7 @@ and can be translated to code as follows
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Jonathan Ulmer</p>
-<p class="date">Created: 2024-03-12 Tue 20:53</p>
+<p class="date">Created: 2024-03-13 Wed 12:45</p>
 </div>
 </body>
 </html>
