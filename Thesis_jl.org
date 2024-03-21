@@ -3,6 +3,8 @@
 #+property: header-args:python :noweb strip-export
 #+options:  toc:1
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
+#+PROPERTY: header-args:julia :output-dir images
+ This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extraxt the code to be used independantly. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
 * Utility functions :noexport:
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
@@ -10,11 +12,11 @@ using Plots
 using LinearAlgebra
 #+end_src
 
-#+begin_src julia :tangle multisolver.jl :eval never
-include(pwd() * "/" * "utils.jl")
+#+begin_src julia :tangle src/multisolver.jl :eval never
+include(pwd() * "/src/" * "utils.jl")
 #+end_src
 
-#+begin_src  julia :tangle utils.jl :eval never
+#+begin_src  julia :tangle src/utils.jl :eval never
 ###############################################################################
 #                  Common Utility Functions For Multi Solvers                 #
 ###############################################################################
@@ -165,7 +167,7 @@ Returns
     nothing. mutatest largegid in place to represent the smallgrid
 
 """
-function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:Union{multi_solver,relaxed_multi_solver}}
+function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:Union{multi_solver,relaxed_multi_solver, adapted_multi_solver}}
     copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
     copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
@@ -174,8 +176,8 @@ end
 
 #+name: setup-grid
 #+begin_src julia :eval never
-include(pwd() * "/" * "utils.jl")
-include(pwd() * "/" * "multisolver.jl")
+include(pwd() * "/src/" * "utils.jl")
+include(pwd() * "/src/" * "multisolver.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -188,10 +190,10 @@ solver = testgrd[1]
 
 #+name: setup-relaxed-grid
 #+begin_src julia :eval never
-include(pwd() * "/" * "utils.jl")
-include(pwd() * "/" * "multisolver.jl")
-include(pwd() * "/" * "multi_relaxed.jl")
-include(pwd() * "/" * "elypssolver.jl")
+include(pwd() * "/src/" * "utils.jl")
+include(pwd() * "/src/" * "multisolver.jl")
+include(pwd() * "/src/" * "multi_relaxed.jl")
+include(pwd() * "/src/" * "elypssolver.jl")
 using Plots
 using LinearAlgebra
 using ProgressBars
@@ -314,7 +316,7 @@ To simplify notation we use the following abbreviations:
 | \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \) | ~discrete_weigted_neigbour_sum(i,j,...)~ |
 | \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)                                                                                                                              | ~neighbours_in_domain(i,j,G)~            |
 |                                                                                                                                                                                                                              |                                        |
-#+begin_src julia :tangle utils.jl :eval never
+#+begin_src julia :tangle src/utils.jl :eval never
 function neighbours_in_domain(i, j, G, len, width)
     (
         G(i + 0.5, j, len, width)
@@ -361,7 +363,7 @@ G_{ij} &=
 \end{cases}
 \end{align*}
 
-#+begin_src julia :tangle utils.jl :eval never :exports none
+#+begin_src julia :tangle src/utils.jl :eval never :exports none
 """
 Boundry indicator function
 
@@ -370,7 +372,7 @@ Returns
 1 if index i,j is in bounds(without padding) and 0 else
 """
 #+end_src
-#+begin_src julia :tangle utils.jl :eval never
+#+begin_src julia :tangle src/utils.jl :eval never
 function G(i, j, len, width)
     if 2 <= i <= len + 1 && 2 <= j <= width + 1
         return 1.0
@@ -393,7 +395,7 @@ L
 \varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{ij}^{n+1}) - 2\phi_{ij}^{n+1} + \mu_{ij}^{n+\frac{1}{2}}
 \end{pmatrix}
 \end{align*}
-#+begin_src julia :tangle multisolver.jl :eval never
+#+begin_src julia :tangle src/multisolver.jl :eval never
 function L(solver::multi_solver,i,j , phi , mu)
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
@@ -420,7 +422,7 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{pmatrix}
 \end{align*}
 Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \). We compute those values  once for every time step, and store them in the solver.
-#+begin_src julia :tangle utils.jl :eval never
+#+begin_src julia :tangle src/utils.jl :eval never
 function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
@@ -442,7 +444,7 @@ DL\begin{pmatrix}
 -\frac{\varepsilon^2}{h^2}\Sigma_{G} - 2 & 1
 \end{pmatrix}
 \end{align*}
-#+begin_src julia :tangle multisolver.jl :eval never
+#+begin_src julia :tangle src/multisolver.jl :eval never
 function dL(solver::multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
@@ -455,8 +457,8 @@ The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle mult
 3. a Newton iteration to solve \( L(x,y)_H = L(\bar{x} , \bar{y}) + (d_h , r_h) \).
 
 The V-cycle of a two-grid method using pre and post smoothing is then stated by:
-#+begin_src julia :tangle multisolver.jl :eval never
-function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver}
+#+begin_src julia :tangle src/multisolver.jl :eval never
+function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver, adapted_multi_solver}
 
     solver = grid[level]
     #pre SMOOTHing:
@@ -508,7 +510,7 @@ function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed
 end
 #+end_src
 So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
-#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb strip-export :async t :exports results :output-dir images  :tangle plot.Jr :session Jr
+#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb strip-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
 <<setup-grid>>
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
@@ -574,7 +576,7 @@ savefig(p, "images/v_cycle.svg")
 
 After a few iterations, V-cycle exhibits the following behavior:
 
-#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports both :output-dir images  :tangle plot.jl :session jl :eval never-export
+#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
 <<setup-grid>>
 set_xi_and_psi!(solver)
 
@@ -615,12 +617,12 @@ SMOOTH( \phi^{n+1,m}_{ij}, \mu^{n + \frac{1}{2},m}_{ji}, L_h , \zeta^n , \psi^n 
 \end{align}
 and we implement it as
 #+name:SMOOTH
-#+begin_src julia :tangle multisolver.jl :eval never
+#+begin_src julia :tangle src/multisolver.jl :eval never
 function SMOOTH!(
-    solver::multi_solver,
+    solver::T,
     iterations,
     adaptive
-)
+) where T <: Union{multi_solver, adapted_multi_solver}
     for k = 1:iterations
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
@@ -687,7 +689,7 @@ For testing and later training we use a multitude of different phase-fields, not
 |  512 |    20 |       50 |    2 |
 
 #+name: testdata
-#+begin_src julia :eval never :tangle utils.jl
+#+begin_src julia :eval never :tangle src/utils.jl
 function testdata(gridsize , blobs , radius ,norm)
 rngpoints = rand(1:gridsize, 2, blobs)
 M = zeros(gridsize,gridsize) .- 1
@@ -728,7 +730,7 @@ As discrete energy measure we use:
 E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{ij} |^2 + W\left(\phi_{ij}\right) \, dx \\
 &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right) \, dx \\
 \end{align*}
-#+begin_src julia :tangle utils.jl :eval never
+#+begin_src julia :tangle src/utils.jl :eval never
 function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     energy = 0
     dx = CartesianIndex(1,0)
@@ -755,7 +757,7 @@ such that \( b = 1 \) means there is only phase 1, \( \phi \equiv 1 \), and \( b
 ** Tests
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
-#+name: elliptical-equation
+#+name: eq:elliptical-equation
 \begin{align*}
 - \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha
 \end{align*}
@@ -799,7 +801,7 @@ L
 \end{pmatrix}
 \end{align*}
 
-#+begin_src julia :tangle multi_relaxed.jl :eval never
+#+begin_src julia :tangle src/multi_relaxed.jl :eval never
 function L(solver::relaxed_multi_solver,i,j , phi , mu)
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
@@ -819,7 +821,7 @@ DL\begin{pmatrix}
 - \varepsilon^2 \alpha  - 2 & 1
 \end{pmatrix}
 \end{align*}
-#+begin_src julia :tangle multi_relaxed.jl :eval never
+#+begin_src julia :tangle src/multi_relaxed.jl :eval never
 function dL(solver::relaxed_multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
              (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
@@ -856,7 +858,7 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
  \phi^\alpha &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
 \end{align*}
 #+name: SMOOTH_relaxed
-#+begin_src julia :eval never :tangle multi_relaxed.jl :file f.jl
+#+begin_src julia :eval never :tangle src/multi_relaxed.jl :file f.jl
 function SMOOTH!(
     solver::relaxed_multi_solver,
     iterations,
@@ -887,7 +889,7 @@ end
 using Plots
 using LaTeXStrings
 using LinearAlgebra
-include(pwd() *"/utils.jl")
+include(pwd() *"/src/utils.jl")
 <<SMOOTH_relaxed>>
 SIZE =64
 M = testdata(SIZE, 5 , 8, 2);
@@ -992,7 +994,7 @@ solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
 \end{align*}
 and can be translated to code as follows
-#+begin_src julia :eval never :tangle elypssolver.jl :exports none
+#+begin_src julia :eval never :tangle src/elypssolver.jl :exports none
 using ProgressBars
 
 """
@@ -1009,7 +1011,7 @@ TBW
 """
 #+end_src
 #+name: elyps_solver
-#+begin_src julia :eval never :tangle elypssolver.jl
+#+begin_src julia :eval never :tangle src/elypssolver.jl
 function elyps_solver!(solver::relaxed_multi_solver, n)
     for k in 1:n
         for i = 2:(solver.len+1)
@@ -1029,6 +1031,8 @@ end
 **** DONE Proposal 4 :noexport:
 as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
 
+* Technical details
+We are writing this thesis in org-mode file format.
 * References
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization

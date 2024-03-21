@@ -45,6 +45,17 @@ B(x,t)=
 0 \,, x \in \overline{\Omega}^C \\
 \end{cases}
 \end{equation}
+#+begin_src julia :tangle src/adapted_multisolver.jl
+function B(I::CartesianIndex,shape::Tuple)
+    laplace = 1
+    for (i,s) in zip(I.I , shape)
+        if i == s || i == 2
+            return laplace
+        end
+    end
+    return 0
+end
+#+end_src
 We then state the adapted approach as:
 #+name: eq:adapted-ansatz
 \begin{equation}
@@ -67,6 +78,135 @@ L
 \varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{ij}^{n+1}) - 2\phi_{ij}^{n+1} + \mu_{ij}^{n+\frac{1}{2}}
 \end{pmatrix}
 \end{align*}
+Notably the implicit part stayed the same as in[cite:@Ulmer_CHRelaxed_2024] and we reuse it.
+#+begin_src julia :tangle src/adapted_multisolver.jl :eval never
+function L(solver::adapted_multi_solver,i,j , phi , mu)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
+    psi = solver.epsilon^2/solver.h^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
+           -
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
+    return [xi, psi]
+end
+#+end_src
+while the explicit part now accommodates for thee additional boundary function.
 
+\begin{align*}
+\begin{pmatrix}
+\zeta^n
+ \\
+\psi^n
+\end{pmatrix}
+&=
+\begin{pmatrix}
+\frac{\phi_{ij}^{n}}{\Delta t}\\
+W'(\phi_{ij}^n) - 2\phi_{ij}^n + B_{ij}
+\end{pmatrix}
+\end{align*}
+#+begin_src julia :tangle src/adapted_multisolver.jl
+function set_xi_and_psi!(solver::T) where T <: Union{adapted_multi_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1]) + B.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
+    return nothing
+end
+#+end_src
+
+\begin{align*}
+DL\begin{pmatrix}
+\phi \\
+\mu
+\end{pmatrix} &= \begin{pmatrix}
+\frac{1}{\Delta t} & \frac{1}{h^2}\Sigma_{G}  \\
+-\frac{\varepsilon^2}{h^2}\Sigma_{G} - 2 & 1
+\end{pmatrix}
+\end{align*}
+#+begin_src julia :tangle src/adapted_multisolver.jl :eval never
+function dL(solver::adapted_multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
+    end
+#+end_src
+
+testing this adaptation yields
+#+begin_src julia-vterm :noweb yes :session jl
+<<setup-adapted-grid>>
+set_xi_and_psi!(solver)
+
+pbar = ProgressBar(total = 1000)
+
+anim = @animate for i in 1:100
+    for j in 1:10
+        v_cycle!(testgrd, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(testgrd[1])
+    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
+end
+gif(anim , "images/iteration_boundary.gif" , fps = 10)
+#+end_src
+
+#+RESULTS:
+: LoadError: UndefVarError: `adaptive` not defined
+: in expression starting at /tmp/babel-G3Ko6u/julia-vterm-src-kxlQ0C:18
+
+* Utility
+#+begin_src julia :tangle src/adapted_utils.jl :eval never
+struct adapted_multi_solver
+    phase::Matrix{Float64}
+    potential::Matrix{Float64}
+    xi::Matrix{Float64}
+    psi::Matrix{Float64}
+    epsilon::Float64
+    h::Float64
+    dt::Float64
+    W_prime::Function
+    len::Int
+    width::Int
+
+end
+
+function adapted_testgrid(M, len)
+    grid = Array{adapted_multi_solver}(undef, len)
+    phase = zeros(size(M) .+ 2)
+    phase[2:end-1, 2:end-1] = M
+    W_prime(x) = -x * (1 - x^2)
+    h0 = 3e-3
+
+    for i = 1:len
+        grid[i] = adapted_multi_solver(zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            8e-3, h0 * 2^i, 1e-3,
+            W_prime,
+            size(M, 1) ÷ i, size(M, 2) ÷ i
+            )
+
+    end
+    copyto!(grid[1].phase, phase)
+    return grid
+end
+#+end_src
+#+name: setup-adapted-grid
+#+begin_src julia :eval never
+include(pwd() * "/src/" * "utils.jl")
+include(pwd() * "/src/" * "multisolver.jl")
+include(pwd() * "/src/" * "adapted_multisolver.jl")
+include(pwd() * "/src/" * "adapted_utils.jl")
+using Plots
+using LaTeXStrings
+using LinearAlgebra
+using Printf
+using ProgressBars
+M = testdata(256, 10, 50 , 2)
+
+testgrd = adapted_testgrid(M, 2)
+solver = testgrd[1]
+#+end_src
 * References
 #+PRINT_BIBLIOGRAPHY:
