@@ -133,7 +133,7 @@ function dL(solver::adapted_multi_solver , i , j)
 #+end_src
 
 testing this adaptation yields
-#+begin_src julia-vterm :noweb yes :session jl
+#+begin_src julia-vterm :noweb yes :session jl :results file graphics :file iteration_boundary.gif :output-dir images
 <<setup-adapted-grid>>
 set_xi_and_psi!(solver)
 
@@ -151,8 +151,6 @@ gif(anim , "images/iteration_boundary.gif" , fps = 10)
 #+end_src
 
 #+RESULTS:
-: LoadError: UndefVarError: `adaptive` not defined
-: in expression starting at /tmp/babel-G3Ko6u/julia-vterm-src-kxlQ0C:18
 
 * Utility
 #+begin_src julia :tangle src/adapted_utils.jl :eval never
@@ -203,7 +201,7 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-M = testdata(256, 10, 50 , 2)
+M = testdata(32, 4, 8 , 2)
 
 testgrd = adapted_testgrid(M, 2)
 solver = testgrd[1]
