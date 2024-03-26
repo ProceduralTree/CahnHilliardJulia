@@ -1,3 +1,4 @@
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 
 function L(solver::multi_solver,i,j , phi , mu)
@@ -17,8 +18,7 @@ function dL(solver::multi_solver , i , j)
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 
-function v_cycle!(grid::Array{T}, level) where T <: Union{multi_solver , relaxed_multi_solver, adapted_multi_solver}
-
+function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
     SMOOTH!(solver, 400, true)

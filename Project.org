@@ -35,6 +35,7 @@ and define a discrete gradient as.
 \end{equation}
 see[cite:@Ulmer_CHRelaxed_2024]
 * Adaptation to arbitrary boundary conditions
+** second order laplacian baundary
 We modify the ansatz [[eq:ansatz]] to accomodate different boundary conditions. To achieve this, we propose a boundary function \( B(x ,t) \):
 #+name: boundary-function
 \begin{equation}
@@ -80,7 +81,7 @@ L
 \end{align*}
 Notably the implicit part stayed the same as in[cite:@Ulmer_CHRelaxed_2024] and we reuse it.
 #+begin_src julia :tangle src/adapted_multisolver.jl :eval never
-function L(solver::adapted_multi_solver,i,j , phi , mu)
+function L(solver::T,i,j , phi , mu) where T <: Union{adapted_multi_solver, adapted_relaxed_multi_solver}
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
@@ -107,7 +108,7 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n + B_{ij}
 \end{pmatrix}
 \end{align*}
 #+begin_src julia :tangle src/adapted_multisolver.jl
-function set_xi_and_psi!(solver::T) where T <: Union{adapted_multi_solver}
+function set_xi_and_psi!(solver::T) where T <: Union{adapted_multi_solver, adapted_relaxed_multi_solver}
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
     solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
@@ -126,7 +127,7 @@ DL\begin{pmatrix}
 \end{pmatrix}
 \end{align*}
 #+begin_src julia :tangle src/adapted_multisolver.jl :eval never
-function dL(solver::adapted_multi_solver , i , j)
+function dL(solver::T , i , j) where T <: Union{adapted_multi_solver, adapted_relaxed_multi_solver}
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
@@ -151,10 +152,34 @@ gif(anim , "images/iteration_boundary.gif" , fps = 10)
 #+end_src
 
 #+RESULTS:
+[[file:images/iteration_boundary.gif]]
+
+** relaxed solver:
+since we extracted laplace type boundary conditions to the initialization of the explicit part that is shared between both the original and the relaxed approach. We can reuse code.
+
+#+begin_src julia-vterm :noweb yes :session jl :results file graphics :file iteration_relaxed_boundary.gif :output-dir images
+<<setup-adapted-relaxed-grid>>
+set_xi_and_psi!(solver)
+
+pbar = ProgressBar(total = 1000)
+
+anim = @animate for i in 1:100
+    for j in 1:10
+        v_cycle!(adapted_relaxed_grid, 1)
+        update(pbar)
+        end
+    set_xi_and_psi!(adapted_relaxed_grid[1])
+    heatmap(adapted_relaxed_grid[1].phase , clim =(-1,1) , framestyle=:none )
+end
+gif(anim , "images/iteration_relaxed_boundary.gif" , fps = 10)
+#+end_src
+
+#+RESULTS:
+[[file:images/iteration_relaxed_boundary.gif]]
 
 * Utility
-#+begin_src julia :tangle src/adapted_utils.jl :eval never
-struct adapted_multi_solver
+#+begin_src julia :tangle src/adapted_solvers.jl :eval never
+struct adapted_multi_solver <: solver
     phase::Matrix{Float64}
     potential::Matrix{Float64}
     xi::Matrix{Float64}
@@ -168,7 +193,24 @@ struct adapted_multi_solver
 
 end
 
-function adapted_testgrid(M, len)
+struct adapted_relaxed_multi_solver <: solver
+    phase::Matrix{Float64}
+    potential::Matrix{Float64}
+    xi::Matrix{Float64}
+    psi::Matrix{Float64}
+    c::Matrix{Float64}
+    epsilon::Float64
+    h::Float64
+    dt::Float64
+    W_prime::Function
+    len::Int
+    width::Int
+    alpha::Float64
+
+end
+#+end_src
+#+begin_src julia :tangle src/adapted_testgrids.jl :eval never
+function testgrid(::Type{adapted_multi_solver},M, len)
     grid = Array{adapted_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -189,10 +231,50 @@ function adapted_testgrid(M, len)
     copyto!(grid[1].phase, phase)
     return grid
 end
+function testgrid(::Type{adapted_relaxxed_multi_solver},M, len)
+    grid = Array{adapted_relaxed_multi_solver}(undef, len)
+    phase = zeros(size(M) .+ 2)
+    phase[2:end-1, 2:end-1] = M
+    W_prime(x) = -x * (1 - x^2)
+    h0 = 3e-3
+
+    for i = 1:len
+        grid[i] = adapted_relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            8e-3, h0 * 2^i, 1e-3,
+            W_prime,
+            size(M, 1) ÷ i, size(M, 2) ÷ i,
+            1000001
+            )
+
+    end
+    copyto!(grid[1].phase, phase)
+    return grid
+end
 #+end_src
 #+name: setup-adapted-grid
 #+begin_src julia :eval never
 include(pwd() * "/src/" * "utils.jl")
+inlcude(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/" * "multisolver.jl")
+include(pwd() * "/src/" * "adapted_multisolver.jl")
+using Plots
+using LaTeXStrings
+using LinearAlgebra
+using Printf
+using ProgressBars
+M = testdata(32, 4, 8 , 2)
+
+testgrd = testgrid(M, 2)
+solver = testgrd[1]
+#+end_src
+#+name: setup-adapted-relaxed-grid
+#+begin_src julia :eval never
+include(pwd() * "/src/" * "utils.jl")
+inlcude(pwd() * "/src/adapted_solvers.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "adapted_multisolver.jl")
 include(pwd() * "/src/" * "adapted_utils.jl")
@@ -203,8 +285,8 @@ using Printf
 using ProgressBars
 M = testdata(32, 4, 8 , 2)
 
-testgrd = adapted_testgrid(M, 2)
-solver = testgrd[1]
+adapted_relaxed_grid = testgrid(adapted_relaxed_multi_solver,M, 2)
+solver = adepted_relaxed_grid[1]
 #+end_src
 * References
 #+PRINT_BIBLIOGRAPHY:

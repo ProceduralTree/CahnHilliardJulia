@@ -1,12 +1,14 @@
+include(pwd() * "/src/" * "solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
+include(pwd() * "/src/" * "testgrids.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
 using Printf
-M = testdata(256, 10, 50 , 2)
+M = testdata(32, 6, 8 , 2)
 
-testgrd = testgrid(M, 2)
+testgrd = testgrid(multi_solver,M, 2)
 solver = testgrd[1]
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
@@ -66,15 +68,17 @@ p3 = heatmap(u_large, title=@sprintf "Change: %.1e" norm(u_large))
 p = plot(p0, p1, p2,p3, layout=(2, 2));
 savefig(p, "images/v_cycle.svg")
 
+include(pwd() * "/src/" * "solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
+include(pwd() * "/src/" * "testgrids.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
 using Printf
-M = testdata(256, 10, 50 , 2)
+M = testdata(32, 6, 8 , 2)
 
-testgrd = testgrid(M, 2)
+testgrd = testgrid(multi_solver,M, 2)
 solver = testgrd[1]
 set_xi_and_psi!(solver)
 

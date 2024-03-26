@@ -1,7 +1,6 @@
 ###############################################################################
 #                  Common Utility Functions For Multi Solvers                 #
 ###############################################################################
-
 """
 restricts an array on the small grid to an array in the large grid asserts size arr=2^n + 2 and returns ret=2^(n-1) + 2
 
@@ -58,82 +57,6 @@ function prolong(arr, G)
     end
     return ret
 end
-
-struct multi_solver
-    phase::Matrix{Float64}
-    potential::Matrix{Float64}
-    xi::Matrix{Float64}
-    psi::Matrix{Float64}
-    epsilon::Float64
-    h::Float64
-    dt::Float64
-    W_prime::Function
-    len::Int
-    width::Int
-
-end
-struct relaxed_multi_solver
-    phase::Matrix{Float64}
-    potential::Matrix{Float64}
-    xi::Matrix{Float64}
-    psi::Matrix{Float64}
-    c::Matrix{Float64}
-    epsilon::Float64
-    h::Float64
-    dt::Float64
-    W_prime::Function
-    len::Int
-    width::Int
-    alpha::Float64
-
-end
-
-function testgrid(M, len)
-    grid = Array{multi_solver}(undef, len)
-    phase = zeros(size(M) .+ 2)
-    phase[2:end-1, 2:end-1] = M
-    W_prime(x) = -x * (1 - x^2)
-    h0 = 3e-3
-
-
-    for i = 1:len
-        grid[i] = multi_solver(zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            8e-3, h0 * 2^i, 1e-3,
-            W_prime,
-            size(M, 1) ÷ i, size(M, 2) ÷ i)
-
-    end
-    copyto!(grid[1].phase, phase)
-    return grid
-
-end
-
-function relaxed_testgrid(M, len)
-    grid = Array{relaxed_multi_solver}(undef, len)
-    phase = zeros(size(M) .+ 2)
-    phase[2:end-1, 2:end-1] = M
-    W_prime(x) = -x * (1 - x^2)
-    h0 = 3e-3
-
-    for i = 1:len
-        grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            8e-3, h0 * 2^i, 1e-3,
-            W_prime,
-            size(M, 1) ÷ i, size(M, 2) ÷ i,
-            1000001)
-
-    end
-    copyto!(grid[1].phase, phase)
-    return grid
-end
-
 """
     restrict!(smallgrid_solver::multi_solver , largegrid_solver::multi_solver)::multi_solver
 
@@ -148,7 +71,7 @@ Returns
     nothing. mutatest largegid in place to represent the smallgrid
 
 """
-function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:Union{multi_solver,relaxed_multi_solver, adapted_multi_solver}}
+function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:solver}
     copy!(largegrid_solver.phase, restrict(smallgrid_solver.phase, G))
     copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
@@ -221,3 +144,8 @@ function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_so
         end
    return energy
 end
+
+function massbal(arr)
+    num_cells= *((size(arr).-2)...)
+    return sum(arr[2:end-1, 2:end-1])/num_cells
+    end
