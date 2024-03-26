@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-03-16 Sat 13:22 -->
+<!-- 2024-03-26 Tue 20:46 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Project Thesis</title>
@@ -234,20 +234,22 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org88cc42e">1. Fundamentals</a></li>
-<li><a href="#orgcf430af">2. Adaptation to arbitrary boundary conditions</a></li>
-<li><a href="#org9f0e056">3. References</a></li>
+<li><a href="#org8aace59">1. Fundamentals</a></li>
+<li><a href="#org2a6d45c">2. Adaptation to arbitrary boundary conditions</a></li>
+<li><a href="#org5251791">3. Derivation of necessary operators</a></li>
+<li><a href="#orgf72d8b9">4. Utility</a></li>
+<li><a href="#org1dd0ced">5. References</a></li>
 </ul>
 </div>
 </div>
-<div class="abstract" id="orgafa9eef">
+<div class="abstract" id="org4ecf437">
 <p>
 This work shows sensitivity of boundary conditions for two different finite diffrence approaches to solving the cahn hilliard equation
 </p>
 
 </div>
-<div id="outline-container-org88cc42e" class="outline-2">
-<h2 id="org88cc42e"><span class="section-number-2">1.</span> Fundamentals</h2>
+<div id="outline-container-org8aace59" class="outline-2">
+<h2 id="org8aace59"><span class="section-number-2">1.</span> Fundamentals</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 The Cahn-Hilliard (CH) equation is a diffuse interface coupling equation used for interpolating between different approach in different formulas. We use it in the following form:
@@ -262,7 +264,7 @@ The Cahn-Hilliard (CH) equation is a diffuse interface coupling equation used fo
 Furthermore our solver implements the ansatz proposed by the autors(<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
 </p>
 \begin{equation}
-\label{orgd014e08}
+\label{org48da340}
 \begin{aligned}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
  \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
@@ -272,8 +274,8 @@ Furthermore our solver implements the ansatz proposed by the autors(<a href="#ci
 We use the same implementation as in the bachelor thesis(<a href="#citeproc_bib_item_2">Ulmer 3000</a>). Therefore we use the same discretizations and notation.
 </p>
 </div>
-<div id="outline-container-org33801ca" class="outline-3">
-<h3 id="org33801ca"><span class="section-number-3">1.1.</span> Notation</h3>
+<div id="outline-container-orgf0532ba" class="outline-3">
+<h3 id="orgf0532ba"><span class="section-number-3">1.1.</span> Notation</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
 We use the following differential quotients:
@@ -293,14 +295,14 @@ see(<a href="#citeproc_bib_item_2">Ulmer 3000</a>)
 </div>
 </div>
 </div>
-<div id="outline-container-orgcf430af" class="outline-2">
-<h2 id="orgcf430af"><span class="section-number-2">2.</span> Adaptation to arbitrary boundary conditions</h2>
+<div id="outline-container-org2a6d45c" class="outline-2">
+<h2 id="org2a6d45c"><span class="section-number-2">2.</span> Adaptation to arbitrary boundary conditions</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-We modify the ansatz \eqref{orgd014e08} to accomodate different boundary conditions. To achieve this, we propose a boundary function \( B(x ,t) \):
+We modify the ansatz \eqref{org48da340} to accomodate different boundary conditions. To achieve this, we propose a boundary function \( B(x ,t) \):
 </p>
 \begin{equation}
-\label{orga32fdba}
+\label{org73f84eb}
 B(x,t)=
 \begin{cases}
 0 \,, x \in \Omega \\
@@ -308,11 +310,307 @@ B(x,t)=
 0 \,, x \in \overline{\Omega}^C \\
 \end{cases}
 \end{equation}
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">B</span>(I<span style="color: #f0c674;">::CartesianIndex</span>,shape<span style="color: #f0c674;">::Tuple</span>)
+    laplace = <span style="color: #de935f; font-weight: bold;">1</span>
+    <span style="color: #b294bb;">for</span> (i,s) <span style="color: #b294bb;">in</span> zip(I.I , shape)
+        <span style="color: #b294bb;">if</span> i <span style="color: #f0c674;">==</span> s <span style="color: #f0c674;">||</span> i <span style="color: #f0c674;">==</span> <span style="color: #de935f; font-weight: bold;">1</span>
+            <span style="color: #b294bb;">return</span> laplace
+        <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">end</span>
+    <span style="color: #b294bb;">return</span> <span style="color: #de935f; font-weight: bold;">0</span>
+<span style="color: #b294bb;">end</span>
+</pre>
+</div>
+<p>
+We then state the adapted approach as:
+</p>
+\begin{equation}
+\label{org88a3481}
+\begin{aligned}
+\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
+ \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + B_{ij} + W'(\phi_{ij}^n) - 2\phi _{ij}^n
+\end{aligned}
+\end{equation}
 </div>
 </div>
-<div id="outline-container-org9f0e056" class="outline-2">
-<h2 id="org9f0e056"><span class="section-number-2">3.</span> References</h2>
+<div id="outline-container-org5251791" class="outline-2">
+<h2 id="org5251791"><span class="section-number-2">3.</span> Derivation of necessary operators</h2>
 <div class="outline-text-2" id="text-3">
+<p>
+In equivalent fashion to(<a href="#citeproc_bib_item_2">Ulmer 3000</a>) we separate \eqref{org88a3481} by implicit and exlixit parts into \( L \) and \( \zeta , \psi \):
+</p>
+\begin{align*}
+L
+\begin{pmatrix}
+\phi^{n+1}_{ij} \\
+\mu^{n+\frac{1}{2}}_{ij}
+\end{pmatrix}
+&=
+\begin{pmatrix}
+\frac{\phi^{n+1}_{ij}}{\Delta t} - \nabla _d \cdot  ( G_{ij} \nabla _d \mu^{n+\frac{1}{2}}_{ij} ) \\
+\varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{ij}^{n+1}) - 2\phi_{ij}^{n+1} + \mu_{ij}^{n+\frac{1}{2}}
+\end{pmatrix}
+\end{align*}
+<p>
+Notably the implicit part stayed the same as in(<a href="#citeproc_bib_item_2">Ulmer 3000</a>) and we reuse it.
+</p>
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">L</span>(solver<span style="color: #f0c674;">::T</span>,i,j , phi , mu) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{adapted_multi_solver, adapted_relaxed_multi_solver}
+    xi = solver.phase[i, j] <span style="color: #f0c674;">/</span> solver.dt <span style="color: #f0c674;">-</span>
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          <span style="color: #f0c674;">-</span>
+          neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #f0c674;">*</span> mu )<span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>
+    psi = solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span>
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
+           <span style="color: #f0c674;">-</span>
+           neighbours_in_domain(i, j, G, solver.len, solver.width) <span style="color: #f0c674;">*</span> phi) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> phi <span style="color: #f0c674;">+</span> mu
+    <span style="color: #b294bb;">return</span> [xi, psi]
+<span style="color: #b294bb;">end</span>
+</pre>
+</div>
+<p>
+while the explicit part now accommodates for thee additional boundary function.
+</p>
+
+\begin{align*}
+\begin{pmatrix}
+\zeta^n
+ \\
+\psi^n
+\end{pmatrix}
+&=
+\begin{pmatrix}
+\frac{\phi_{ij}^{n}}{\Delta t}\\
+W'(\phi_{ij}^n) - 2\phi_{ij}^n + B_{ij}
+\end{pmatrix}
+\end{align*}
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">set_xi_and_psi!</span>(solver<span style="color: #f0c674;">::T</span>) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{adapted_multi_solver, adapted_relaxed_multi_solver}
+    <span style="color: #81a2be;">xi_init</span>(x) = x <span style="color: #f0c674;">/</span> solver.dt
+    <span style="color: #81a2be;">psi_init</span>(x) = solver.W_prime(x) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> x
+    solver.xi[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = xi_init.(solver.phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>])
+    solver.psi[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = psi_init.(solver.phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]) <span style="color: #f0c674;">+</span> B.(CartesianIndices(solver.phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>]) , Ref((solver.len , solver.width)) )
+    <span style="color: #b294bb;">return</span> <span style="color: #de935f;">nothing</span>
+<span style="color: #b294bb;">end</span>
+</pre>
+</div>
+
+\begin{align*}
+DL\begin{pmatrix}
+\phi \\
+\mu
+\end{pmatrix} &= \begin{pmatrix}
+\frac{1}{\Delta t} & \frac{1}{h^2}\Sigma_{G}  \\
+-\frac{\varepsilon^2}{h^2}\Sigma_{G} - 2 & 1
+\end{pmatrix}
+\end{align*}
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">dL</span>(solver<span style="color: #f0c674;">::T</span> , i , j) <span style="color: #b294bb;">where</span> T <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">Union</span>{adapted_multi_solver, adapted_relaxed_multi_solver}
+    <span style="color: #b294bb;">return</span> [ (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.dt) (<span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">*</span>neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span><span style="color: #f0c674;">*</span>solver.epsilon<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">/</span>solver.h<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span> <span style="color: #f0c674;">*</span> neighbours_in_domain(i,j,G,solver.len , solver.width) <span style="color: #f0c674;">-</span> <span style="color: #de935f; font-weight: bold;">2</span>) <span style="color: #de935f; font-weight: bold;">1</span>]
+    <span style="color: #b294bb;">end</span>
+</pre>
+</div>
+
+<p>
+testing this adaptation yields
+</p>
+<div class="org-src-container">
+<pre class="src src-julia-vterm">include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/utils.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_testgrids.jl"</span>)
+<span style="color: #b294bb;">using</span> Plots
+<span style="color: #b294bb;">using</span> LaTeXStrings
+<span style="color: #b294bb;">using</span> LinearAlgebra
+<span style="color: #b294bb;">using</span> Printf
+<span style="color: #b294bb;">using</span> ProgressBars
+M = testdata(<span style="color: #de935f; font-weight: bold;">32</span>, <span style="color: #de935f; font-weight: bold;">4</span>, <span style="color: #de935f; font-weight: bold;">8</span> , <span style="color: #de935f; font-weight: bold;">2</span>)
+
+testgrd = testgrid(adapted_multi_solver,M, <span style="color: #de935f; font-weight: bold;">2</span>)
+
+pbar = ProgressBar(total = <span style="color: #de935f; font-weight: bold;">1000</span>)
+
+anim = <span style="color: #c5c8c6; font-weight: bold;">@animate</span> <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">100</span>
+    set_xi_and_psi!(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>])
+    <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">10</span>
+        v_cycle!(testgrd, <span style="color: #de935f; font-weight: bold;">1</span>)
+        update(pbar)
+        <span style="color: #b294bb;">end</span>
+    heatmap(testgrd[<span style="color: #de935f; font-weight: bold;">1</span>].phase , clim =(<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">1</span>) , framestyle=<span style="color: #de935f;">:none</span> )
+<span style="color: #b294bb;">end</span>
+gif(anim , <span style="color: #b5bd68;">"images/iteration_boundary.gif"</span> , fps = <span style="color: #de935f; font-weight: bold;">10</span>)
+</pre>
+</div>
+</div>
+<div id="outline-container-org24af1ba" class="outline-3">
+<h3 id="org24af1ba"><span class="section-number-3">3.1.</span> relaxed solver:</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+since we extracted laplace type boundary conditions to the initialization of the explicit part that is shared between both the original and the relaxed approach. We can reuse code.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-julia-vterm">include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/utils.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multi_relaxed.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/elypssolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_testgrids.jl"</span>)
+<span style="color: #b294bb;">using</span> Plots
+<span style="color: #b294bb;">using</span> LaTeXStrings
+<span style="color: #b294bb;">using</span> LinearAlgebra
+<span style="color: #b294bb;">using</span> Printf
+<span style="color: #b294bb;">using</span> ProgressBars
+M = testdata(<span style="color: #de935f; font-weight: bold;">32</span>, <span style="color: #de935f; font-weight: bold;">4</span>, <span style="color: #de935f; font-weight: bold;">8</span> , <span style="color: #de935f; font-weight: bold;">2</span>)
+
+adapted_relaxed_grid = testgrid(adapted_relaxed_multi_solver,M, <span style="color: #de935f; font-weight: bold;">2</span>)
+
+pbar = ProgressBar(total = <span style="color: #de935f; font-weight: bold;">1000</span>)
+
+anim = <span style="color: #c5c8c6; font-weight: bold;">@animate</span> <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">100</span>
+    set_xi_and_psi!(adapted_relaxed_grid[<span style="color: #de935f; font-weight: bold;">1</span>])
+    elyps_solver!(adapted_relaxed_grid[<span style="color: #de935f; font-weight: bold;">1</span>], <span style="color: #de935f; font-weight: bold;">1000</span>)
+    <span style="color: #b294bb;">for</span> j <span style="color: #b294bb;">in</span> <span style="color: #de935f; font-weight: bold;">1</span>:<span style="color: #de935f; font-weight: bold;">10</span>
+        v_cycle!(adapted_relaxed_grid, <span style="color: #de935f; font-weight: bold;">1</span>)
+        update(pbar)
+        <span style="color: #b294bb;">end</span>
+    heatmap(adapted_relaxed_grid[<span style="color: #de935f; font-weight: bold;">1</span>].phase , clim =(<span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>,<span style="color: #de935f; font-weight: bold;">1</span>) , framestyle=<span style="color: #de935f;">:none</span> )
+<span style="color: #b294bb;">end</span>
+gif(anim , <span style="color: #b5bd68;">"images/iteration_relaxed_boundary.gif"</span> , fps = <span style="color: #de935f; font-weight: bold;">10</span>)
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgf72d8b9" class="outline-2">
+<h2 id="orgf72d8b9"><span class="section-number-2">4.</span> Utility</h2>
+<div class="outline-text-2" id="text-4">
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">struct</span> <span style="color: #f0c674;">adapted_multi_solver</span> <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">solver</span>
+    phase<span style="color: #f0c674;">::Matrix</span>{Float64}
+    potential<span style="color: #f0c674;">::Matrix</span>{Float64}
+    xi<span style="color: #f0c674;">::Matrix</span>{Float64}
+    psi<span style="color: #f0c674;">::Matrix</span>{Float64}
+    epsilon<span style="color: #f0c674;">::Float64</span>
+    h<span style="color: #f0c674;">::Float64</span>
+    dt<span style="color: #f0c674;">::Float64</span>
+    W_prime<span style="color: #f0c674;">::Function</span>
+    len<span style="color: #f0c674;">::Int</span>
+    width<span style="color: #f0c674;">::Int</span>
+
+<span style="color: #b294bb;">end</span>
+
+<span style="color: #b294bb;">struct</span> <span style="color: #f0c674;">adapted_relaxed_multi_solver</span> <span style="color: #f0c674;">&lt;:</span> <span style="color: #f0c674;">solver</span>
+    phase<span style="color: #f0c674;">::Matrix</span>{Float64}
+    potential<span style="color: #f0c674;">::Matrix</span>{Float64}
+    xi<span style="color: #f0c674;">::Matrix</span>{Float64}
+    psi<span style="color: #f0c674;">::Matrix</span>{Float64}
+    c<span style="color: #f0c674;">::Matrix</span>{Float64}
+    epsilon<span style="color: #f0c674;">::Float64</span>
+    h<span style="color: #f0c674;">::Float64</span>
+    dt<span style="color: #f0c674;">::Float64</span>
+    W_prime<span style="color: #f0c674;">::Function</span>
+    len<span style="color: #f0c674;">::Int</span>
+    width<span style="color: #f0c674;">::Int</span>
+    alpha<span style="color: #f0c674;">::Float64</span>
+
+<span style="color: #b294bb;">end</span>
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #b294bb;">function</span> <span style="color: #81a2be;">testgrid</span>(<span style="color: #f0c674;">::Type</span>{adapted_multi_solver},M, len)
+    grid = Array{adapted_multi_solver}(<span style="color: #de935f;">undef</span>, len)
+    phase = zeros(size(M) .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>)
+    phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = M
+    <span style="color: #81a2be;">W_prime</span>(x) = <span style="color: #f0c674;">-</span>x <span style="color: #f0c674;">*</span> (<span style="color: #de935f; font-weight: bold;">1</span> <span style="color: #f0c674;">-</span> x<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>)
+    h0 = <span style="color: #de935f; font-weight: bold;">3e-3</span>
+
+    <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:len
+        grid[i] = adapted_multi_solver(zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            <span style="color: #de935f; font-weight: bold;">8e-3</span>, h0 <span style="color: #f0c674;">*</span> <span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">^</span>i, <span style="color: #de935f; font-weight: bold;">1e-3</span>,
+            W_prime,
+            size(M, <span style="color: #de935f; font-weight: bold;">1</span>) &#247; i, size(M, <span style="color: #de935f; font-weight: bold;">2</span>) &#247; i
+            )
+
+    <span style="color: #b294bb;">end</span>
+    copyto!(grid[<span style="color: #de935f; font-weight: bold;">1</span>].phase, phase)
+    <span style="color: #b294bb;">return</span> grid
+<span style="color: #b294bb;">end</span>
+<span style="color: #b294bb;">function</span> <span style="color: #81a2be;">testgrid</span>(<span style="color: #f0c674;">::Type</span>{adapted_relaxed_multi_solver},M, len)
+    grid = Array{adapted_relaxed_multi_solver}(<span style="color: #de935f;">undef</span>, len)
+    phase = zeros(size(M) .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>)
+    phase[<span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>, <span style="color: #de935f; font-weight: bold;">2</span>:<span style="color: #b294bb;">end</span><span style="color: #f0c674;">-</span><span style="color: #de935f; font-weight: bold;">1</span>] = M
+    <span style="color: #81a2be;">W_prime</span>(x) = <span style="color: #f0c674;">-</span>x <span style="color: #f0c674;">*</span> (<span style="color: #de935f; font-weight: bold;">1</span> <span style="color: #f0c674;">-</span> x<span style="color: #f0c674;">^</span><span style="color: #de935f; font-weight: bold;">2</span>)
+    h0 = <span style="color: #de935f; font-weight: bold;">3e-3</span>
+
+    <span style="color: #b294bb;">for</span> i <span style="color: #b294bb;">=</span> <span style="color: #de935f; font-weight: bold;">1</span>:len
+        grid[i] = adapted_relaxed_multi_solver(zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            zeros(size(M) .&#247; i .<span style="color: #f0c674;">+</span> <span style="color: #de935f; font-weight: bold;">2</span>),
+            <span style="color: #de935f; font-weight: bold;">8e-3</span>, h0 <span style="color: #f0c674;">*</span> <span style="color: #de935f; font-weight: bold;">2</span><span style="color: #f0c674;">^</span>i, <span style="color: #de935f; font-weight: bold;">1e-3</span>,
+            W_prime,
+            size(M, <span style="color: #de935f; font-weight: bold;">1</span>) &#247; i, size(M, <span style="color: #de935f; font-weight: bold;">2</span>) &#247; i,
+            <span style="color: #de935f; font-weight: bold;">100001</span>
+            )
+
+    <span style="color: #b294bb;">end</span>
+    copyto!(grid[<span style="color: #de935f; font-weight: bold;">1</span>].phase, phase)
+    <span style="color: #b294bb;">return</span> grid
+<span style="color: #b294bb;">end</span>
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-julia" id="org539c858">include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/utils.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_testgrids.jl"</span>)
+<span style="color: #b294bb;">using</span> Plots
+<span style="color: #b294bb;">using</span> LaTeXStrings
+<span style="color: #b294bb;">using</span> LinearAlgebra
+<span style="color: #b294bb;">using</span> Printf
+<span style="color: #b294bb;">using</span> ProgressBars
+M = testdata(<span style="color: #de935f; font-weight: bold;">32</span>, <span style="color: #de935f; font-weight: bold;">4</span>, <span style="color: #de935f; font-weight: bold;">8</span> , <span style="color: #de935f; font-weight: bold;">2</span>)
+
+testgrd = testgrid(adapted_multi_solver,M, <span style="color: #de935f; font-weight: bold;">2</span>)
+</pre>
+</div>
+<div class="org-src-container">
+<pre class="src src-julia" id="org1ad8bf9">include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_solvers.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/utils.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/multi_relaxed.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_multisolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/elypssolver.jl"</span>)
+include(pwd() <span style="color: #f0c674;">*</span> <span style="color: #b5bd68;">"/src/adapted_testgrids.jl"</span>)
+<span style="color: #b294bb;">using</span> Plots
+<span style="color: #b294bb;">using</span> LaTeXStrings
+<span style="color: #b294bb;">using</span> LinearAlgebra
+<span style="color: #b294bb;">using</span> Printf
+<span style="color: #b294bb;">using</span> ProgressBars
+M = testdata(<span style="color: #de935f; font-weight: bold;">32</span>, <span style="color: #de935f; font-weight: bold;">4</span>, <span style="color: #de935f; font-weight: bold;">8</span> , <span style="color: #de935f; font-weight: bold;">2</span>)
+
+adapted_relaxed_grid = testgrid(adapted_relaxed_multi_solver,M, <span style="color: #de935f; font-weight: bold;">2</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org1dd0ced" class="outline-2">
+<h2 id="org1dd0ced"><span class="section-number-2">5.</span> References</h2>
+<div class="outline-text-2" id="text-5">
 <style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Shin, Jaemin, Darae Jeong, and Junseok Kim. 2011. “A Conservative Numerical Method for the Cahn–Hilliard Equation in Complex Domains.” <i>Journal of Computational Physics</i> 230 (19): 7441–55. <a href="https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009">https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009</a>.</div>
   <div class="csl-entry"><a id="citeproc_bib_item_2"></a>Ulmer, Jonathan. 3000. “Untitled1.” Bachelor Thesis, University of Stuttgart.</div>
@@ -322,7 +620,7 @@ B(x,t)=
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Jonathan Ulmer</p>
-<p class="date">Created: 2024-03-16 Sat 13:22</p>
+<p class="date">Created: 2024-03-26 Tue 20:46</p>
 </div>
 </body>
 </html>
