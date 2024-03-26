@@ -136,16 +136,15 @@ function dL(solver::T , i , j) where T <: Union{adapted_multi_solver, adapted_re
 testing this adaptation yields
 #+begin_src julia-vterm :noweb yes :session jl :results file graphics :file iteration_boundary.gif :output-dir images
 <<setup-adapted-grid>>
-set_xi_and_psi!(solver)
 
 pbar = ProgressBar(total = 1000)
 
 anim = @animate for i in 1:100
+    set_xi_and_psi!(testgrd[1])
     for j in 1:10
         v_cycle!(testgrd, 1)
         update(pbar)
         end
-    set_xi_and_psi!(testgrd[1])
     heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
 end
 gif(anim , "images/iteration_boundary.gif" , fps = 10)
@@ -159,16 +158,15 @@ since we extracted laplace type boundary conditions to the initialization of the
 
 #+begin_src julia-vterm :noweb yes :session jl :results file graphics :file iteration_relaxed_boundary.gif :output-dir images
 <<setup-adapted-relaxed-grid>>
-set_xi_and_psi!(solver)
 
 pbar = ProgressBar(total = 1000)
 
 anim = @animate for i in 1:100
+    set_xi_and_psi!(adapted_relaxed_grid[1])
     for j in 1:10
         v_cycle!(adapted_relaxed_grid, 1)
         update(pbar)
         end
-    set_xi_and_psi!(adapted_relaxed_grid[1])
     heatmap(adapted_relaxed_grid[1].phase , clim =(-1,1) , framestyle=:none )
 end
 gif(anim , "images/iteration_relaxed_boundary.gif" , fps = 10)
@@ -231,7 +229,7 @@ function testgrid(::Type{adapted_multi_solver},M, len)
     copyto!(grid[1].phase, phase)
     return grid
 end
-function testgrid(::Type{adapted_relaxxed_multi_solver},M, len)
+function testgrid(::Type{adapted_relaxed_multi_solver},M, len)
     grid = Array{adapted_relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -257,10 +255,12 @@ end
 #+end_src
 #+name: setup-adapted-grid
 #+begin_src julia :eval never
-include(pwd() * "/src/" * "utils.jl")
-inlcude(pwd() * "/src/adapted_solvers.jl")
-include(pwd() * "/src/" * "multisolver.jl")
-include(pwd() * "/src/" * "adapted_multisolver.jl")
+include(pwd() * "/src/solvers.jl")
+include(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/utils.jl")
+include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/adapted_multisolver.jl")
+include(pwd() * "/src/adapted_testgrids.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -268,16 +268,16 @@ using Printf
 using ProgressBars
 M = testdata(32, 4, 8 , 2)
 
-testgrd = testgrid(M, 2)
-solver = testgrd[1]
+testgrd = testgrid(adapted_multi_solver,M, 2)
 #+end_src
 #+name: setup-adapted-relaxed-grid
 #+begin_src julia :eval never
-include(pwd() * "/src/" * "utils.jl")
-inlcude(pwd() * "/src/adapted_solvers.jl")
-include(pwd() * "/src/" * "multisolver.jl")
-include(pwd() * "/src/" * "adapted_multisolver.jl")
-include(pwd() * "/src/" * "adapted_utils.jl")
+include(pwd() * "/src/solvers.jl")
+include(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/utils.jl")
+include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/adapted_multisolver.jl")
+include(pwd() * "/src/adapted_testgrids.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -286,7 +286,6 @@ using ProgressBars
 M = testdata(32, 4, 8 , 2)
 
 adapted_relaxed_grid = testgrid(adapted_relaxed_multi_solver,M, 2)
-solver = adepted_relaxed_grid[1]
 #+end_src
 * References
 #+PRINT_BIBLIOGRAPHY:

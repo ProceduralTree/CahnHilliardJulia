@@ -12,10 +12,6 @@ using Plots
 using LinearAlgebra
 #+end_src
 
-#+begin_src julia :tangle src/multisolver.jl :eval never
-include(pwd() * "/src/" * "adapted_solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
-#+end_src
 
 #+begin_src julia :tangle src/utils.jl :eval never
 ###############################################################################
@@ -129,8 +125,6 @@ struct relaxed_multi_solver <: solver
 end
 #+end_src
 #+begin_src julia :tangle src/testgrids.jl :eval never
-include(pwd() * "/src/" * "solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
 function testgrid(::Type{multi_solver},M, len)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
@@ -182,6 +176,7 @@ end
 #+name: setup-grid
 #+begin_src julia :eval never
 include(pwd() * "/src/" * "solvers.jl")
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "testgrids.jl")
@@ -198,6 +193,7 @@ solver = testgrd[1]
 #+name: setup-relaxed-grid
 #+begin_src julia :eval never
 include(pwd() * "/src/" * "solvers.jl")
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "multi_relaxed.jl")

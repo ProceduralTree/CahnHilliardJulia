@@ -19,7 +19,7 @@ function testgrid(::Type{adapted_multi_solver},M, len)
     copyto!(grid[1].phase, phase)
     return grid
 end
-function testgrid(::Type{adapted_relaxxed_multi_solver},M, len)
+function testgrid(::Type{adapted_relaxed_multi_solver},M, len)
     grid = Array{adapted_relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M

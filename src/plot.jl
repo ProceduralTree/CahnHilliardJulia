@@ -1,4 +1,5 @@
 include(pwd() * "/src/" * "solvers.jl")
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "testgrids.jl")
@@ -69,6 +70,7 @@ p = plot(p0, p1, p2,p3, layout=(2, 2));
 savefig(p, "images/v_cycle.svg")
 
 include(pwd() * "/src/" * "solvers.jl")
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "testgrids.jl")

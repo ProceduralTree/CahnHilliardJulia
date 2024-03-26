@@ -1,6 +1,3 @@
-include(pwd() * "/src/" * "adapted_solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
-
 function L(solver::multi_solver,i,j , phi , mu)
     xi = solver.phase[i, j] / solver.dt -
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)

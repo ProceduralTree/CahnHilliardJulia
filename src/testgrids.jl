@@ -1,5 +1,3 @@
-include(pwd() * "/src/" * "solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
 function testgrid(::Type{multi_solver},M, len)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
