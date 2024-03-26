@@ -13,10 +13,10 @@ function dL(solver::relaxed_multi_solver , i , j)
     end
 
 function SMOOTH!(
-    solver::relaxed_multi_solver,
+    solver::T,
     iterations,
     adaptive
-)
+) where T <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
     for k = 1:iterations
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]

@@ -13,7 +13,7 @@ using ProgressBars
 TBW
 """
 
-function elyps_solver!(solver::relaxed_multi_solver, n)
+function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
     for k in 1:n
         for i = 2:(solver.len+1)
             for j = 2:(solver.width+1)

@@ -1,7 +1,7 @@
 function B(I::CartesianIndex,shape::Tuple)
     laplace = 1
     for (i,s) in zip(I.I , shape)
-        if i == s || i == 2
+        if i == s || i == 1
             return laplace
         end
     end

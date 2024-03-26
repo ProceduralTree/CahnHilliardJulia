@@ -35,7 +35,6 @@ and define a discrete gradient as.
 \end{equation}
 see[cite:@Ulmer_CHRelaxed_2024]
 * Adaptation to arbitrary boundary conditions
-** second order laplacian baundary
 We modify the ansatz [[eq:ansatz]] to accomodate different boundary conditions. To achieve this, we propose a boundary function \( B(x ,t) \):
 #+name: boundary-function
 \begin{equation}
@@ -50,7 +49,7 @@ B(x,t)=
 function B(I::CartesianIndex,shape::Tuple)
     laplace = 1
     for (i,s) in zip(I.I , shape)
-        if i == s || i == 2
+        if i == s || i == 1
             return laplace
         end
     end
@@ -163,6 +162,7 @@ pbar = ProgressBar(total = 1000)
 
 anim = @animate for i in 1:100
     set_xi_and_psi!(adapted_relaxed_grid[1])
+    elyps_solver!(adapted_relaxed_grid[1], 1000)
     for j in 1:10
         v_cycle!(adapted_relaxed_grid, 1)
         update(pbar)
@@ -245,7 +245,7 @@ function testgrid(::Type{adapted_relaxed_multi_solver},M, len)
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
-            1000001
+            100001
             )
 
     end
@@ -276,7 +276,9 @@ include(pwd() * "/src/solvers.jl")
 include(pwd() * "/src/adapted_solvers.jl")
 include(pwd() * "/src/utils.jl")
 include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/multi_relaxed.jl")
 include(pwd() * "/src/adapted_multisolver.jl")
+include(pwd() * "/src/elypssolver.jl")
 include(pwd() * "/src/adapted_testgrids.jl")
 using Plots
 using LaTeXStrings

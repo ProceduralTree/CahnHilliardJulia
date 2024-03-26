@@ -918,10 +918,10 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
 #+name: SMOOTH_relaxed
 #+begin_src julia :eval never :tangle src/multi_relaxed.jl :file f.jl
 function SMOOTH!(
-    solver::relaxed_multi_solver,
+    solver::T,
     iterations,
     adaptive
-)
+) where T <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
     for k = 1:iterations
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
@@ -1070,7 +1070,7 @@ TBW
 #+end_src
 #+name: elyps_solver
 #+begin_src julia :eval never :tangle src/elypssolver.jl
-function elyps_solver!(solver::relaxed_multi_solver, n)
+function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
     for k in 1:n
         for i = 2:(solver.len+1)
             for j = 2:(solver.width+1)

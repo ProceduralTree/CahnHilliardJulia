@@ -35,7 +35,7 @@ function testgrid(::Type{adapted_relaxed_multi_solver},M, len)
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
-            1000001
+            100001
             )
 
     end
