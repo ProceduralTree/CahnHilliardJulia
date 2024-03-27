@@ -787,7 +787,7 @@ function massbal(arr)
     end
 #+end_src
 ** Tests
-#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images
+#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both
 <<setup-grid>>
 original_grid = testgrd
 n = 100
@@ -1094,7 +1094,7 @@ end
 as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
 
 * Comparison
-#+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes
+#+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
 <<setup-comparison>>
 
 
