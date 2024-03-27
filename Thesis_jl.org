@@ -1,6 +1,6 @@
 #+title: Bachelor Thesis
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
-#+property: header-args:python :noweb strip-export
+#+property: header-args:julia :noweb no-export
 #+options:  toc:1
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images
@@ -536,7 +536,7 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 end
 #+end_src
 So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
-#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb strip-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
+#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
 <<setup-grid>>
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
@@ -602,7 +602,7 @@ savefig(p, "images/v_cycle.svg")
 
 After a few iterations, V-cycle exhibits the following behavior:
 
-#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb strip-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
+#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb no-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
 <<setup-grid>>
 set_xi_and_psi!(solver)
 
@@ -693,7 +693,7 @@ function SMOOTH!(
 end
 #+end_src
 
-#+begin_src julia :results file graphics  :file smooth.svg :noweb strip-export :async t :exports results :output-dir images :session jl
+#+begin_src julia :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images :session jl
 <<setup-grid>>
 set_xi_and_psi!(solver)
 SMOOTH!(solver, 2, true);
@@ -732,7 +732,7 @@ end
 #+end_src
 
 #+name: fig:testinput
-#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb strip-export    :exports results
+#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb no-export    :exports results
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -787,7 +787,7 @@ function massbal(arr)
     end
 #+end_src
 ** Tests
-#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb yes :output-dir images
+#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images
 <<setup-grid>>
 original_grid = testgrd
 n = 100
@@ -947,7 +947,7 @@ function SMOOTH!(
 end
 #+end_src
 
-#+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb yes :session
+#+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
 using Plots
 using LaTeXStrings
 using LinearAlgebra
@@ -982,7 +982,7 @@ savefig(p2,"images/smooth_relaxed.svg")
 [[file:images/smooth_relaxed.svg]]
 ** Relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart and therefore reused. The only additional step is solving the elliptical equation:
-#+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb strip-export  :exports both :output-dir images :session jl :eval never-export
+#+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
 <<setup-relaxed-grid>>
 set_xi_and_psi!(solver)
 
@@ -1094,7 +1094,7 @@ end
 as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
 
 * Comparison
-#+begin_src julia-vterm :noweb yes :results graphics file :file comparison.gif :output-dir images :session jl :cache yes
+#+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes
 <<setup-comparison>>
 
 
