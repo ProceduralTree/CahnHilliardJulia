@@ -148,7 +148,7 @@ function testgrid(::Type{multi_solver},M, len)
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -164,7 +164,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len)
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
-            1000001)
+            alpha)
 
     end
     copyto!(grid[1].phase, phase)
@@ -211,6 +211,8 @@ solver = testgrd[1]
 
 #+name: setup-comparison
 #+begin_src julia
+include(pwd() * "/src/" * "solvers.jl")
+include(pwd() * "/src/" * "adapted_solvers.jl")
 include(pwd() * "/src/" * "utils.jl")
 include(pwd() * "/src/" * "multisolver.jl")
 include(pwd() * "/src/" * "multi_relaxed.jl")
@@ -222,8 +224,10 @@ using ProgressBars
 using JLD2
 M = jldopen("data/test-phasefield.jld2")["M"]
 
-relaxed_grid = relaxed_testgrid(M, 2)
-original_grid = testgrid(M, 2)
+relaxed_grid1 = testgrid(relaxed_multi_solver, M, 2 ,alpha=1e3)
+relaxed_grid2 = testgrid(relaxed_multi_solver, M, 2 , alpha=1e4)
+relaxed_grid3 = testgrid(relaxed_multi_solver, M, 2 , alpha=1e5)
+original_grid = testgrid(multi_solver, M, 2)
 
 #+end_src
 * Cahn-Hilliard equation
@@ -1098,21 +1102,29 @@ pbar = ProgressBar(total = 1000)
 
 anim = @animate for i in 1:100
     set_xi_and_psi!(original_grid[1])
-    set_xi_and_psi!(relaxed_grid[1])
-    elyps_solver!(relaxed_grid[1] , 1000)
+    set_xi_and_psi!(relaxed_grid1[1])
+    set_xi_and_psi!(relaxed_grid2[1])
+    set_xi_and_psi!(relaxed_grid3[1])
+    elyps_solver!(relaxed_grid1[1] , 1000)
+    elyps_solver!(relaxed_grid2[1] , 1000)
+    elyps_solver!(relaxed_grid3[1] , 1000)
     for j in 1:10
         v_cycle!(original_grid, 1)
-        v_cycle!(relaxed_grid, 1)
+        v_cycle!(relaxed_grid1, 1)
+        v_cycle!(relaxed_grid2, 1)
+        v_cycle!(relaxed_grid3, 1)
         update(pbar)
         end
     p0 = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none , title="Original")
-    p1 = heatmap(relaxed_grid[1].phase , clim =(-1,1) , framestyle=:none, title="Relaxed" )
-    plot(p0,p1)
+    p1 = heatmap(relaxed_grid1[1].phase , clim =(-1,1) , framestyle=:none, title="alpha=1e3" )
+    p2 = heatmap(relaxed_grid2[1].phase , clim =(-1,1) , framestyle=:none, title="alpha=1e4" )
+    p3 = heatmap(relaxed_grid3[1].phase , clim =(-1,1) , framestyle=:none, title="alpha=1e5" )
+    plot(p0,p1,p2,p3)
 end
 gif(anim , "images/comparison.gif" , fps = 10)
 #+end_src
 
-#+RESULTS[990d58375fe85b020ddfdf28264ae5107c5a8978]:
+#+RESULTS[ddd9a1e36dc3424c061815f9f7c108ba1d2c1c4d]:
 [[file:images/comparison.gif]]
 
 * Technical details
