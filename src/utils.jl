@@ -102,7 +102,6 @@ Returns
 ---------------
 1 if index i,j is in bounds(without padding) and 0 else
 """
-
 function G(i, j, len, width)
     if 2 <= i <= len + 1 && 2 <= j <= width + 1
         return 1.0
