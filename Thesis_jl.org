@@ -491,8 +491,9 @@ For testing and later training we use a multitude of different phase-fields, not
 
 #+name: testdata
 #+begin_src julia :eval never :tangle src/utils.jl
-function testdata(gridsize , blobs , radius ,norm)
-rngpoints = rand(1:gridsize, 2, blobs)
+using Random
+function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
+rngpoints = rand(rng,1:gridsize, 2, blobs)
 M = zeros(gridsize,gridsize) .- 1
 for p in axes(rngpoints , 2)
     point = rngpoints[:, p]
@@ -908,7 +909,7 @@ Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}|| \to 0
 \end{equation}
 In practice we observe the following behaviour:
-#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both
+#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both :eval never
 include(pwd() * "/src/solvers.jl")
 include(pwd() * "/src/adapted_solvers.jl")
 include(pwd() * "/src/utils.jl")

@@ -1,3 +1,77 @@
+function neighbours_in_domain(i, j, G, len, width)
+    (
+        G(i + 0.5, j, len, width)
+        + G(i - 0.5, j, len, width)
+        + G(i, j + 0.5, len, width)
+        + G(i, j - 0.5, len, width)
+    )
+
+end
+function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
+    (
+        G(i + 0.5, j, len, width) * arr[i+1, j]
+        + G(i - 0.5, j, len, width) * arr[i-1, j]
+        + G(i, j + 0.5, len, width) * arr[i, j+1]
+        + G(i, j - 0.5, len, width) * arr[i, j-1]
+    )
+end
+
+"""
+Boundry indicator function
+
+Returns
+---------------
+1 if index i,j is in bounds(without padding) and 0 else
+"""
+
+function G(i, j, len, width)
+    if 2 <= i <= len + 1 && 2 <= j <= width + 1
+        return 1.0
+    else
+        return 0.0
+    end
+end
+
+function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    return nothing
+end
+
+using Random
+function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
+end
+
+function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    energy = 0
+    dx = CartesianIndex(1,0)
+    dy = CartesianIndex(0,1)
+    W(x) = 1/4 * (1-x^2)^2
+    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
+        i,j = I.I
+        energy += solver.epsilon^2 / 2 * G(i+ 0.5,j ,solver.len, solver.width) * (solver.phase[I+dx] - solver.phase[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.phase[I+dy] - solver.phase[I])^2 + W(solver.phase[I])
+        end
+   return energy
+end
+
+function massbal(arr)
+    num_cells= *((size(arr).-2)...)
+    return sum(arr[2:end-1, 2:end-1])/num_cells
+    end
+
 ###############################################################################
 #                  Common Utility Functions For Multi Solvers                 #
 ###############################################################################
@@ -76,75 +150,3 @@ function restrict_solver!(smallgrid_solver::T, largegrid_solver::T) where {T<:so
     copy!(largegrid_solver.potential, restrict(smallgrid_solver.potential, G))
     return nothing
 end
-
-function neighbours_in_domain(i, j, G, len, width)
-    (
-        G(i + 0.5, j, len, width)
-        + G(i - 0.5, j, len, width)
-        + G(i, j + 0.5, len, width)
-        + G(i, j - 0.5, len, width)
-    )
-
-end
-function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
-    (
-        G(i + 0.5, j, len, width) * arr[i+1, j]
-        + G(i - 0.5, j, len, width) * arr[i-1, j]
-        + G(i, j + 0.5, len, width) * arr[i, j+1]
-        + G(i, j - 0.5, len, width) * arr[i, j-1]
-    )
-end
-
-"""
-Boundry indicator function
-
-Returns
----------------
-1 if index i,j is in bounds(without padding) and 0 else
-"""
-function G(i, j, len, width)
-    if 2 <= i <= len + 1 && 2 <= j <= width + 1
-        return 1.0
-    else
-        return 0.0
-    end
-end
-
-function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
-    xi_init(x) = x / solver.dt
-    psi_init(x) = solver.W_prime(x) - 2 * x
-    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
-    return nothing
-end
-
-function testdata(gridsize , blobs , radius ,norm)
-rngpoints = rand(1:gridsize, 2, blobs)
-M = zeros(gridsize,gridsize) .- 1
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in CartesianIndices(M)
-        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-            M[I] = 1
-        end
-    end
-end
-M
-end
-
-function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
-    energy = 0
-    dx = CartesianIndex(1,0)
-    dy = CartesianIndex(0,1)
-    W(x) = 1/4 * (1-x^2)^2
-    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
-        i,j = I.I
-        energy += solver.epsilon^2 / 2 * G(i+ 0.5,j ,solver.len, solver.width) * (solver.phase[I+dx] - solver.phase[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.phase[I+dy] - solver.phase[I])^2 + W(solver.phase[I])
-        end
-   return energy
-end
-
-function massbal(arr)
-    num_cells= *((size(arr).-2)...)
-    return sum(arr[2:end-1, 2:end-1])/num_cells
-    end
