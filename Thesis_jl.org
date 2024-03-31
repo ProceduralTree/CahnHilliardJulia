@@ -908,7 +908,7 @@ Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}|| \to 0
 \end{equation}
 In practice we observe the following behaviour:
-#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both :eval never
+#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both
 include(pwd() * "/src/solvers.jl")
 include(pwd() * "/src/adapted_solvers.jl")
 include(pwd() * "/src/utils.jl")
@@ -921,6 +921,7 @@ using LinearAlgebra
 using ProgressBars
 using JLD2
 using Distributed
+JULIA_NUM_THREADS = 24
 M = jldopen("data/test-phasefield.jld2")["M"]
 
 original_grid = testgrid(multi_solver, M, 2)
@@ -935,20 +936,23 @@ function alpha_error(α::Number , solution::Array )
     end
 return norm(test_solver[1].phase - solution)
 end
-
 set_xi_and_psi!(original_grid[1])
 for j in 1:100
     v_cycle!(original_grid, 1)
 end
+print("finished original v_cycle")
 tasks = []
 for α in alphas
     t = Threads.@spawn alpha_error(α , original_grid[1].phase)
     push!(tasks , (α=α , task = t))
 end
-results  =  [(alpha=t.α, error=fetch(t.task)) for t in tasks]
+results  = @show [(alpha=t.α, error=fetch(t.task)) for t in tasks]
 p=plot(results)
 savefig(p, "images/alpha-error.svg")
 #+end_src
+
+#+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
+[[file:images/alpha-error.svg]]
 
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:

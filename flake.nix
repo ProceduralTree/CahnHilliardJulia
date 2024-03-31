@@ -113,6 +113,10 @@
               name = "EXTRA_CCFLAGS";
               value = "-I/usr/include";
             }
+            {
+              name = "JULIA_NUM_THREADS";
+              value = "auto";
+            }
           ];
           imports = [
             # you can keep either one of them devshellProfiles.packages or julia-wrapped
