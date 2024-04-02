@@ -38,7 +38,6 @@ function gen_cycle_data(M::Array)
     return out
 end
 
-display(heatmap(M, aspect_ratio=:equal, xlims=(1, SIZE)))
 
 t1= [testdata(i, i ÷ 4, i /4 , j) for i = 2 .^ (5:9), j in [2, Inf]]
 t2 = [get_special_input(fn,s) for s = 2 .^ (5:9), fn in [halfcirc , incirc, side , insquare]]
