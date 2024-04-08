@@ -42,6 +42,7 @@ end
 t1= [testdata(i, i ÷ 4, i /4 , j) for i = 2 .^ (5:9), j in [2, Inf]]
 t2 = [get_special_input(fn,s) for s = 2 .^ (5:9), fn in [halfcirc , incirc, side , insquare]]
 trainings_input = reshape([t1;; t2], *(size([t1;; t2])...))
+#trainings_input = [testdata(32 , 8,8,2) ,testdata(32,8,8,Inf)]
 tasks = []
 for i in eachindex(trainings_input)
     t = Threads.@spawn gen_cycle_data(trainings_input[i])
@@ -49,6 +50,6 @@ for i in eachindex(trainings_input)
     end
 result = DataFrame()
 for task in tasks
-    append!(result , fetch(task) )
+    append!(result , fetch(task.task) )
     end
 jldsave("data/trainings_data.jld2"; result)

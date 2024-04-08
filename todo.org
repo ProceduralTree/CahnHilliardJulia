@@ -15,3 +15,5 @@ In combination with fixing my Indicie errors and adding better Explanations for 
 [[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
 ** TODO Test Grid refinment
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]
+* TODO Comparison
+alpha error for longe time intervall

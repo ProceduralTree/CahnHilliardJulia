@@ -4,9 +4,9 @@
 #+options:  toc:1
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images
- This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extraxt the code to be used independantly. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
-* Cahn-Hilliard equation
-is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the Cahn-Hilliard (CH) equation used in this thesis is:
+ This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
+* The Cahn-Hilliard equation
+The Cahn-Hilliard (CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is:
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
@@ -23,15 +23,15 @@ where \( \phi\) is a phase-field variable representing the different states of t
 \end{cases}
 \end{align*}
 
- \(\varepsilon > 0 \) is a constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022]
+ \(\varepsilon\)  is a positive constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022].
 
- In this thesis we assume \(M(\phi) = 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441]
+In this thesis we assume \(M(\phi) = 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441].
 
-The advantages of the CH Approach as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
+The advantages of the CH approach as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
 In practice it enables linear interpolation between different formulas on different phases.
 ** Derivation from paper
 *** Free energy
-The Cahn Hillard Equations can be motivated Using a *Ginzburg Landau* type free energy equation:
+The CH equations can be motivated Using a *Ginzburg Landau* type free energy equation:
 #+name: eq:energy
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
