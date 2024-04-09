@@ -36,8 +36,8 @@ function dL(solver::T , i , j) where T <: Union{adapted_multi_solver, adapted_re
 function B_1(i,j,shape)
     B_x = 0.01
     B_y = 0
-    return (G(i + 0.5,j, shape[1] , shape[2]) - G(i - 0.5,j,shape[1] , shape[2])) * B_x
-         + (G(i,j + 0.5, shape[1] , shape[2]) - G(i,j - 0.5,shape[1] , shape[2])) * B_y
+    return (G(i + 1,j, shape[1] , shape[2]) - G(i,j,shape[1] , shape[2])) * B_x
+         + (G(i,j + 1, shape[1] , shape[2]) - G(i,j,shape[1] , shape[2])) * B_y
 end
 
 function div(f, I::CartesianIndex  , shape , h)

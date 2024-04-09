@@ -6,7 +6,7 @@
 #+PROPERTY: header-args:julia :output-dir images
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extraxt the code to be used independantly. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
 * The Cahn-Hilliard equation
-The Cahn-Hilliard(CH) equationis a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is:
+The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
@@ -14,7 +14,7 @@ The Cahn-Hilliard(CH) equationis a partial differential equation (PDE) solving t
 \mu &= - \varepsilon^2 \Delta\phi  + W'(\phi)
 \end{aligned}
 \end{equation}
-where \( \phi\) is a phase-field variable representing the different states of the fluids through an interval \(I=[-1,1] \)
+where, \( \phi\) is a phase-field variable representing the different states of the fluids through an interval \(I=[-1,1] \)
 \begin{align*}
 \phi &=
 \begin{cases}
@@ -23,54 +23,54 @@ where \( \phi\) is a phase-field variable representing the different states of t
 \end{cases}
 \end{align*}
 
- \(\varepsilon > 0 \) is a constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022]
+ \(\varepsilon\) is a positive constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022].
 
- In this thesis we assume \(M(\phi) = 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441]
+ In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441].
 
-The advantages of the CH Approach as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
+The advantages of the CH approach, as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
 In practice it enables linear interpolation between different formulas on different phases.
 ** Derivation from paper
-*** Free energy
-The authors[cite:@Wu_2022] motivate the CH equation using a *Ginzburg Landau* type free energy equation:
+*** The free energy
+The authors in [cite:@Wu_2022] motivate the CH equation using the *Ginzburg-Landau* free energy equation:
 #+name: eq:energy
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
-where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing.""[cite:@Wu_2022] that we approximate it in further calculations as \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) like in [cite:@SHIN20117441]
+where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing[cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
 
-The chemical potential, \( \mu \), then follows as derivative of Energy in respect to time.
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy[[eq:energy]].
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 
-*** TODO Derivation by mass balance
-We motivate the CH equation as follows:
+*** Derivation by mass balance
+The paper[cite:@Wu_2022]  motivates us to derive the CH equation as follows:
 #+name: eq:massbal
 \begin{equation}
     \partial_t \phi + \nabla \cdot J = 0
 \end{equation}
-where *J* is mass flux. The equation [[eq:massbal]] then states that the change in mass balances the change in phase.
+where \( J \) is mass flux. The equation [[eq:massbal]] then ensures continuity of mass
 Using the no-flux boundary conditions:
 \begin{align}
 J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
 \partial_n\phi &= 0 & \partial\Omega &\times (0,T)
 \end{align}
 conservation of mass follows see[cite:@Wu_2022].
-#+name: mass-conservation
+#+name: eq:mass-conservation
 \begin{equation}
 \begin{aligned}
 \frac{d}{dt}\int_{\Omega}\phi&=\int_{\Omega}\frac{\partial \phi}{\partial t} dV \\
 &= - \int_{\Omega} \nabla \cdot J \ dV\\
-&= - \int_{\partial\Omega}  J \cdot n  \ dA \\
+&=  \int_{\partial\Omega}  J \cdot n  \ dA \\
 &= 0
 \end{aligned}
 \end{equation}
-
-Using:
+Therefore mass is conserved over time, as shown in [[eq:mass-conservation]].
+We define the mass flux, \( J \), as the gradient in chemical potential as follows
 \begin{align}
 J &= - \nabla \mu
 \end{align}
-which conceptionally sets mass flux to equalize the potential energy gradient, leads to the formulation of the CH equations as stated above. Additionally, the boundary conditions evaluate to:
+This results in the CH equation as stated in [[eq:CH]].
 #+name: eq:boundary-conditions
 \begin{equation}
 \begin{aligned}
@@ -79,7 +79,7 @@ which conceptionally sets mass flux to equalize the potential energy gradient, l
 \end{aligned}
 \end{equation}
 i.e. no flow leaves and potential on the border doesn't change.
-Then for \(\phi \) then follows:
+In order to show the CH equation's consistency with thermodynamics we take the time derivation of the free energy [[eq:energy]] and we show that it decreases in time.
 \begin{align*}
 \frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
 &=\int_{\Omega} (\varepsilon^2\nabla\phi + W'(\phi))\partial_t\phi \ dx\\
@@ -88,7 +88,6 @@ Then for \(\phi \) then follows:
 &= -\int_{\Omega} \nabla\mu \cdot \nabla\mu + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
 &\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
 \end{align*}
-hence the Free Energy is decreasing in time.
 * Baseline multi-grid solver
 As baseline for further experiments we use a two-grid method based on finite differences as defined in[cite:@SHIN20117441].
 ** Discretization:
