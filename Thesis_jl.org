@@ -150,10 +150,10 @@ The authors in [cite:@SHIN20117441] then define the discrete CH equation adapted
 \end{aligned}
 \end{equation}
 and derive a numerical scheme from this implicit equation.
-** Adaptations to the simplified problem
-Even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
+** Simplifications
+The authors in[cite:@SHIN20117441] modelled the phase-field problem for complex shaped domains. Even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
 Therefore, the internal representation of the adapted algorithm considers phase-field ,\( \phi \), and chemical potential field ,\( \mu \),  as two-dimensional arrays with the shape \( (N_x + 2 , N_y + 2) \) in order to accommodate padding. Where N_x and N_y are the number of steps in x-/y-direction, respectively.
-Hence, we define the discrete domain function as:
+Hence, we implement the discrete domain function as:
 \begin{align*}
 G_{ij} &=
 \begin{cases}
@@ -161,7 +161,6 @@ G_{ij} &=
 0, & \text{else}
 \end{cases}
 \end{align*}
-
 #+begin_src julia :tangle src/utils.jl :eval never :exports none
 """
 Boundry indicator function
@@ -220,7 +219,7 @@ This operator follows from [[eq:discrete-cahn-hilliard]] by separating implicit 
 W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{pmatrix}
 \end{align*}
-Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \). We compute those values  once for every time step, and store them in the solver.
+Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \) at the beginning of each time step. We compute those values  once and store them in the solver.
 #+begin_src julia :tangle src/utils.jl :eval never
 function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     xi_init(x) = x / solver.dt
@@ -229,10 +228,9 @@ function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_mult
     solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
     return nothing
 end
-
 #+end_src
 
-Furthermore, as it enables a Newton iteration, we derive its derivative with respect to the current grid point \( (\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij})^{T} \):
+Furthermore, as it enables a Newton iteration, we derive its Jacobian with respect to the current grid point \( (\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij})^{T} \):
 
 \begin{align*}
 DL\begin{pmatrix}
