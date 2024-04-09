@@ -42,3 +42,24 @@ function testgrid(::Type{adapted_relaxed_multi_solver},M, len)
     copyto!(grid[1].phase, phase)
     return grid
 end
+function testgrid(::Type{gradient_boundary_solver},M, len)
+    grid = Array{gradient_boundary_solver}(undef, len)
+    phase = zeros(size(M) .+ 2)
+    phase[2:end-1, 2:end-1] = M
+    W_prime(x) = -x * (1 - x^2)
+    h0 = 3e-3
+
+    for i = 1:len
+        grid[i] = gradient_boundary_solver(zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
+            8e-3, h0 * 2^i, 1e-3,
+            W_prime,
+            size(M, 1) ÷ i, size(M, 2) ÷ i,
+            )
+
+    end
+    copyto!(grid[1].phase, phase)
+    return grid
+end

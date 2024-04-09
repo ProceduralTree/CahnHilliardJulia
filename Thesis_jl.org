@@ -4,9 +4,9 @@
 #+options:  toc:1
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images
- This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
+ This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and pdf, as well as extraxt the code to be used independantly. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
 * The Cahn-Hilliard equation
-The Cahn-Hilliard (CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is:
+The Cahn-Hilliard(CH) equationis a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is:
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
@@ -23,34 +23,33 @@ where \( \phi\) is a phase-field variable representing the different states of t
 \end{cases}
 \end{align*}
 
- \(\varepsilon\)  is a positive constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022].
+ \(\varepsilon > 0 \) is a constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022]
 
-In this thesis we assume \(M(\phi) = 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441].
+ In this thesis we assume \(M(\phi) = 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441]
 
-The advantages of the CH approach as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
+The advantages of the CH Approach as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
 In practice it enables linear interpolation between different formulas on different phases.
 ** Derivation from paper
 *** Free energy
-The CH equations can be motivated Using a *Ginzburg Landau* type free energy equation:
+The authors[cite:@Wu_2022] motivate the CH equation using a *Ginzburg Landau* type free energy equation:
 #+name: eq:energy
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
-where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing.""[cite:@Wu_2022] and we approximate it in further calculations as \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) like in [cite:@SHIN20117441]
+where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing.""[cite:@Wu_2022] that we approximate it in further calculations as \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) like in [cite:@SHIN20117441]
 
-The chemical potential then follows as derivative of Energy in respect to time.
+The chemical potential, \( \mu \), then follows as derivative of Energy in respect to time.
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 
 *** TODO Derivation by mass balance
-We motivate the Cahn Hillard equation as follows:
-consider
+We motivate the CH equation as follows:
 #+name: eq:massbal
 \begin{equation}
     \partial_t \phi + \nabla \cdot J = 0
 \end{equation}
-where *J* is mass flux. [[eq:massbal]] then states that the change in mass balances the change of the phase field.
+where *J* is mass flux. The equation [[eq:massbal]] then states that the change in mass balances the change in phase.
 Using the no-flux boundary conditions:
 \begin{align}
 J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
@@ -140,7 +139,7 @@ end
 
 We can then write the, often occurring, modified Laplacian \( \nabla_d (G \nabla_df_{ij}) \) as
 \begin{align*}
-\nabla_{d}(G \nabla_df_{ij}) &= \frac{\Sigma_Gf_{ij} - \Sigma_G\cdot f_{ij}}{h^2}
+\nabla_{d} \cdot(G \nabla_df_{ij}) &= \frac{\Sigma_Gf_{ij} - \Sigma_G\cdot f_{ij}}{h^2}
 \end{align*}
 
 To account for no-flux boundary conditions and arbitrary shaped domains.
@@ -398,7 +397,7 @@ gif(anim , "images/iteration.gif" , fps = 10)
 [[file:images/iteration.gif]]
 
 ** SMOOTH operator
-The authors[cite:@SHIN20117441]derived Gaus-Seidel Smoothing from:
+The authors[cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
 \begin{align*}
 L
 \begin{pmatrix}
@@ -423,7 +422,7 @@ function SMOOTH!(
     solver::T,
     iterations,
     adaptive
-) where T <: Union{multi_solver, adapted_multi_solver}
+) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
     for k = 1:iterations
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
@@ -872,8 +871,6 @@ as the solver still exhibits unexpected behavior, i.e. it doesn't seem to conver
 * Comparison
 #+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
 <<setup-comparison>>
-
-
 n = 100
 m = 100
 pbar = ProgressBar(total = n*m)
