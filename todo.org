@@ -1,7 +1,10 @@
 * Inbox
-** TODO Add Proof
+** TODO write something on impact of alpha
+
+[[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
+** DONE Add Proof
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Derivation by mass balance][Derivation by mass balance]]
-** TODO Write derivation from Paper
+** DONE Write derivation from Paper
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Derivation by mass balance][Derivation by mass balance]]
 ** TODO Proof reading with Hasel
 In combination with fixing my Indicie errors and adding better Explanations for my work.

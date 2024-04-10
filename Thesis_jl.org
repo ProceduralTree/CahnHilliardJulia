@@ -848,25 +848,26 @@ savefig(p2,"images/smooth_relaxed.svg")
 #+RESULTS:
 [[file:images/smooth_relaxed.svg]]
 
+#TODO plot for different alpha
 ** Relaxed V-cycle approach
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart and therefore reused. The only additional step is solving the elliptical equation:
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
 <<setup-relaxed-grid>>
-set_xi_and_psi!(solver)
 
 pbar = ProgressBar(total = 1000)
 
-anim = @animate for i in 1:100
+anim = @animate for t in 1:100
+    set_xi_and_psi!(testgrd[1])
     elyps_solver!(solver , 1000)
     for j in 1:10
         v_cycle!(testgrd, 1)
         update(pbar)
         end
-    set_xi_and_psi!(testgrd[1])
     heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
 end
 gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 #+end_src
+
 
 #+RESULTS:
 [[file:images/iteration_relaxed2.gif]]
@@ -954,7 +955,6 @@ savefig(p, "images/alpha-error.svg")
 
 #+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
 [[file:images/alpha-error.svg]]
-
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:
 #+name: eq:optimum-function
