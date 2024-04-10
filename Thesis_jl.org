@@ -520,7 +520,7 @@ savefig(p,"testdata.svg")
 #+RESULTS: fig:testinput
 [[file:testdata.svg]]
 * Numerical evaluation
-The analytical CH equation conserves mass [[eq:massbal]] and energy \( E_{bulk} \) decreases  [[eq:energy]] in respect to time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
+The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 ** Energy evaluations
 As discrete energy measure we use:
 \begin{align*}
@@ -540,13 +540,17 @@ function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_so
    return energy
 end
 #+end_src
+
+
+#TODO Plot
 ** Mass balance
+Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\) written as:
 \begin{equation}
 \begin{aligned}
 \frac{1}{|\Omega|}\int_{\Omega}\phi \ dx
 \end{aligned}
 \end{equation}
-we calculate mass balance as:
+We calculate this balance as:
 \begin{align*}
 b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{|\{(i,j) \in \Omega\}|}
 \end{align*}
@@ -557,6 +561,8 @@ function massbal(arr)
     return sum(arr[2:end-1, 2:end-1])/num_cells
     end
 #+end_src
+
+# TODO Plot
 ** Tests
 #+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both
 <<setup-grid>>
@@ -588,14 +594,15 @@ gif(anim , "images/behaviour.gif" , fps = 10)
 #+RESULTS:
 [[file:images/behaviour.gif]]
 
+** rate of convergence
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
 \begin{align*}
-- \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha
+- \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha,
 \end{align*}
-Moreover \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation [[eq:CH]] as  \( \alpha \to \infty \).
-This results in the following relaxation for the classical CH equation[[eq:CH]]:
+where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation [[eq:CH]] as  \( \alpha \to \infty \).
+This results in the following relaxation for the classical CH equation [[eq:CH]]:
 #+name: eq:relaxed-cahn-hilliard
 \begin{equation}
 \begin{aligned}
@@ -603,7 +610,7 @@ This results in the following relaxation for the classical CH equation[[eq:CH]]:
 \mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
 \end{aligned}
 \end{equation}
-It in turn requires solving the elliptical PDE each time-step to calculate \(c\).
+It requires solving the elliptical PDE each time-step to calculate \(c\).
 #+begin_remark
 We obtain a simpler approach in the numerical solver, with the drawback of having more variables. However those are independent.
 #+end_remark
@@ -615,8 +622,7 @@ As ansatz for the numerical solver we propose:
  \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
-This approach is inspired by [[eq:discrete-relaxed-cahn-hilliard]] adapted to the relaxed CH equation [[eq:discrete-cahn-hilliard]].
-** relaxed operators:
+This approach is inspired by [[eq:discrete-cahn-hilliard]] adapted to the relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]].
 We then adapt the multi-grid solver proposed in [[Baseline multi-grid solver]] to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in [[eq:discretization]],
 and expand them.
 ** Relaxed PDE as operator L
@@ -864,7 +870,7 @@ end
 **** DONE Proposal 4 :noexport:
 as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
 
-* Comparison
+** Comparison
 #+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
 <<setup-comparison>>
 n = 100
