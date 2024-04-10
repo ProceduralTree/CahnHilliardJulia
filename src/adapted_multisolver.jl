@@ -36,8 +36,8 @@ function dL(solver::T , i , j) where T <: Union{adapted_multi_solver, adapted_re
 function B_1(i,j,shape)
     B_x = 0.01
     B_y = 0
-    return (G(i + 1,j, shape[1] , shape[2]) - G(i,j,shape[1] , shape[2])) * B_x
-         + (G(i,j + 1, shape[1] , shape[2]) - G(i,j,shape[1] , shape[2])) * B_y
+    return abs(G(i + 0.5,j, shape[1] , shape[2]) - G(i-0.5,j,shape[1] , shape[2])) * B_x
+         + abs(G(i,j + 0.5, shape[1] , shape[2]) - G(i,j-0.5,shape[1] , shape[2])) * B_y
 end
 
 function div(f, I::CartesianIndex  , shape , h)
@@ -48,6 +48,6 @@ function set_xi_and_psi!(solver::T) where T <: Union{gradient_boundary_solver}
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
     solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1]) + div.(B_1 ,CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) , Ref(solver.h) )
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1]) + div.(B_1 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
     return nothing
 end
