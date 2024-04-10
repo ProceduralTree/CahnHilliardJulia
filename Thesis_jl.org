@@ -625,8 +625,98 @@ As ansatz for the numerical solver we propose:
 This approach is inspired by [[eq:discrete-cahn-hilliard]] adapted to the relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]].
 We then adapt the multi-grid solver proposed in [[Baseline multi-grid solver]] to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in [[eq:discretization]],
 and expand them.
+** Elliptical PDE:
+In order to solve the relaxed CH equation we solve the following PDE in each  time step:
+\begin{align*}
+- \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha
+\end{align*}
+
+Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
+*** Discretization
+The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation [[eq:elliptical-equation]].
+\begin{align*}
+- \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
+\end{align*}
+\( \implies \)
+\begin{align*}
+- (\frac{1}{h}(G_{i+\frac{1}{2}j} \nabla c^\alpha_{i+\frac{1}{2}j} + G_{ij+\frac{1}{2}} \nabla c^\alpha_{ij+\frac{1}{2}}) &  \\
+- (G_{i-\frac{1}{2}j} \nabla c^\alpha_{i-\frac{1}{2}j} + G_{ij-\frac{1}{2}} \nabla c^\alpha_{ij-\frac{1}{2}})) + \alpha  c_{ij}^\alpha   &= \alpha  \phi_{ij}^\alpha
+\end{align*}
+\( \implies \)
+\begin{align*}
+- \frac{1}{h^2} ( G_{i+\frac{1}{2}j}(c_{i+1j}^\alpha - c_{ij}^\alpha) & \\
++G_{ij+\frac{1}{2}}(c_{ij+1}^\alpha - c_{ij}^\alpha) & \\
++G_{i-\frac{1}{2}j}(c_{i-1j}^\alpha - c_{ij}^\alpha)& \\
++G_{ij-\frac{1}{2}}(c_{ij-1}^\alpha - c_{ij}^\alpha)) + \alpha  c_{ij}^\alpha &=\alpha  \phi_{ij}^\alpha
+\end{align*}
+
+
+As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
+#+name: eq:discrete_elyps
+\begin{align}
+-\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
+\end{align}
+
+**** DONE Proposal1 Newton Solver
+And then we propose a simple newton Iteration to solve  [[eq:discrete_elyps]]  for \( x = c^\alpha_{ij} \):
+Let \( F, dF \) be:
+\begin{align*}
+F(x) &= - \frac{\Sigma_Gc^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2}  x + \alpha x  - \alpha \phi_{ij}^\alpha
+\end{align*}
+and \( dF(x) \)
+
+\begin{align*}
+dF(x) &= - \frac{\Sigma_G}{h^2}    + \alpha
+\end{align*}
+the implementation then is the following:
+
+as input, we use :
+
+**** Proposal2  solver
+solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
+\begin{align*}
+\left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
+\end{align*}
+and can be translated to code as follows
+#+begin_src julia :eval never :tangle src/elypssolver.jl :exports none
+using ProgressBars
+
+"""
+    elyps_solver(c,
+    phase,
+    len,
+    width,
+    alpha,
+    h,
+    n
+)
+
+TBW
+"""
+#+end_src
+#+name: elyps_solver
+#+begin_src julia :eval never :tangle src/elypssolver.jl
+function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
+    for k in 1:n
+        for i = 2:(solver.len+1)
+            for j = 2:(solver.width+1)
+                bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)
+                solver.c[i, j] =
+                    (
+                        solver.alpha * solver.phase[i, j] +
+                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) / solver.h^2
+                    ) / (bordernumber / solver.h^2 + solver.alpha)
+
+            end
+        end
+    end
+end
+#+end_src
+**** DONE Proposal 4 :noexport:
+as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
+
 ** Relaxed PDE as operator L
-We reformulate of the iteration in terms of Operator \(L\) as follows:
+We reformulate the discretization [[eq:discrete-relaxed-cahn-hilliard]] in terms of the relaxed operator \(L\) as follows:
 \begin{align*}
 L
 \begin{pmatrix}
@@ -650,7 +740,7 @@ function L(solver::relaxed_multi_solver,i,j , phi , mu)
     return [xi, psi]
 end
 #+end_src
-and its derivative:
+and its Jacobian:
 \begin{align*}
 DL\begin{pmatrix}
 \phi \\
@@ -757,6 +847,7 @@ savefig(p2,"images/smooth_relaxed.svg")
 
 #+RESULTS:
 [[file:images/smooth_relaxed.svg]]
+
 ** Relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart and therefore reused. The only additional step is solving the elliptical equation:
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
@@ -779,96 +870,6 @@ gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 
 #+RESULTS:
 [[file:images/iteration_relaxed2.gif]]
-
-** Elliptical PDE:
-In order to solve the relaxed CH equation we solve the following PDE in each  time step:
-\begin{align*}
-- \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha
-\end{align*}
-
-Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
-*** Discretization
-The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation [[eq:elliptical-equation]].
-\begin{align*}
-- \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
-\end{align*}
-\( \implies \)
-\begin{align*}
-- (\frac{1}{h}(G_{i+\frac{1}{2}j} \nabla c^\alpha_{i+\frac{1}{2}j} + G_{ij+\frac{1}{2}} \nabla c^\alpha_{ij+\frac{1}{2}}) &  \\
-- (G_{i-\frac{1}{2}j} \nabla c^\alpha_{i-\frac{1}{2}j} + G_{ij-\frac{1}{2}} \nabla c^\alpha_{ij-\frac{1}{2}})) + \alpha  c_{ij}^\alpha   &= \alpha  \phi_{ij}^\alpha
-\end{align*}
-\( \implies \)
-\begin{align*}
-- \frac{1}{h^2} ( G_{i+\frac{1}{2}j}(c_{i+1j}^\alpha - c_{ij}^\alpha) & \\
-+G_{ij+\frac{1}{2}}(c_{ij+1}^\alpha - c_{ij}^\alpha) & \\
-+G_{i-\frac{1}{2}j}(c_{i-1j}^\alpha - c_{ij}^\alpha)& \\
-+G_{ij-\frac{1}{2}}(c_{ij-1}^\alpha - c_{ij}^\alpha)) + \alpha  c_{ij}^\alpha &=\alpha  \phi_{ij}^\alpha
-\end{align*}
-
-
-As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
-#+name: eq:discrete_elyps
-\begin{align}
--\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
-\end{align}
-
-**** DONE Proposal1 Newton Solver
-And then we propose a simple newton Iteration to solve  [[eq:discrete_elyps]]  for \( x = c^\alpha_{ij} \):
-Let \( F, dF \) be:
-\begin{align*}
-F(x) &= - \frac{\Sigma_Gc^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2}  x + \alpha x  - \alpha \phi_{ij}^\alpha
-\end{align*}
-and \( dF(x) \)
-
-\begin{align*}
-dF(x) &= - \frac{\Sigma_G}{h^2}    + \alpha
-\end{align*}
-the implementation then is the following:
-
-as input, we use :
-
-**** Proposal2  solver
-solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
-\begin{align*}
-\left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
-\end{align*}
-and can be translated to code as follows
-#+begin_src julia :eval never :tangle src/elypssolver.jl :exports none
-using ProgressBars
-
-"""
-    elyps_solver(c,
-    phase,
-    len,
-    width,
-    alpha,
-    h,
-    n
-)
-
-TBW
-"""
-#+end_src
-#+name: elyps_solver
-#+begin_src julia :eval never :tangle src/elypssolver.jl
-function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
-    for k in 1:n
-        for i = 2:(solver.len+1)
-            for j = 2:(solver.width+1)
-                bordernumber = neighbours_in_domain(i, j,G, solver.len, solver.width)
-                solver.c[i, j] =
-                    (
-                        solver.alpha * solver.phase[i, j] +
-                        discrete_G_weigted_neigbour_sum(i, j, solver.c, G, solver.len, solver.width) / solver.h^2
-                    ) / (bordernumber / solver.h^2 + solver.alpha)
-
-            end
-        end
-    end
-end
-#+end_src
-**** DONE Proposal 4 :noexport:
-as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
 
 ** Comparison
 #+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
