@@ -27,7 +27,7 @@ where, \( \phi\) is a phase-field variable representing the different states of 
 
  In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441].
 
-The advantages of the CH approach, as compared to traditional boundary coupling, are for example: "explicit tracking of the interface"[cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way"[cite:@Wu_2022].
+The advantages of the CH approach, as compared to traditional boundary coupling, are for example: "explicit tracking of the interface" [cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way" [cite:@Wu_2022].
 In practice it enables linear interpolation between different formulas on different phases.
 ** Derivation from paper
 *** The free energy
@@ -36,15 +36,15 @@ The authors in [cite:@Wu_2022] motivate the CH equation using the *Ginzburg-Land
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
-where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing[cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
+where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
 
-The chemical potential, \( \mu \), then follows as the variational derivation of the free energy[[eq:energy]].
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eq:energy]].
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 
 *** Derivation by mass balance
-The paper[cite:@Wu_2022]  motivates us to derive the CH equation as follows:
+The paper [cite:@Wu_2022]  motivates us to derive the CH equation as follows:
 #+name: eq:massbal
 \begin{equation}
     \partial_t \phi + \nabla \cdot J = 0
@@ -89,7 +89,7 @@ In order to show the CH equation's consistency with thermodynamics we take the t
 &\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
 \end{align*}
 * Baseline multi-grid solver
-As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in[cite:@SHIN20117441].
+As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in [cite:@SHIN20117441].
 ** The discretization of the CH equation:
 It discretizes the phase-field ,\( \phi \), and chemical potential ,\( \mu \), into grid-wise functions \(\phi_{ij}, \mu_{ij} \) and defines the partial derivatives \( D_xf_{ij}, \ D_yf_{ij} \) using the differential quotients:
 \begin{align}
@@ -151,7 +151,7 @@ The authors in [cite:@SHIN20117441] then define the discrete CH equation adapted
 \end{equation}
 and derive a numerical scheme from this implicit equation.
 ** Simplifications
-The authors in[cite:@SHIN20117441] modelled the phase-field problem for complex shaped domains. Even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
+The authors in [cite:@SHIN20117441] modelled the phase-field problem for complex shaped domains. Even tough this work uses rectangular domains, we simplify the adaptation of the algorithm by the domain indicator function, as well as 0 padding, in order to correctly include the boundary conditions of the CH equation.
 Therefore, the internal representation of the adapted algorithm considers phase-field ,\( \phi \), and chemical potential field ,\( \mu \),  as two-dimensional arrays with the shape \( (N_x + 2 , N_y + 2) \) in order to accommodate padding. Where N_x and N_y are the number of steps in x-/y-direction, respectively.
 Hence, we implement the discrete domain function as:
 \begin{align*}
@@ -180,7 +180,7 @@ function G(i, j, len, width)
 end
 #+end_src
 ** PDE as operator L
-We derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in[cite:@SHIN20117441].
+We derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in [cite:@SHIN20117441].
 \begin{align*}
 L
 \begin{pmatrix}
@@ -393,7 +393,7 @@ gif(anim , "images/iteration.gif" , fps = 10)
 [[file:images/iteration.gif]]
 
 ** SMOOTH operator
-The authors[cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
+The authors [cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
 \begin{align*}
 L
 \begin{pmatrix}
