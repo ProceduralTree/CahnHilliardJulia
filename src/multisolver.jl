@@ -18,7 +18,7 @@ function dL(solver::multi_solver , i , j)
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
-    SMOOTH!(solver, 400, true)
+    SMOOTH!(solver, 40, true)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
@@ -62,7 +62,7 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 
     solver.phase .+= prolong(u_large , G)
     solver.potential .+= prolong(v_large, G)
-    SMOOTH!(solver, 800, true)
+    SMOOTH!(solver, 80, true)
 end
 
 function SMOOTH!(
@@ -106,9 +106,9 @@ function SMOOTH!(
 
         end
 
-        if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
-            #println("SMOOTH terminated at $(k) succesfully")
-            break
-        end
+        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
+        #    #println("SMOOTH terminated at $(k) succesfully")
+        #    break
+        #end
     end
 end
