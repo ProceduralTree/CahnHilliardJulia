@@ -18,8 +18,8 @@ where, \( \phi\) is a phase-field variable representing the different states of 
 \begin{align*}
 \phi &=
 \begin{cases}
-1 & \phi = \text{phase 1} \\
--1 & \phi =\text{ phase 2}
+1 &\,, \phi = \text{phase 1} \\
+-1 &\,, \phi =\text{ phase 2}
 \end{cases}
 \end{align*}
 
@@ -84,8 +84,8 @@ In order to show the CH equation's consistency with thermodynamics we take the t
 \frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
 &=\int_{\Omega} (\varepsilon^2\nabla\phi + W'(\phi))\partial_t\phi \ dx\\
 &=\int_{\Omega} \mu \partial_t \phi \ dx\\
-&= \int_{\Omega} \mu \cdot \Delta\mu \\
-&= -\int_{\Omega} \nabla\mu \cdot \nabla\mu + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
+&= \int_{\Omega} \mu \cdot \Delta\mu \ dx \\
+&= -\int_{\Omega} \nabla\mu \cdot \nabla\mu \ dx + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
 &\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
 \end{align*}
 * Baseline multi-grid solver
