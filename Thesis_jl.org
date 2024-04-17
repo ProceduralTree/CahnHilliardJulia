@@ -31,19 +31,19 @@ The advantages of the CH approach, as compared to traditional boundary coupling,
 In practice it enables linear interpolation between different formulas on different phases.
 ** Derivation from paper
 *** The free energy
-The authors in [cite:@Wu_2022] motivate the CH equation using the *Ginzburg-Landau* free energy equation:
+The authors in [cite:@Wu_2022] define the CH equation using the *Ginzburg-Landau* free energy equation:
 #+name: eq:energy
 \begin{align*}
 E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align*}
-where \(W(\phi) \) denotes the (Helmholtz) free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
+where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
 
 The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eq:energy]].
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 
-*** Derivation by mass balance
+*** Derivation of the CH equation from mass balance
 The paper [cite:@Wu_2022]  motivates us to derive the CH equation as follows:
 #+name: eq:massbal
 \begin{equation}
@@ -465,9 +465,9 @@ end
 
 #+begin_src julia :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images :session jl
 <<setup-grid>>
-set_xi_and_psi!(solver)
+set_xi_and_psi!(test_solver)
 SMOOTH!(solver, 2, true);
-p = heatmap(solver.phase, aspect_ratio=:equal ,xlim=(2 , solver.len));
+p = heatmap(test_solver.phase, aspect_ratio=:equal ,xlim=(2 , solver.len));
 savefig(p,"images/smooth.svg")
 #+end_src
 
@@ -1034,7 +1034,41 @@ We propose a data motivated alternative to the elliptical PDE in the  relaxed CH
 \begin{equation}
 ||\phi^{n+1} + \frac{1}{\alpha}\nabla\cdot(G\nabla\phi^{n+1}) - c ||_{Fr}
 \end{equation}
-in the Frobenious norm \(||\cdot||_{Fr}\)
+in the Frobenious norm \(||\cdot||_{Fr}\) and implement our loss function accordingly
+#+begin_src julia
+lossfn(y_hat::AbstractArray , y::AbstractArray) = norm(y .- y_hat)
+#+end_src
+we calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
+#+begin_src julia :tangle src/utils.jl
+function ggrad(x:AbstractArray, solver::T) where T <: solver
+Indices = CartesianIndices(x)
+Ifirst , Ilast = first(Indices) , last(Indices)
+padding = oneunit(Ifirst)
+res = zeros(size(x))
+
+for I in (Ifirst + padding):(Ilast - padding)
+    i,j = I.I
+   res[I] = x[i] +  (discrete_weigted_G_sum(i,j,x,G,solver.len,solver.width)
+             - neighbours_in_domain(i,j,G, solver.len , solver.width) * x[I])/ solver.h^2
+    end
+return res
+#+end_src
+
+#+RESULTS:
+
+#+begin_src julia-vterm :noweb yes
+<<setup-grid>>
+using JLD2
+using Dataframes
+df = jldload("data/train_data.jld2")["result"]
+df[!,"grad"] = ggrad.(df[!,"expected"] , Ref(test_solver))
+#+end_src
+
+#+RESULTS:
+: LoadError: syntax: incomplete: "function" at /home/jon/Projects/julia_tst/src/utils.jl:87 requires end
+: in expression starting at /home/jon/Projects/julia_tst/src/utils.jl:87
+: in expression starting at /tmp/babel-xiyd0R/julia-vterm-src-t7P7Hc:1
+
 ** proposal CNN
 #+begin_src julia
 using Flux
@@ -1228,7 +1262,7 @@ using Printf
 M = testdata(64, 16, 12 , 2)
 
 testgrd = testgrid(multi_solver,M, 2)
-solver = testgrd[1]
+test_solver = testgrd[1]
 #+end_src
 
 #+name: setup-relaxed-grid

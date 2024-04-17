@@ -7,10 +7,10 @@ using Plots
 using LaTeXStrings
 using LinearAlgebra
 using Printf
-M = testdata(32, 6, 8 , 2)
+M = testdata(64, 16, 12 , 2)
 
 testgrd = testgrid(multi_solver,M, 2)
-solver = testgrd[1]
+test_solver = testgrd[1]
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
 solver = testgrd[1]
@@ -78,10 +78,10 @@ using Plots
 using LaTeXStrings
 using LinearAlgebra
 using Printf
-M = testdata(32, 6, 8 , 2)
+M = testdata(64, 16, 12 , 2)
 
 testgrd = testgrid(multi_solver,M, 2)
-solver = testgrd[1]
+test_solver = testgrd[1]
 set_xi_and_psi!(solver)
 
 pbar = ProgressBar(total = 1000)
