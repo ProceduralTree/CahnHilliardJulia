@@ -86,7 +86,7 @@ In order to show the CH equation's consistency with thermodynamics we take the t
 &=\int_{\Omega} \mu \partial_t \phi \ dx\\
 &= \int_{\Omega} \mu \cdot \Delta\mu \ dx \\
 &= -\int_{\Omega} \nabla\mu \cdot \nabla\mu \ dx + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
-&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
+&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in [0,T)
 \end{align*}
 * Baseline multi-grid solver
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in [cite:@SHIN20117441].
@@ -519,6 +519,14 @@ savefig(p,"testdata.svg")
 #+caption: Examples of different phase-fields used as the initial condition in this work.
 #+RESULTS: fig:testinput
 [[file:testdata.svg]]
+** explicit alternative
+
+\begin{equation}
+\begin{aligned}
+\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
+ \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
+\end{aligned}
+\end{equation}
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 ** Energy evaluations
@@ -697,7 +705,7 @@ As ansatz for the numerical solver we propose:
 \end{equation}
 This approach is inspired by [[eq:discrete-cahn-hilliard]] adapted to the relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]].
 We then adapt the multi-grid solver proposed in [[Baseline multi-grid solver]] to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in [[eq:discretization]],
-and expand them.
+and expand them .
 ** Elliptical PDE:
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
 \begin{align*}
@@ -843,7 +851,7 @@ SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \ze
  \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
-We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper[cite:@SHIN20117441] because the required system of linear equations in the paper[cite:@SHIN20117441]  was solved numerically. We simplify the relaxed system in one-dimension, and solve explicitly:
+We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper [cite:@SHIN20117441] because the required system of linear equations in the paper [cite:@SHIN20117441]  was solved numerically. We simplify the relaxed system in one-dimension, and solve explicitly:
 \begin{align*}
 \varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
@@ -888,42 +896,25 @@ end
 #+end_src
 
 #+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
-using Plots
-using LaTeXStrings
-using LinearAlgebra
-include(pwd() *"/src/utils.jl")
-<<SMOOTH_relaxed>>
-SIZE =64
-M = testdata(SIZE, 5 , 8, 2);
-phase = zeros(size(M) .+ 2);
-phase[2:end-1,2:end-1] = M;
-mu = copy(phase);
-W_prime(x) = -x * (1-x^2)
-<<elyps_solver>>
-solver = relaxed_multi_solver(
-    phase ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    zeros(size(phase)) ,
-    8e-3 ,1e-3 , 1e-3 ,
-    W_prime ,
-    size(M , 1) , size(M , 2),
-    1000001
-)
-set_xi_and_psi!(solver)
-elyps_solver!(solver , 2000)
-SMOOTH!(solver, 1000, true);
-p2 = heatmap(solver.phase, aspect_ratio=:equal, title="with solving c" , xlim=(2,SIZE) , ylim=(2,SIZE));
-savefig(p2,"images/smooth_relaxed.svg")
+<<init>>
+plots = []
+for alpha in [1e3 , 1e4 , 1e5 , 1e6]
+local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha)
+set_xi_and_psi!(testgrd[1])
+elyps_solver!(testgrd[1] , 2000)
+SMOOTH!(testgrd[1], 1000, false);
+push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width)));
+    end
+p = plot(plots...)
+savefig(p,"images/smooth_relaxed.svg")
 #+end_src
 
 #+RESULTS:
 [[file:images/smooth_relaxed.svg]]
 
 #TODO plot for different alpha
-** Relaxed V-cycle approach
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
+** The relaxed V-cycle approach
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in the [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
 <<setup-relaxed-grid>>
 
@@ -1038,9 +1029,9 @@ in the Frobenious norm \(||\cdot||_{Fr}\) and implement our loss function accord
 #+begin_src julia
 lossfn(y_hat::AbstractArray , y::AbstractArray) = norm(y .- y_hat)
 #+end_src
-we calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
+We calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
 #+begin_src julia :tangle src/utils.jl
-function ggrad(x:AbstractArray, solver::T) where T <: solver
+function ggrad(x::AbstractArray, solver::T) where T <: solver
 Indices = CartesianIndices(x)
 Ifirst , Ilast = first(Indices) , last(Indices)
 padding = oneunit(Ifirst)
@@ -1052,6 +1043,7 @@ for I in (Ifirst + padding):(Ilast - padding)
              - neighbours_in_domain(i,j,G, solver.len , solver.width) * x[I])/ solver.h^2
     end
 return res
+end
 #+end_src
 
 #+RESULTS:
@@ -1248,37 +1240,32 @@ end
 
 #+end_src
 
-#+name: setup-grid
+#+name: init
 #+begin_src julia :eval never
-include(pwd() * "/src/" * "solvers.jl")
-include(pwd() * "/src/" * "adapted_solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
-include(pwd() * "/src/" * "multisolver.jl")
-include(pwd() * "/src/" * "testgrids.jl")
+include(pwd() * "/src/solvers.jl")
+include(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/utils.jl")
+include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/multi_relaxed.jl")
+include(pwd() * "/src/testgrids.jl")
+include(pwd() * "/src/elypssolver.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
 using Printf
-M = testdata(64, 16, 12 , 2)
-
+using ProgressBars
+M = testdata(64, 4, 8 , 2)
+#+end_src
+#+name: setup-grid
+#+begin_src julia :eval never
+<<init>>
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 #+end_src
 
 #+name: setup-relaxed-grid
 #+begin_src julia :eval never
-include(pwd() * "/src/" * "solvers.jl")
-include(pwd() * "/src/" * "adapted_solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
-include(pwd() * "/src/" * "multisolver.jl")
-include(pwd() * "/src/" * "multi_relaxed.jl")
-include(pwd() * "/src/" * "elypssolver.jl")
-include(pwd() * "/src/" * "testgrids.jl")
-using Plots
-using LinearAlgebra
-using ProgressBars
-M = testdata(32, 5, 8 , 2)
-
+<<init>>
 testgrd = testgrid(relaxed_multi_solver,M, 2)
 println("Hi")
 solver = testgrd[1]
@@ -1286,13 +1273,7 @@ solver = testgrd[1]
 
 #+name: setup-comparison
 #+begin_src julia
-include(pwd() * "/src/" * "solvers.jl")
-include(pwd() * "/src/" * "adapted_solvers.jl")
-include(pwd() * "/src/" * "utils.jl")
-include(pwd() * "/src/" * "multisolver.jl")
-include(pwd() * "/src/" * "multi_relaxed.jl")
-include(pwd() * "/src/" * "elypssolver.jl")
-include(pwd() * "/src/" * "testgrids.jl")
+<<init>>
 using Plots
 using LinearAlgebra
 using ProgressBars

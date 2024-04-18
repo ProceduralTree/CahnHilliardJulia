@@ -377,8 +377,10 @@ include(pwd() * "/src/solvers.jl")
 include(pwd() * "/src/adapted_solvers.jl")
 include(pwd() * "/src/utils.jl")
 include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/multi_relaxed.jl")
 include(pwd() * "/src/adapted_multisolver.jl")
 include(pwd() * "/src/adapted_testgrids.jl")
+include(pwd() * "/src/elypssolver.jl")
 using Plots
 using LaTeXStrings
 using LinearAlgebra
