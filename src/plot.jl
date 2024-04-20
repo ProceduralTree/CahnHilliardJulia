@@ -1,4 +1,16 @@
-<<init>>
+include(pwd() * "/src/solvers.jl")
+include(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/utils.jl")
+include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/multi_relaxed.jl")
+include(pwd() * "/src/testgrids.jl")
+include(pwd() * "/src/elypssolver.jl")
+using Plots
+using LaTeXStrings
+using LinearAlgebra
+using Printf
+using ProgressBars
+M = testdata(32, 4, 8 , 2)
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 
@@ -59,7 +71,19 @@ p3 = heatmap(u_large, title=@sprintf "Change: %.1e" norm(u_large))
 p = plot(p0, p1, p2,p3, layout=(2, 2));
 savefig(p, "images/v_cycle.svg")
 
-<<init>>
+include(pwd() * "/src/solvers.jl")
+include(pwd() * "/src/adapted_solvers.jl")
+include(pwd() * "/src/utils.jl")
+include(pwd() * "/src/multisolver.jl")
+include(pwd() * "/src/multi_relaxed.jl")
+include(pwd() * "/src/testgrids.jl")
+include(pwd() * "/src/elypssolver.jl")
+using Plots
+using LaTeXStrings
+using LinearAlgebra
+using Printf
+using ProgressBars
+M = testdata(32, 4, 8 , 2)
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 set_xi_and_psi!(solver)

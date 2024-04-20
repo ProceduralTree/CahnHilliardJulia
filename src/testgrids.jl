@@ -1,4 +1,4 @@
-function testgrid(::Type{multi_solver},M, len)
+function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M

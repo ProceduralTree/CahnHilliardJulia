@@ -550,7 +550,27 @@ end
 #+end_src
 
 
-#TODO Plot
+#+begin_src julia-vterm :results file graphics :file energy_balance.svg :output-dir images :noweb no-export
+<<setup-grid>>
+n = 100
+m = 100
+pbar = ProgressBar(total = m * n)
+energy = zeros(0)
+for t=1:n
+     set_xi_and_psi!(testgrd[1])
+     for v=1:m
+         v_cycle!(testgrd, 1)
+         update(pbar)
+     end
+         push!(energy , bulk_energy(testgrd[1]))
+end
+p = plot(1:n, energy)
+savefig(p , "images/energy_balance.svg")
+#+end_src
+
+#+RESULTS:
+[[file:images/energy_balance.svg]]
+
 ** Mass balance
 Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\) written as:
 \begin{equation}
@@ -603,6 +623,7 @@ gif(anim , "images/behaviour.gif" , fps = 10)
 [[file:images/behaviour.gif]]
 
 ** rate of convergence
+*** convergence of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
 \begin{equation}
 \| \phi^n - \phi^{n+1,m} \|_{Fr}
@@ -630,6 +651,7 @@ function bulk_energy_potential(solver::T) where T <: solver
    return energy
 end
 #+end_src
+
 
 #+begin_src julia-vterm :results graphics file :file convergence.svg :output-dir images :noweb yes
 using LaTeXStrings
@@ -672,10 +694,50 @@ p = plot(p0,p1,p2, p3)
 savefig(p , "images/convergence.svg")
 
 #+end_src
-
 #+RESULTS:
 [[file:images/convergence.svg]]
+*** convergence unter refinment in time
+we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
+#+begin_src julia-vterm :results output :noweb yes
+using DataFrames
+<<init>>
+tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
 
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=i))
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/time_refinement.jld2"; result)
+#+end_src
+
+#+RESULTS:
+
+#+begin_src julia-vterm
+plot!(p, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t \Delta t")
+end
+savefig(p , "images/time-convergence.svg")
+
+#+end_src
+*** convergence under refinement in space
+we test convergence in space by succesivly subdividing our grid into finer meshes
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
@@ -1192,7 +1254,7 @@ struct relaxed_multi_solver <: solver
 end
 #+end_src
 #+begin_src julia :tangle src/testgrids.jl :eval never
-function testgrid(::Type{multi_solver},M, len)
+function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -1238,6 +1300,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
     return grid
 end
 
+
 #+end_src
 
 #+name: init
@@ -1254,17 +1317,17 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-M = testdata(64, 4, 8 , 2)
+M = testdata(32, 4, 8 , 2)
 #+end_src
 #+name: setup-grid
-#+begin_src julia :eval never
+#+begin_src julia :eval never :noweb yes
 <<init>>
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 #+end_src
 
 #+name: setup-relaxed-grid
-#+begin_src julia :eval never
+#+begin_src julia :eval never :noweb yes
 <<init>>
 testgrd = testgrid(relaxed_multi_solver,M, 2)
 println("Hi")
@@ -1272,7 +1335,7 @@ solver = testgrd[1]
 #+end_src
 
 #+name: setup-comparison
-#+begin_src julia
+#+begin_src julia :noweb yes
 <<init>>
 using Plots
 using LinearAlgebra
@@ -1286,6 +1349,14 @@ relaxed_grid3 = testgrid(relaxed_multi_solver, M, 2 , alpha=1e5)
 original_grid = testgrid(multi_solver, M, 2)
 
 #+end_src
+
+#+name: setup-time-refinment
+#+begin_src julia :noweb yes
+
+
+#+end_src
+
 * References
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization
+O

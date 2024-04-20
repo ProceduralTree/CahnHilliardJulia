@@ -259,6 +259,9 @@ gif(anim , "images/iteration_gradient_boundary.gif" , fps = 10)
 #+RESULTS:
 [[file:images/iteration_gradient_boundary.gif]]
 
+
+* Numerical Examples
+* Summary and outlook
 * Utility
 #+begin_src julia :tangle src/adapted_solvers.jl :eval never
 struct adapted_multi_solver <: solver

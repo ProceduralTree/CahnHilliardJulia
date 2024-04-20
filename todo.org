@@ -1,4 +1,9 @@
 * Inbox
+** TODO Project boundary conds
+ - first order cons influx
+ - side boundary
+
+[[file:~/Projects/julia_tst/Project.org::*Derivation of necessary operators][Derivation of necessary operators]]
 ** TODO add \( \Delta t \) to plot label
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*rate of convergence][rate of convergence]]

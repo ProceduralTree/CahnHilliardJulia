@@ -155,3 +155,38 @@ gif(anim , "images/energy_square.gif" , fps = 10)
 #+end_src
 
 #+RESULTS:
+
+#+begin_src julia :results file graphics :session *julia*  :file randimage.svg :output-dir images
+using Plots
+p = heatmap(rand(100,100))
+savefig(p , "images/randimage.svg")
+#+end_src
+
+#+RESULTS:
+[[file:images/randimage.svg]]
+
+#+begin_src julia :session *julia* :results value :async t
+using DataFrames
+res = DataFrame()
+data = [(hello="world" , number=10), (hello="not world" , number=NaN),]
+append!(res , data)
+return res
+#+end_src
+
+#+RESULTS:
+| world     | 10.0 |
+| not world |  NaN |
+
+#+name: table
+|     1 |      1 |
+|     2 |      4 |
+|     3 |      9 |
+|     4 |     16 |
+
+#+begin_src julia  :session *julia* :async :results graphics file :file testimg.svg :output-dir images
+using Plots
+savefig(heatmap(rand(10,10)) , "images/testimg.svg")
+#+end_src
+
+#+RESULTS:
+[[file:images/testimg.svg]]
