@@ -529,6 +529,86 @@ savefig(p,"testdata.svg")
 \end{equation}
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
+** Tests
+#+begin_src julia-vterm :results output :cache :noweb no-export :session jl
+using JLD2
+using DataFrames
+using Random
+<<init>>
+
+incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
+insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
+side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
+halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
+
+function get_special_input(fn, size)
+    M = fill(-1, size , size )
+    M[fn(M)] .= 1
+    return M
+end
+
+t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
+t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
+tests = [t1 ; t2]
+tests = [testgrid(multi_solver, M , 2) for M in tests]
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:64
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/iteration.jld2"; result)
+#+end_src
+
+#+RESULTS:
+
+# TODO Plot
+#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both
+<<setup-grid>>
+original_grid = testgrd
+n = 100
+pbar = ProgressBar(total = 10 * n)
+energy = zeros(0)
+massbalance = zeros(0)
+
+anim = @animate for i in 1:100
+    set_xi_and_psi!(original_grid[1])
+    for j in 1:10
+        v_cycle!(original_grid, 1)
+        update(pbar)
+        end
+    push!(energy , bulk_energy(testgrd[1]))
+    push!(massbalance , sum(testgrd[1].phase))
+
+    p0 = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "phasefield" )
+    p1 = heatmap(original_grid[1].potential , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "potential" )
+    p2 = plot(1:i , energy, xlim=(1,n),  title = "Bulk energy")
+    plot(p0,p1)
+    p3 = plot(1:i , massbalance .-massbalance[1] , xlim=(1,n),  title = "Mass change")
+    plot(p0,p1,p2,p3)
+end
+gif(anim , "images/behaviour.gif" , fps = 10)
+#+end_src
+
+#+RESULTS:
+[[file:images/behaviour.gif]]
+
 ** Energy evaluations
 As discrete energy measure we use:
 \begin{align*}
@@ -589,39 +669,6 @@ function massbal(arr)
     return sum(arr[2:end-1, 2:end-1])/num_cells
     end
 #+end_src
-
-# TODO Plot
-** Tests
-#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both
-<<setup-grid>>
-original_grid = testgrd
-n = 100
-pbar = ProgressBar(total = 10 * n)
-energy = zeros(0)
-massbalance = zeros(0)
-
-anim = @animate for i in 1:100
-    set_xi_and_psi!(original_grid[1])
-    for j in 1:10
-        v_cycle!(original_grid, 1)
-        update(pbar)
-        end
-    push!(energy , bulk_energy(testgrd[1]))
-    push!(massbalance , sum(testgrd[1].phase))
-
-    p0 = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "phasefield" )
-    p1 = heatmap(original_grid[1].potential , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "potential" )
-    p2 = plot(1:i , energy, xlim=(1,n),  title = "Bulk energy")
-    plot(p0,p1)
-    p3 = plot(1:i , massbalance .-massbalance[1] , xlim=(1,n),  title = "Mass change")
-    plot(p0,p1,p2,p3)
-end
-gif(anim , "images/behaviour.gif" , fps = 10)
-#+end_src
-
-#+RESULTS:
-[[file:images/behaviour.gif]]
-
 ** rate of convergence
 *** convergence of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
