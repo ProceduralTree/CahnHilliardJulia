@@ -694,12 +694,11 @@ p = plot(p0,p1,p2, p3)
 savefig(p , "images/convergence.svg")
 
 #+end_src
-#+RESULTS:
-[[file:images/convergence.svg]]
 *** convergence unter refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 #+begin_src julia-vterm :results output :noweb yes
 using DataFrames
+using JLD2
 <<init>>
 tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
 
@@ -711,7 +710,7 @@ function iter(g::Vector{T} , n) where T<: solver
         v_cycle!(g, 1)
     end
     end
-    push!(out, (phase=copy(g[1].phase), iteration=i))
+    push!(out, (phase=copy(g[1].phase), iteration=n))
     return out
 end
 
