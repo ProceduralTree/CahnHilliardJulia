@@ -728,6 +728,7 @@ jldsave("experiments/time_refinement.jld2"; result)
 #+end_src
 
 #+RESULTS:
+:
 
 #+begin_src julia-vterm
 plot!(p, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t \Delta t")
