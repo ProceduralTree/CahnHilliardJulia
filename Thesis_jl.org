@@ -179,7 +179,7 @@ function G(i, j, len, width)
     end
 end
 #+end_src
-** PDE as operator L
+
 We derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in [cite:@SHIN20117441].
 \begin{align*}
 L
