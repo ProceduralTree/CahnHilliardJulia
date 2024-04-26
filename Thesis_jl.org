@@ -2,8 +2,9 @@
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
 #+property: header-args:julia :noweb no-export
 #+options:  toc:1
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
+ #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is
@@ -644,6 +645,7 @@ for t=1:n
      end
          push!(energy , bulk_energy(testgrd[1]))
 end
+
 p = plot(1:n, energy)
 savefig(p , "images/energy_balance.svg")
 #+end_src
@@ -743,7 +745,7 @@ savefig(p , "images/convergence.svg")
 #+end_src
 *** convergence unter refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
-#+begin_src julia-vterm :results output :noweb yes
+#+begin_src julia-vterm :results output :noweb yes :exports none
 using DataFrames
 using JLD2
 <<init>>
@@ -777,14 +779,55 @@ jldsave("experiments/time_refinement.jld2"; result)
 #+RESULTS:
 :
 
-#+begin_src julia-vterm
-plot!(p, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t \Delta t")
-end
-savefig(p , "images/time-convergence.svg")
-
+#+name: fig:stability-in-time
+#+begin_src julia-vterm :results file graphics :file time-stability.svg :output-dir images :noweb no-export :session jl
+<<init>>
+using DataFrames
+using JLD2
+using LaTeXStrings
+df = jldopen("experiments/time_refinement.jld2")["result"]
+change = [norm(df[!, "phase"][i] .- df[! , "phase"][i-1]) for i=2:size(df , 1)]
+p = plot(change , ylabel = "difference" , xlabel = "number of timesteps" , label=L"\Delta \phi")
+savefig(p , "images/time-stability.svg")
 #+end_src
+
+#+Caption: behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
+#+RESULTS: fig:stability-in-time
+[[file:images/time-stability.svg]]
+
+
 *** convergence under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
+#+begin_src julia-vterm :results output :noweb yes
+using DataFrames
+using JLD2
+<<init>>
+tests = [testgrid(multi_solver , M , 2 , h = h ) for h in 1e-2./(1:128)]
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=n))
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/time_refinement.jld2"; result)
+#+end_src
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
@@ -846,22 +889,6 @@ As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha
 \begin{align}
 -\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
 \end{align}
-
-**** DONE Proposal1 Newton Solver
-And then we propose a simple newton Iteration to solve  [[eq:discrete_elyps]]  for \( x = c^\alpha_{ij} \):
-Let \( F, dF \) be:
-\begin{align*}
-F(x) &= - \frac{\Sigma_Gc^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2}  x + \alpha x  - \alpha \phi_{ij}^\alpha
-\end{align*}
-and \( dF(x) \)
-
-\begin{align*}
-dF(x) &= - \frac{\Sigma_G}{h^2}    + \alpha
-\end{align*}
-the implementation then is the following:
-
-as input, we use :
-
 **** Proposal2  solver
 solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \begin{align*}
@@ -875,7 +902,7 @@ using ProgressBars
     elyps_solver(c,
     phase,
     len,
-    width,
+        width,
     alpha,
     h,
     n
@@ -902,9 +929,6 @@ function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , ad
     end
 end
 #+end_src
-**** DONE Proposal 4 :noexport:
-as the solver still exhibits unexpected behavior, i.e. it doesn't seem to converge wit higher iterations, we propose a relaxation by interpolating the new value of \(  c_{ij}^\alpha \) with the old one
-
 ** Relaxed PDE as operator L
 We reformulate the discretization [[eq:discrete-relaxed-cahn-hilliard]] in terms of the relaxed operator \(L\) as follows:
 \begin{align*}
@@ -1045,6 +1069,52 @@ gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 #+RESULTS:
 [[file:images/iteration_relaxed2.gif]]
 
+** Test
+#+begin_src julia-vterm :results output :cache :noweb no-export :session jl
+using JLD2
+using DataFrames
+using Random
+<<init>>
+
+incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
+insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
+side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
+halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
+
+function get_special_input(fn, size)
+    M = fill(-1, size , size )
+    M[fn(M)] .= 1
+    return M
+end
+
+t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
+t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
+tests = [t1 ; t2]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in tests]
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:64
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed_iteration.jld2"; result)
+#+end_src
 ** Comparison
 #+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
 <<setup-comparison>>
@@ -1148,7 +1218,7 @@ res = zeros(size(x))
 
 for I in (Ifirst + padding):(Ilast - padding)
     i,j = I.I
-   res[I] = x[i] +  (discrete_weigted_G_sum(i,j,x,G,solver.len,solver.width)
+   res[I] = x[i] +  (discrete_G_weigted_neigbour_sum(i,j,x,G,solver.len,solver.width)
              - neighbours_in_domain(i,j,G, solver.len , solver.width) * x[I])/ solver.h^2
     end
 return res
@@ -1157,18 +1227,16 @@ end
 
 #+RESULTS:
 
-#+begin_src julia-vterm :noweb yes
+#+begin_src julia-vterm :noweb yes :session jl
 <<setup-grid>>
 using JLD2
-using Dataframes
-df = jldload("data/train_data.jld2")["result"]
+using DataFrames
+df = jldopen("data/trainings_data.jld2")["result"]
 df[!,"grad"] = ggrad.(df[!,"expected"] , Ref(test_solver))
 #+end_src
 
 #+RESULTS:
-: LoadError: syntax: incomplete: "function" at /home/jon/Projects/julia_tst/src/utils.jl:87 requires end
-: in expression starting at /home/jon/Projects/julia_tst/src/utils.jl:87
-: in expression starting at /tmp/babel-xiyd0R/julia-vterm-src-t7P7Hc:1
+: Executing... 64f93dab
 
 ** proposal CNN
 #+begin_src julia
@@ -1335,7 +1403,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
         grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .     ÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             8e-3, h0 * 2^i, 1e-3,
             W_prime,

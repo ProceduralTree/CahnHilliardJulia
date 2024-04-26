@@ -4,7 +4,7 @@ using ProgressBars
     elyps_solver(c,
     phase,
     len,
-    width,
+        width,
     alpha,
     h,
     n

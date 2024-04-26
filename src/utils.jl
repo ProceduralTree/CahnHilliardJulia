@@ -92,9 +92,10 @@ res = zeros(size(x))
 
 for I in (Ifirst + padding):(Ilast - padding)
     i,j = I.I
-   res[I] = x[i] +  (discrete_weigted_G_sum(i,j,x,G,solver.len,solver.width)
+   res[I] = x[i] +  (discrete_G_weigted_neigbour_sum(i,j,x,G,solver.len,solver.width)
              - neighbours_in_domain(i,j,G, solver.len , solver.width) * x[I])/ solver.h^2
     end
+
 return res
 end
 

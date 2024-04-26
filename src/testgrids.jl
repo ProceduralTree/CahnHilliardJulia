@@ -32,7 +32,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
         grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
+            zeros(size(M) .     ÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
