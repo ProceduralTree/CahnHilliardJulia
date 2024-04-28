@@ -7,13 +7,14 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
 
 
     for i = 1:len
-        grid[i] = multi_solver(zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
+        dims = size(M) .÷ 2^(i-1) .+ 2
+        grid[i] = multi_solver(zeros(dims),
+            zeros(dims),
+            zeros(dims),
+            zeros(dims),
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
-            size(M, 1) ÷ i, size(M, 2) ÷ i)
+            dims...)
 
     end
     copyto!(grid[1].phase, phase)
@@ -32,7 +33,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
         grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .     ÷ i .+ 2),
+            zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             8e-3, h0 * 2^i, 1e-3,
             W_prime,
