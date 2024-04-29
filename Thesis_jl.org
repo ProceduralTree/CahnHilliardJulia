@@ -703,6 +703,45 @@ end
 
 
 #+begin_src julia-vterm :results graphics file :file convergence.svg :output-dir images :noweb yes
+using DataFrames
+using JLD2
+<<init>>
+
+M = testdata(2^10 , 2^5 , 2^7 , 2 )
+grids = testgrid(relaxed_multi_solver  , M , 5)
+# inits
+for i=2:size(grids,1)
+    restrict_solver!(grids[i-1] , grids[i])
+end
+tests = [[grids[i-1] , grids[i]] for i= 2:size(grids)]
+
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+        push!(out, (cycle=copy(g[1]), iteration=j , subiteration=i))
+    end
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/subiteration.jld2"; result)
+#+end_src
+
+#+begin_src julia
 using LaTeXStrings
 <<setup-grid>>
 original_grid = testgrd
@@ -734,6 +773,8 @@ if t < 2
 continue
 end
 
+#+end_src
+#+begin_src julia-vterm
 plot!(p0, i_0:n ,energy[i_0:end],  title = L"$ E^{bulk}(\phi)$ " , yaxis=:log , label=L"t=%$t")
 plot!(p1, i_0:n, energy_pot[i_0:end], title = L" $ \Delta E^{bulk}(\mu)$" , yaxis=:log,label=L"t=%$t" )
 plot!(p2, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t")
@@ -749,15 +790,12 @@ we test the bahaviour unter refinement in time by succesivly subdeviding the ori
 using DataFrames
 using JLD2
 <<init>>
-tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
-    for j in 1:n
     set_xi_and_psi!(g[1])
-    for i = 1:64
+    for i = 1:128
         v_cycle!(g, 1)
-    end
     end
     push!(out, (phase=copy(g[1].phase), iteration=n))
     return out
@@ -795,14 +833,21 @@ savefig(p , "images/time-stability.svg")
 #+RESULTS: fig:stability-in-time
 [[file:images/time-stability.svg]]
 
-
 *** convergence under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
 #+begin_src julia-vterm :results output :noweb yes
 using DataFrames
 using JLD2
 <<init>>
-tests = [testgrid(multi_solver , M , 2 , h = h ) for h in 1e-2./(1:128)]
+
+M = testdata(2^10 , 2^5 , 2^7 , 2 )
+grids = testgrid(relaxed_multi_solver  , M , 5)
+# inits
+for i=2:size(grids,1)
+    restrict_solver!(grids[i-1] , grids[i])
+end
+tests = [[grids[i-1] , grids[i]] for i= 2:size(grids)]
+
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -826,7 +871,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/time_refinement.jld2"; result)
+jldsave("experiments/space_refinement.jld2"; result)
 #+end_src
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
@@ -1149,47 +1194,6 @@ end
 #+end_src
 
 
-#+begin_src julia-vterm :results graphics file :file convergence.svg :output-dir images :noweb yes
-using LaTeXStrings
-<<setup-grid>>
-original_grid = testgrd
-n = 100
-m = 8
-i_0 = 1
-pbar = ProgressBar(total =n * m)
-energy = zeros(0)
-energy_pot = zeros(0)
-change = zeros(0)
-
-p0,p1,p2= [plot() for i=1:3]
-
-for t = 1:m
-set_xi_and_psi!(original_grid[1])
-energy = zeros(0)
-energy_pot = zeros(0)
-change = zeros(0)
-for j in 1:n
-    update(pbar)
-    old_solver = deepcopy(original_grid[1])
-    v_cycle!(original_grid, 1)
-    push!(energy , bulk_energy(original_grid[1]))
-    push!(change , norm(original_grid[1].phase - old_solver.phase))
-    push!(energy_pot , bulk_energy_potential(original_grid[1]))
-    end
-
-if t < 2
-continue
-end
-
-plot!(p0, i_0:n ,energy[i_0:end],  title = L"$ E^{bulk}(\phi)$ " , yaxis=:log , label=L"t=%$t")
-plot!(p1, i_0:n, energy_pot[i_0:end], title = L" $ \Delta E^{bulk}(\mu)$" , yaxis=:log,label=L"t=%$t" )
-plot!(p2, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t")
-end
-p3  = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none )
-p = plot(p0,p1,p2, p3)
-savefig(p , "images/convergence.svg")
-
-#+end_src
 *** convergence unter refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 #+begin_src julia-vterm :results output :noweb yes :exports none
@@ -1370,7 +1374,7 @@ We propose a data motivated alternative to the elliptical PDE in the  relaxed CH
 \end{equation}
 in the Frobenious norm \(||\cdot||_{Fr}\) and implement our loss function accordingly
 #+begin_src julia
-lossfn(y_hat::AbstractArray , y::AbstractArray) = norm(y .- y_hat)
+lossfn(y_hat::AbstractArray , y::AbstractArray) = norm(y .- y_hat)^2
 #+end_src
 We calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
 #+begin_src julia :tangle src/utils.jl
