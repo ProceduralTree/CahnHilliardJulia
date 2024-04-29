@@ -22,7 +22,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -35,7 +35,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            8e-3, h0 * 2^i, 1e-3,
+            8e-3, h0 * 2^i, dt,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
             alpha)

@@ -1116,6 +1116,8 @@ for task in tasks
 jldsave("experiments/relaxed_iteration.jld2"; result)
 #+end_src
 
+#+RESULTS:
+
 ** rate of convergence
 *** convergence of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
@@ -1194,7 +1196,7 @@ we test the bahaviour unter refinement in time by succesivly subdeviding the ori
 using DataFrames
 using JLD2
 <<init>>
-tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
+tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -1218,11 +1220,10 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/time_refinement.jld2"; result)
+jldsave("experiments/relaxed_time_refinement.jld2"; result)
 #+end_src
 
 #+RESULTS:
-:
 
 #+name: fig:stability-in-time
 #+begin_src julia-vterm :results file graphics :file time-stability.svg :output-dir images :noweb no-export :session jl
@@ -1564,7 +1565,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -1577,7 +1578,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6)
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            8e-3, h0 * 2^i, 1e-3,
+            8e-3, h0 * 2^i, dt,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
             alpha)
