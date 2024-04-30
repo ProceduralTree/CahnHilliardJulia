@@ -536,22 +536,7 @@ using JLD2
 using DataFrames
 using Random
 <<init>>
-
-incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
-insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
-side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
-halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
-
-function get_special_input(fn, size)
-    M = fill(-1, size , size )
-    M[fn(M)] .= 1
-    return M
-end
-
-t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
-t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
-tests = [t1 ; t2]
-tests = [testgrid(multi_solver, M , 2) for M in tests]
+<<setup-diverse-testgrids>>
 function iter(g::Vector{T} , n) where T<: solver
     out = []
     for j in 1:64
@@ -707,13 +692,21 @@ using DataFrames
 using JLD2
 <<init>>
 
-M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 5)
-# inits
-for i=2:size(grids,1)
-    restrict_solver!(grids[i-1] , grids[i])
+incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
+insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
+side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
+halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
+
+function get_special_input(fn, size)
+    M = fill(-1, size , size )
+    M[fn(M)] .= 1
+    return M
 end
-tests = [[grids[i-1] , grids[i]] for i= 2:size(grids)]
+
+t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
+t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
+tests = [t1 ; t2]
+tests = [testgrid(multi_solver, M , 2) for M in tests]
 
 
 function iter(g::Vector{T} , n) where T<: solver
@@ -722,7 +715,7 @@ function iter(g::Vector{T} , n) where T<: solver
     set_xi_and_psi!(g[1])
     for i = 1:64
         v_cycle!(g, 1)
-        push!(out, (cycle=copy(g[1]), iteration=j , subiteration=i))
+        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i))
     end
     end
     return out
@@ -731,7 +724,7 @@ end
 
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
+    t = Threads.@spawn iter(tests[i] , 64)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -740,6 +733,9 @@ for task in tasks
     end
 jldsave("experiments/subiteration.jld2"; result)
 #+end_src
+
+#+RESULTS:
+[[file:images/convergence.svg]]
 
 #+begin_src julia
 using LaTeXStrings
@@ -790,6 +786,7 @@ we test the bahaviour unter refinement in time by succesivly subdeviding the ori
 using DataFrames
 using JLD2
 <<init>>
+<<setup-diverse-testgrids>>
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -835,25 +832,25 @@ savefig(p , "images/time-stability.svg")
 
 *** convergence under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
-#+begin_src julia-vterm :results output :noweb yes
+#+begin_src julia-vterm :results output :noweb yes :session
 using DataFrames
 using JLD2
 <<init>>
 
 M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 5)
+grids = testgrid(multi_solver  , M , 5)
 # inits
 for i=2:size(grids,1)
     restrict_solver!(grids[i-1] , grids[i])
 end
-tests = [[grids[i-1] , grids[i]] for i= 2:size(grids)]
+tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
 
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
-    for i = 1:64
+    for i = 1:1
         v_cycle!(g, 1)
     end
     end
@@ -864,7 +861,7 @@ end
 
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
+    t = Threads.@spawn iter(tests[i], 1)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -873,6 +870,9 @@ for task in tasks
     end
 jldsave("experiments/space_refinement.jld2"; result)
 #+end_src
+
+#+RESULTS:
+
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
@@ -1165,33 +1165,6 @@ jldsave("experiments/relaxed_iteration.jld2"; result)
 
 ** rate of convergence
 *** convergence of a sub iteration v-cycle
-in order to evaluate convergence we observe the change in phase
-\begin{equation}
-\| \phi^n - \phi^{n+1,m} \|_{Fr}
-\end{equation}
-where \( \|\cdot\|_{Fr} \) represents a Frobenious norm over the tensors representing \( \phi.^n,\phi^{n+1,m} \).
-In addition we track the change of bulk energy
-\begin{equation}
-\frac{d}{dt} E^{bulk} = - \int_{\Omega} |\nabla\mu|^2 \ dx
-\end{equation}.
-discetized as follows:
-\begin{equation}
-\Delta E^{bulk} = - \sum_{ij \in \Omega} |\nabla_d\mu|^2
-\end{equation}.
-
-#+begin_src julia :tangle src/utils.jl
-function bulk_energy_potential(solver::T) where T <: solver
-    energy = 0
-    dx = CartesianIndex(1,0)
-    dy = CartesianIndex(0,1)
-    W(x) = 1/4 * (1-x^2)^2
-    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
-        i,j = I.I
-        energy +=  G(i+ 0.5,j ,solver.len, solver.width) * (solver.potential[I+dx] - solver.potential[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.potential[I+dy] - solver.potential[I])^2
-        end
-   return energy
-end
-#+end_src
 
 
 *** convergence unter refinment in time
@@ -1642,9 +1615,23 @@ original_grid = testgrid(multi_solver, M, 2)
 
 #+end_src
 
-#+name: setup-time-refinment
+#+name: setup-diverse-testgrids
 #+begin_src julia :noweb yes
+incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
+insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
+side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
+halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
 
+function get_special_input(fn, size)
+    M = fill(-1, size , size )
+    M[fn(M)] .= 1
+    return M
+end
+
+t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
+t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
+tests = [t1 ; t2]
+tests = [testgrid(multi_solver, M , 2) for M in tests]
 
 #+end_src
 
