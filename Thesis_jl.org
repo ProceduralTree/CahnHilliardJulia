@@ -3,8 +3,8 @@
 #+property: header-args:julia :noweb no-export
 #+options:  toc:1
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
-#+PROPERTY: header-args:julia :output-dir images
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results
+#+PROPERTY: header-args:julia :output-dir images :eval never
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :eval never-export
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format is provided in [[Technical details]]
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is
@@ -530,7 +530,7 @@ savefig(p,"testdata.svg")
 \end{equation}
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
-** Tests
+** Experiments
 #+begin_src julia-vterm :results output :cache :noweb no-export :session jl
 using JLD2
 using DataFrames
@@ -565,25 +565,22 @@ jldsave("experiments/iteration.jld2"; result)
 #+RESULTS:
 
 # TODO Plot
-#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both
-<<setup-grid>>
-original_grid = testgrd
-n = 100
+#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both :noweb no-export
+<<init>>
+using JLD2
+
+results = jldopen("experiments/iteration.jld2")["result"]
 pbar = ProgressBar(total = 10 * n)
 energy = zeros(0)
 massbalance = zeros(0)
 
-anim = @animate for i in 1:100
-    set_xi_and_psi!(original_grid[1])
-    for j in 1:10
-        v_cycle!(original_grid, 1)
-        update(pbar)
-        end
-    push!(energy , bulk_energy(testgrd[1]))
+anim = @animate for res_solver in results
+
+    push!(energy , bulk_energy(res_solver))
     push!(massbalance , sum(testgrd[1].phase))
 
-    p0 = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "phasefield" )
-    p1 = heatmap(original_grid[1].potential , framestyle=:none , legend=true, lims=(1,size(testgrd[1].phase)[1]), aspect_ratio=:equal, title  = "potential" )
+    p0 = heatmap(res_solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1,size(res_solver.phase)[1]), aspect_ratio=:equal, title  = "phasefield" )
+    p1 = heatmap(res_solver.potential , framestyle=:none , legend=true, lims=(1,size(res_solver.phase)[1]), aspect_ratio=:equal, title  = "potential" )
     p2 = plot(1:i , energy, xlim=(1,n),  title = "Bulk energy")
     plot(p0,p1)
     p3 = plot(1:i , massbalance .-massbalance[1] , xlim=(1,n),  title = "Mass change")
@@ -663,14 +660,15 @@ in order to evaluate convergence we observe the change in phase
 \| \phi^n - \phi^{n+1,m} \|_{Fr}
 \end{equation}
 where \( \|\cdot\|_{Fr} \) represents a Frobenious norm over the tensors representing \( \phi.^n,\phi^{n+1,m} \).
-In addition we track the change of bulk energy
+In addition we track the change of bulk energy:
+
 \begin{equation}
 \frac{d}{dt} E^{bulk} = - \int_{\Omega} |\nabla\mu|^2 \ dx
-\end{equation}.
+\end{equation}
 discetized as follows:
 \begin{equation}
 \Delta E^{bulk} = - \sum_{ij \in \Omega} |\nabla_d\mu|^2
-\end{equation}.
+\end{equation}
 
 #+begin_src julia :tangle src/utils.jl
 function bulk_energy_potential(solver::T) where T <: solver
@@ -1076,13 +1074,19 @@ end
 #+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
 <<init>>
 plots = []
-for alpha in [1e3 , 1e4 , 1e5 , 1e6]
-local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha)
+eps = 1e-2
+for alpha in [1e3 , 1e4 , 1e5 , 1e6 , 1e7]
+local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha , epsilon=eps)
 set_xi_and_psi!(testgrd[1])
 elyps_solver!(testgrd[1] , 2000)
 SMOOTH!(testgrd[1], 1000, false);
 push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width)));
     end
+
+original = testgrid(multi_solver,M, 2 ;  epsilon=eps)
+set_xi_and_psi!(original[1])
+SMOOTH!(original[1], 1000, false);
+push!(plots , heatmap(original[1].phase, aspect_ratio=:equal, title="original SMOOTH" , xlim=(2,original[1].len) , ylim=(2,original[1].width)));
 p = plot(plots...)
 savefig(p,"images/smooth_relaxed.svg")
 #+end_src
@@ -1090,7 +1094,6 @@ savefig(p,"images/smooth_relaxed.svg")
 #+RESULTS:
 [[file:images/smooth_relaxed.svg]]
 
-#TODO plot for different alpha
 ** The relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in the [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
@@ -1335,6 +1338,7 @@ savefig(p, "images/alpha-error.svg")
 
 #+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
 [[file:images/alpha-error.svg]]
+in all cases th difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:
 #+name: eq:optimum-function
@@ -1514,7 +1518,7 @@ struct relaxed_multi_solver <: solver
 end
 #+end_src
 #+begin_src julia :tangle src/testgrids.jl :eval never
-function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
+function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e-3)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -1528,7 +1532,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
             zeros(dims),
             zeros(dims),
             zeros(dims),
-            8e-3, h0 * 2^i, 1e-3,
+            epsilon, h0 * 2^i, 1e-3,
             W_prime,
             dims...)
 
@@ -1538,7 +1542,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3)
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, epsilon=8e-3)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
@@ -1551,7 +1555,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3)
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
             zeros(size(M) .÷ i .+ 2),
-            8e-3, h0 * 2^i, dt,
+            epsilon, h0 * 2^i, dt,
             W_prime,
             size(M, 1) ÷ i, size(M, 2) ÷ i,
             alpha)
@@ -1634,4 +1638,3 @@ tests = [testgrid(multi_solver, M , 2) for M in tests]
 * References
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization
-O

@@ -84,18 +84,6 @@ function bulk_energy_potential(solver::T) where T <: solver
    return energy
 end
 
-function bulk_energy_potential(solver::T) where T <: solver
-    energy = 0
-    dx = CartesianIndex(1,0)
-    dy = CartesianIndex(0,1)
-    W(x) = 1/4 * (1-x^2)^2
-    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
-        i,j = I.I
-        energy +=  G(i+ 0.5,j ,solver.len, solver.width) * (solver.potential[I+dx] - solver.potential[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.potential[I+dy] - solver.potential[I])^2
-        end
-   return energy
-end
-
 function ggrad(x::AbstractArray, solver::T) where T <: solver
 Indices = CartesianIndices(x)
 Ifirst , Ilast = first(Indices) , last(Indices)
