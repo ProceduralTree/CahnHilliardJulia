@@ -873,6 +873,7 @@ jldsave("experiments/space_refinement.jld2"; result)
 
 #+RESULTS:
 
+
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
