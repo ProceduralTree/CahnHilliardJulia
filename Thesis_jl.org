@@ -2,6 +2,7 @@
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
 #+property: header-args:julia :noweb no-export
 #+options:  toc:1
+#+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never
 #+PROPERTY: header-args:julia-vterm :output-dir images :exports results :eval never-export
@@ -112,11 +113,14 @@ G(x,y) &=
 \end{align*}
 To simplify the notation for discretized derivatives we use the following abbreviations:
 
+Math:
+- \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \)
+- \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)
+Code:
+- ~discrete_weigted_neigbour_sum(i,j,...)~
+- ~neighbours_in_domain(i,j,G)~
 
-| Math                                                                                                                                                                                                                         | Code                                   |
-| \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \) | ~discrete_weigted_neigbour_sum(i,j,...)~ |
-| \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)                                                                                                                              | ~neighbours_in_domain(i,j,G)~            |
-|                                                                                                                                                                                                                              |                                        |
+
 #+begin_src julia :tangle src/utils.jl :eval never
 function neighbours_in_domain(i, j, G, len, width)
     (
@@ -374,18 +378,13 @@ savefig(p, "images/v_cycle.svg")
 After a few iterations, V-cycle exhibits the following behavior:
 
 #+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb no-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
-<<setup-grid>>
-set_xi_and_psi!(solver)
-
-pbar = ProgressBar(total = 1000)
-
-anim = @animate for i in 1:100
-    for j in 1:10
-        v_cycle!(testgrd, 1)
-        update(pbar)
-        end
-    set_xi_and_psi!(testgrd[1])
-    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
+<<init>>
+using JLD2
+using DataFrames
+var"W_prime#61"(x) = -x * (1 - x^2)
+results = jldopen("experiments/iteration.jld2")["result"]
+anim = @animate for res in eachrow(results)
+    heatmap(res.solver.phase , xlims = (2,size(res.solver.phase , 1)-1) , ylim=(2,size(res.solver.phase , 1)-1) , aspectratio=:equal)
 end
 gif(anim , "images/iteration.gif" , fps = 10)
 #+end_src
@@ -478,13 +477,6 @@ savefig(p,"images/smooth.svg")
 ** Test data:
 For testing and later training we use a multitude of different phase-fields, notably an assortment of randomly placed circles, squares, and arbitrary generated values.
 
-#+name:inputs
-| Size | blobs | blobsize | norm |
-|------+-------+----------+------|
-|   64 |    10 |       10 |    2 |
-|   64 |    10 |       10 |  100 |
-|  512 |    20 |       50 |    2 |
-
 #+name: testdata
 #+begin_src julia :eval never :tangle src/utils.jl
 using Random
@@ -568,22 +560,25 @@ jldsave("experiments/iteration.jld2"; result)
 #+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both :noweb no-export
 <<init>>
 using JLD2
-
+using DataFrames
+var"W_prime#325"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
+n  = size(results.solver , 1)
 pbar = ProgressBar(total = 10 * n)
 energy = zeros(0)
 massbalance = zeros(0)
 
-anim = @animate for res_solver in results
+anim = @animate for res in eachrow(results)
+    push!(energy , bulk_energy(res.solver))
+    push!(massbalance , massbal(res.solver.phase))
 
-    push!(energy , bulk_energy(res_solver))
-    push!(massbalance , sum(testgrd[1].phase))
+    p0 = heatmap(res.solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1, size(res.solver.phase , 1)) , aspect_ratio=:equal, title  = "phasefield" )
+   p1 = heatmap(res.solver.potential , framestyle=:none , legend=true, lims=(1,size(res.solver.phase , 1)), aspect_ratio=:equal, title  = "potential" )
 
-    p0 = heatmap(res_solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1,size(res_solver.phase)[1]), aspect_ratio=:equal, title  = "phasefield" )
-    p1 = heatmap(res_solver.potential , framestyle=:none , legend=true, lims=(1,size(res_solver.phase)[1]), aspect_ratio=:equal, title  = "potential" )
-    p2 = plot(1:i , energy, xlim=(1,n),  title = "Bulk energy")
-    plot(p0,p1)
-    p3 = plot(1:i , massbalance .-massbalance[1] , xlim=(1,n),  title = "Mass change")
+    current_range = (res.experiment -1)*64 +1
+
+    p3 = plot( 1:res.iteration, (massbalance .-massbalance[current_range])[current_range:current_range+res.iteration-1] , xlim=(1,64),  title = "Mass change")
+    p2 = plot(1:res.iteration , energy[current_range:current_range+res.iteration-1], xlim=(1,64),  title = "Bulk energy")
     plot(p0,p1,p2,p3)
 end
 gif(anim , "images/behaviour.gif" , fps = 10)
@@ -613,22 +608,15 @@ end
 #+end_src
 
 
-#+begin_src julia-vterm :results file graphics :file energy_balance.svg :output-dir images :noweb no-export
-<<setup-grid>>
-n = 100
-m = 100
-pbar = ProgressBar(total = m * n)
-energy = zeros(0)
-for t=1:n
-     set_xi_and_psi!(testgrd[1])
-     for v=1:m
-         v_cycle!(testgrd, 1)
-         update(pbar)
-     end
-         push!(energy , bulk_energy(testgrd[1]))
-end
+#+begin_src julia-vterm :results file graphics :file energy_balance.svg :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
 
-p = plot(1:n, energy)
+var"W_prime#325"(x) = -x * (1 - x^2)
+results = jldopen("experiments/iteration.jld2")["result"]
+energy = bulk_energy.(results[1:64,:].solver)
+p = plot(1:64 , energy)
 savefig(p , "images/energy_balance.svg")
 #+end_src
 
@@ -653,6 +641,22 @@ function massbal(arr)
     return sum(arr[2:end-1, 2:end-1])/num_cells
     end
 #+end_src
+
+#+begin_src julia-vterm :results file graphics :file mass_balance.svg :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
+
+var"W_prime#325"(x) = -x * (1 - x^2)
+results = jldopen("experiments/iteration.jld2")["result"]
+energy = [ massbal(s.phase) .- massbal(results.solver[65].phase) for s in results[65:128,:].solver]
+p = plot(1:64 , energy)
+savefig(p , "images/mass_balance.svg")
+#+end_src
+
+#+RESULTS:
+[[file:images/mass_balance.svg]]
+
 ** rate of convergence
 *** convergence of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
