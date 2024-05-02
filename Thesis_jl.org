@@ -1252,16 +1252,21 @@ savefig(p , "images/time-stability.svg")
 
 *** convergence under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
-#+begin_src julia-vterm :results output :noweb yes
+
+
+#+begin_src julia-vterm :results output :noweb yes :session jl
 using DataFrames
 using JLD2
 <<init>>
+
 M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 5)
+grids = testgrid(relaxed_multi_solver  , M , 7)
 # inits
 for i=2:size(grids,1)
     restrict_solver!(grids[i-1] , grids[i])
 end
+tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
+
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -1270,23 +1275,25 @@ function iter(g::Vector{T} , n) where T<: solver
     for i = 1:64
         v_cycle!(g, 1)
     end
+    push!(out, (phase=copy(g[1].phase), iteration=j))
     end
-    push!(out, (phase=copy(g[1].phase), iteration=n))
     return out
 end
 
 
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
+    t = Threads.@spawn iter(tests[i], 16)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/time_refinement.jld2"; result)
+jldsave("experiments/relaxed_space_refinement.jld2"; result)
 #+end_src
+
+#+RESULTS:
 
 ** Comparison
 #+name: solver-comparison
@@ -1577,14 +1584,15 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, eps
     h0 = 3e-3
 
     for i = 1:len
-        grid[i] = relaxed_multi_solver(zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            zeros(size(M) .÷ i .+ 2),
-            epsilon, h0 * 2^i, dt,
+        dims = size(M) .÷ 2^(i-1) .+ 2
+        grid[i] = relaxed_multi_solver(zeros(dims),
+            zeros(dims),
+            zeros(dims),
+            zeros(dims),
+            zeros(dims),
+            epsilon, h0 * 2^i, 1e-3,
             W_prime,
-            size(M, 1) ÷ i, size(M, 2) ÷ i,
+            dims...,
             alpha)
 
     end

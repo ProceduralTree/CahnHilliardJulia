@@ -15,25 +15,25 @@ testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
-solver = testgrd[1]
-set_xi_and_psi!(solver)
-SMOOTH!(solver, 400, true);
-p1 = heatmap(solver.phase, title="After Pre Smoothing");
+s = testgrd[1]
+set_xi_and_psi!(s)
+SMOOTH!(s, 400, true);
+p1 = heatmap(s.phase, title="After Pre Smoothing");
 
 
-d = zeros(size(solver.phase))
-r = zeros(size(solver.phase))
+d = zeros(size(s.phase))
+r = zeros(size(s.phase))
 
-for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-    d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I] , solver.potential[I])
+for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
+    d[I], r[I] = [s.xi[I], s.psi[I]] .- L(s, I.I..., s.phase[I] , s.potential[I])
 end
 
 p2 = heatmap(d, title="Phase Residuals");
 level = 1
 
 restrict_solver!(testgrd[level], testgrd[level+1])
-solver =testgrd[level+1]
-solution = deepcopy(solver)
+s =testgrd[level+1]
+solution = deepcopy(s)
 
 
 
@@ -49,10 +49,10 @@ v_large = zeros(size(d_large))
 
 
 for i = 1:300
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+    for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
 
 
-        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I... , solver.phase[I] , solver.potential[I])
+        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(s, I.I... , s.phase[I] , s.potential[I])
         #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
         #diffrence = [d_large[I] , r_large[I]]
 
@@ -84,18 +84,11 @@ using LinearAlgebra
 using Printf
 using ProgressBars
 M = testdata(32, 4, 8 , 2)
-testgrd = testgrid(multi_solver,M, 2)
-test_solver = testgrd[1]
-set_xi_and_psi!(solver)
-
-pbar = ProgressBar(total = 1000)
-
-anim = @animate for i in 1:100
-    for j in 1:10
-        v_cycle!(testgrd, 1)
-        update(pbar)
-        end
-    set_xi_and_psi!(testgrd[1])
-    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
+using JLD2
+using DataFrames
+var"W_prime#61"(x) = -x * (1 - x^2)
+results = jldopen("experiments/iteration.jld2")["result"]
+anim = @animate for res in eachrow(results)
+    heatmap(res.solver.phase , xlims = (2,size(res.solver.phase , 1)-1) , ylim=(2,size(res.solver.phase , 1)-1) , aspectratio=:equal)
 end
 gif(anim , "images/iteration.gif" , fps = 10)
