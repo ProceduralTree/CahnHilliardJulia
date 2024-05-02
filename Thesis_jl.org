@@ -35,9 +35,9 @@ In practice it enables linear interpolation between different formulas on differ
 *** The free energy
 The authors in [cite:@Wu_2022] define the CH equation using the *Ginzburg-Landau* free energy equation:
 #+name: eq:energy
-\begin{align*}
-E^{\text{bulk}} = \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
-\end{align*}
+\begin{align}
+E^{\text{bulk}} &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
+\end{align}
 where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. Additionally \( \nabla\phi \) represents the change in phase-field.
 
 The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eq:energy]].
@@ -99,10 +99,10 @@ D_xf_{i+\frac{1}{2} j} &= \frac{f_{i+1j} - f_{ij}}{h} & D_yf_{ij+\frac{1}{2}} &=
 \end{align}
 For \( \nabla f, \nabla \cdot \nabla f \) then follows:
 #+name: eq:discretization
-\begin{align*}
+\begin{align}
 \nabla_d f_{ij} &= (D_x f_{i+1j} , \ D_y f_{ij+1}) \\
  \Delta_d f_{ij} &= \frac{D_x f_{i+\frac{1}{2}j} -  D_x f_{i-\frac{1}{2}j} + D_y f_{ij+\frac{1}{2}} - D_y f_{ij-\frac{1}{2}}}{h} = \nabla_d \cdot  \nabla_d f_{ij}
-\end{align*}
+\end{align}
 The authors in [cite:@SHIN20117441] further adapt the discretized phase-field by the characteristic function of the domain \( \Omega\) in order to satisfy the boundary conditions:
 \begin{align*}
 G(x,y) &=
@@ -254,7 +254,7 @@ function dL(solver::multi_solver , i , j)
 #+end_src
 ** V-cycle approach
 The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of
-1. a Gauß-Seidel relaxation for smoothing.
+1. a Gauss-Seidel relaxation for smoothing.
 2. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
 3. a Newton iteration to solve \( L(x,y)_H = L(\bar{x} , \bar{y}) + (d_h , r_h) \).
 
@@ -311,29 +311,30 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 end
 #+end_src
 So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
+#+name: v-cycle
 #+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
 <<setup-grid>>
 
 p0 = heatmap(testgrd[1].phase, title="Initial State");
-solver = testgrd[1]
-set_xi_and_psi!(solver)
-SMOOTH!(solver, 400, true);
-p1 = heatmap(solver.phase, title="After Pre Smoothing");
+s = testgrd[1]
+set_xi_and_psi!(s)
+SMOOTH!(s, 400, true);
+p1 = heatmap(s.phase, title="After Pre Smoothing");
 
 
-d = zeros(size(solver.phase))
-r = zeros(size(solver.phase))
+d = zeros(size(s.phase))
+r = zeros(size(s.phase))
 
-for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-    d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I] , solver.potential[I])
+for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
+    d[I], r[I] = [s.xi[I], s.psi[I]] .- L(s, I.I..., s.phase[I] , s.potential[I])
 end
 
 p2 = heatmap(d, title="Phase Residuals");
 level = 1
 
 restrict_solver!(testgrd[level], testgrd[level+1])
-solver =testgrd[level+1]
-solution = deepcopy(solver)
+s =testgrd[level+1]
+solution = deepcopy(s)
 
 
 
@@ -349,10 +350,10 @@ v_large = zeros(size(d_large))
 
 
 for i = 1:300
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+    for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
 
 
-        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I... , solver.phase[I] , solver.potential[I])
+        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(s, I.I... , s.phase[I] , s.potential[I])
         #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
         #diffrence = [d_large[I] , r_large[I]]
 
@@ -372,11 +373,13 @@ p = plot(p0, p1, p2,p3, layout=(2, 2));
 savefig(p, "images/v_cycle.svg")
 #+end_src
 
-#+RESULTS:
+#+caption: internal state during one V-cyclce
+#+RESULTS: v-cycle
 [[file:images/v_cycle.svg]]
 
 After a few iterations, V-cycle exhibits the following behavior:
 
+#+name: solver-iteration
 #+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb no-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
 <<init>>
 using JLD2
@@ -389,9 +392,44 @@ end
 gif(anim , "images/iteration.gif" , fps = 10)
 #+end_src
 
-#+RESULTS:
+#+caption: a fex timesteps of the solver for different initial contitions as shown in [[Test data]]
+#+RESULTS: solver-iteration
 [[file:images/iteration.gif]]
 
+** Test data
+
+For testing and later training we use a multitude of different phase-fields, notably an assortment of randomly placed circles, squares, and arbitrary generated values.
+
+#+name: testdata
+#+begin_src julia :eval never :tangle src/utils.jl
+using Random
+function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
+end
+#+end_src
+
+#+name: fig:testinput
+#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb no-export    :exports results :output-dir images
+<<init>>
+<<setup-diverse-testgrids>>
+plots = [heatmap(t[1].phase) for t in tests]
+p = plot(plots...)
+savefig(p,"images/testdata.svg")
+#+end_src
+
+#+caption: Examples of different phase-fields used as the initial condition in this work.
+#+RESULTS: fig:testinput
+[[file:images/testdata.svg]]
 ** SMOOTH operator
 The authors [cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
 \begin{align*}
@@ -463,56 +501,24 @@ function SMOOTH!(
 end
 #+end_src
 
-#+begin_src julia :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images :session jl
-<<setup-grid>>
-set_xi_and_psi!(test_solver)
-SMOOTH!(solver, 2, true);
-p = heatmap(test_solver.phase, aspect_ratio=:equal ,xlim=(2 , solver.len));
+#+name: smoothing-examples
+#+begin_src julia-vterm :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images :session jl
+<<input>>
+<<setup-diverse-testgrids>>
+plots= []
+for t in tests
+set_xi_and_psi!(t[1])
+SMOOTH!(t[1], 2, true);
+push!(plots , heatmap(t[1].phase, aspect_ratio=:equal ,xlim=(2 , t[1].len)))
+end
+p = plot(plots...)
 savefig(p,"images/smooth.svg")
 #+end_src
 
-#+RESULTS:
+#+name: inputs from [[Test Data]] after SMOOTH
+#+RESULTS: smoothing-examples
 [[file:images/smooth.svg]]
-
-** Test data:
-For testing and later training we use a multitude of different phase-fields, notably an assortment of randomly placed circles, squares, and arbitrary generated values.
-
-#+name: testdata
-#+begin_src julia :eval never :tangle src/utils.jl
-using Random
-function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
-rngpoints = rand(rng,1:gridsize, 2, blobs)
-M = zeros(gridsize,gridsize) .- 1
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in CartesianIndices(M)
-        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-            M[I] = 1
-        end
-    end
-end
-M
-end
-#+end_src
-
-#+name: fig:testinput
-#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb no-export    :exports results
-using Plots
-using LaTeXStrings
-using LinearAlgebra
-<<testdata>>
-p0 = heatmap(testdata(512, 20 , 50, 2));
-p1 = heatmap(testdata(512 , 20 , 50 ,Inf));
-p2 = heatmap(testdata(64 , 10 , 10,2));
-p3 = heatmap(testdata(64 , 10 , 10 ,Inf));
-p = plot(p0,p1,p2,p3, aspectratio=:auto, layout=(2,2));
-savefig(p,"testdata.svg")
-#+end_src
-
-#+caption: Examples of different phase-fields used as the initial condition in this work.
-#+RESULTS: fig:testinput
-[[file:testdata.svg]]
-** explicit alternative
+** TODO explicit alternative
 
 \begin{equation}
 \begin{aligned}
@@ -556,12 +562,12 @@ jldsave("experiments/iteration.jld2"; result)
 
 #+RESULTS:
 
-# TODO Plot
+#+name: behaviour
 #+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports both :noweb no-export
 <<init>>
 using JLD2
 using DataFrames
-var"W_prime#325"(x) = -x * (1 - x^2)
+var"W_prime#61"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
 n  = size(results.solver , 1)
 pbar = ProgressBar(total = 10 * n)
@@ -584,8 +590,10 @@ end
 gif(anim , "images/behaviour.gif" , fps = 10)
 #+end_src
 
-#+RESULTS:
+#+caption: behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
+#+RESULTS: behaviour
 [[file:images/behaviour.gif]]
+
 
 ** Energy evaluations
 As discrete energy measure we use:
@@ -608,6 +616,7 @@ end
 #+end_src
 
 
+#+name: energy-balance
 #+begin_src julia-vterm :results file graphics :file energy_balance.svg :output-dir images :noweb no-export :session jl
 <<init>>
 using JLD2
@@ -620,7 +629,8 @@ p = plot(1:64 , energy)
 savefig(p , "images/energy_balance.svg")
 #+end_src
 
-#+RESULTS:
+#+caption: behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \)
+#+RESULTS: energy-balance
 [[file:images/energy_balance.svg]]
 
 ** Mass balance
@@ -642,23 +652,26 @@ function massbal(arr)
     end
 #+end_src
 
+#+name: mass-balance
 #+begin_src julia-vterm :results file graphics :file mass_balance.svg :output-dir images :noweb no-export :session jl
 <<init>>
 using JLD2
 using DataFrames
 
-var"W_prime#325"(x) = -x * (1 - x^2)
+var"W_prime#61"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[65].phase) for s in results[65:128,:].solver]
 p = plot(1:64 , energy)
 savefig(p , "images/mass_balance.svg")
 #+end_src
 
-#+RESULTS:
+#+caption: behaviour of phase change over time for one initial condition \( \phi_0 \)
+#+RESULTS: mass-balance
 [[file:images/mass_balance.svg]]
 
-** rate of convergence
-*** convergence of a sub iteration v-cycle
+
+** TODO stability
+*** stability of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
 \begin{equation}
 \| \phi^n - \phi^{n+1,m} \|_{Fr}
@@ -782,7 +795,7 @@ p = plot(p0,p1,p2, p3)
 savefig(p , "images/convergence.svg")
 
 #+end_src
-*** convergence unter refinment in time
+*** stability under refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 #+begin_src julia-vterm :results output :noweb yes :exports none
 using DataFrames
@@ -832,7 +845,7 @@ savefig(p , "images/time-stability.svg")
 #+RESULTS: fig:stability-in-time
 [[file:images/time-stability.svg]]
 
-*** convergence under refinement in space
+*** stability under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
 #+begin_src julia-vterm :results output :noweb yes :session jl
 using DataFrames
@@ -879,9 +892,9 @@ jldsave("experiments/space_refinement.jld2"; result)
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
-\begin{align*}
+\begin{align}
 - \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha,
-\end{align*}
+\end{align}
 where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation [[eq:CH]] as  \( \alpha \to \infty \).
 This results in the following relaxation for the classical CH equation [[eq:CH]]:
 #+name: eq:relaxed-cahn-hilliard
@@ -1076,6 +1089,7 @@ function SMOOTH!(
 end
 #+end_src
 
+#+name: relaxed-smooth-eval
 #+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
 <<init>>
 plots = []
@@ -1096,8 +1110,10 @@ p = plot(plots...)
 savefig(p,"images/smooth_relaxed.svg")
 #+end_src
 
-#+RESULTS:
+#+caption: effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
+#+RESULTS: relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
+
 
 ** The relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in the [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
@@ -1165,7 +1181,6 @@ for task in tasks
 jldsave("experiments/relaxed_iteration.jld2"; result)
 #+end_src
 
-#+RESULTS:
 
 ** rate of convergence
 *** convergence of a sub iteration v-cycle
@@ -1261,6 +1276,7 @@ jldsave("experiments/time_refinement.jld2"; result)
 #+end_src
 
 ** Comparison
+#+name: solver-comparison
 #+begin_src julia-vterm :noweb no-export :results graphics file :file comparison.gif :output-dir images :session jl :cache yes :exports both
 <<setup-comparison>>
 n = 100
@@ -1291,24 +1307,17 @@ end
 gif(anim , "images/comparison.gif" , fps = 10)
 #+end_src
 
-#+RESULTS[ddd9a1e36dc3424c061815f9f7c108ba1d2c1c4d]:
+#+caption: relaxed solver with different ralaxation values \( \alpha \) compared to the original approach
+#+RESULTS[ddd9a1e36dc3424c061815f9f7c108ba1d2c1c4d]: solver-comparison
 [[file:images/comparison.gif]]
+
 Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 \begin{equation}
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}|| \to 0
 \end{equation}
 In practice we observe the following behaviour:
 #+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both :eval never
-include(pwd() * "/src/solvers.jl")
-include(pwd() * "/src/adapted_solvers.jl")
-include(pwd() * "/src/utils.jl")
-include(pwd() * "/src/multisolver.jl")
-include(pwd() * "/src/multi_relaxed.jl")
-include(pwd() * "/src/elypssolver.jl")
-include(pwd() * "/src/testgrids.jl")
-using Plots
-using LinearAlgebra
-using ProgressBars
+<<init>>
 using JLD2
 using Distributed
 JULIA_NUM_THREADS = 24
@@ -1317,7 +1326,7 @@ M = jldopen("data/test-phasefield.jld2")["M"]
 original_grid = testgrid(multi_solver, M, 2)
 alphas = 0:1e3:2e5
 
-function alpha_error(α::Number , solution::Array )
+function alpha_error(alpha::Number , solution::Array )
     test_solver  = testgrid(relaxed_multi_solver, M, 2, alpha=α)
     set_xi_and_psi!(test_solver[1])
     elyps_solver!(test_solver[1], 1000)
@@ -1332,18 +1341,18 @@ for j in 1:100
 end
 print("finished original v_cycle")
 tasks = []
-for α in alphas
-    t = Threads.@spawn alpha_error(α , original_grid[1].phase)
-    push!(tasks , (α=α , task = t))
+for alpha in alphas
+    t = Threads.@spawn alpha_error(alpha , original_grid[1].phase)
+    push!(tasks , (alpha=alpha , task = t))
 end
-results  = @show [(alpha=t.α, error=fetch(t.task)) for t in tasks]
+results  = @show [(alpha=t.alpha, error=fetch(t.task)) for t in tasks]
 p=plot(results)
 savefig(p, "images/alpha-error.svg")
 #+end_src
 
 #+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
 [[file:images/alpha-error.svg]]
-in all cases th difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
+in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:
 #+name: eq:optimum-function
