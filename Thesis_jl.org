@@ -594,7 +594,6 @@ gif(anim , "images/behaviour.gif" , fps = 10)
 #+RESULTS: behaviour
 [[file:images/behaviour.gif]]
 
-
 ** Energy evaluations
 As discrete energy measure we use:
 \begin{align*}
@@ -668,7 +667,6 @@ savefig(p , "images/mass_balance.svg")
 #+caption: behaviour of phase change over time for one initial condition \( \phi_0 \)
 #+RESULTS: mass-balance
 [[file:images/mass_balance.svg]]
-
 
 ** TODO stability
 *** stability of a sub iteration v-cycle
@@ -887,6 +885,21 @@ jldsave("experiments/space_refinement.jld2"; result)
 #+end_src
 
 #+RESULTS:
+#+name: fig:stability-in-space
+#+begin_src julia-vterm :results file graphics :file space-stability.svg :output-dir images :noweb no-export :session jl
+<<init>>
+using DataFrames
+using JLD2
+using LaTeXStrings
+df = jldopen("experiments/space_refinement.jld2")["result"]
+change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-16] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
+p = plot([L"1024 \to 512" , L"512 \to 256" , L"256\to128" , L"128\to64" , L"64 \to32"],change , ylabel = "difference" , yscale=:log10, xlabel = "gridsize" , label=L"\Delta \phi" , xscale=:log2 , seriestype=:scatter , xaxis=:flip , legend=:topright)
+savefig(p , "images/space-stability.svg")
+#+end_src
+
+#+Caption: behavior of the baseline solver while solving on succesively finer grids
+#+RESULTS: fig:stability-in-space
+[[file:images/space-stability.svg]]
 
 
 * Relaxed problem
