@@ -1,4 +1,16 @@
 * Inbox
+** TODO rename tests to initial conditions
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+** TODO add axis descriptioins
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+** TODO Capitalize !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+** TODO plot divergence from original solver  for optimal alpha 7.5e4
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Comparison][Comparison]]
 ** TODO Project boundary conds
  - first order cons influx
  - side boundary
@@ -24,7 +36,7 @@ In combination with fixing my Indicie errors and adding better Explanations for 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
 ** TODO change from gaus seidel to jacoby
 [[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
-** TODO Test Grid refinment
+** DONE Test Grid refinment
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]
 * TODO Comparison
 alpha error for longe time intervall

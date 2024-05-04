@@ -117,10 +117,6 @@ Math:
 - \(  \Sigma_G f_{ij} = G_{i+\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} f^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  f^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} f^{n + \frac{1}{2},m}_{ij-1}  \)
 - \(  \Sigma_G = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)
 Code:
-- ~discrete_weigted_neigbour_sum(i,j,...)~
-- ~neighbours_in_domain(i,j,G)~
-
-
 #+begin_src julia :tangle src/utils.jl :eval never
 function neighbours_in_domain(i, j, G, len, width)
     (
@@ -184,7 +180,7 @@ function G(i, j, len, width)
     end
 end
 #+end_src
-
+** PDE as operator \( L \)
 We derive the iteration operator \( L(\phi^{n+1} , \mu^{n+\frac{1}{2}}) = (\zeta^n ,\psi^n) \)as in [cite:@SHIN20117441].
 \begin{align*}
 L
@@ -246,6 +242,7 @@ DL\begin{pmatrix}
 -\frac{\varepsilon^2}{h^2}\Sigma_{G} - 2 & 1
 \end{pmatrix}
 \end{align*}
+
 #+begin_src julia :tangle src/multisolver.jl :eval never
 function dL(solver::multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
@@ -518,14 +515,6 @@ savefig(p,"images/smooth.svg")
 #+name: inputs from [[Test Data]] after SMOOTH
 #+RESULTS: smoothing-examples
 [[file:images/smooth.svg]]
-** TODO explicit alternative
-
-\begin{equation}
-\begin{aligned}
-\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
- \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
-\end{aligned}
-\end{equation}
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 ** Experiments
@@ -786,7 +775,7 @@ end
 #+begin_src julia-vterm
 plot!(p0, i_0:n ,energy[i_0:end],  title = L"$ E^{bulk}(\phi)$ " , yaxis=:log , label=L"t=%$t")
 plot!(p1, i_0:n, energy_pot[i_0:end], title = L" $ \Delta E^{bulk}(\mu)$" , yaxis=:log,label=L"t=%$t" )
-plot!(p2, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=%$t")
+plot!(p2, i_0:n, change[i_0:end],  title = L"$\| \phi^{n+1,m-1} - \phi^{n+1,m}  \|$", yaxis=:log,label=L"t=\Delta %$t")
 end
 p3  = heatmap(original_grid[1].phase , clim =(-1,1) , framestyle=:none )
 p = plot(p0,p1,p2, p3)
@@ -841,7 +830,7 @@ savefig(p , "images/time-stability.svg")
 
 #+Caption: behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
 #+RESULTS: fig:stability-in-time
-[[file:images/time-stability.svg]]
+[[file:images/relaxed-time-stability.svg]]
 
 *** stability under refinement in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
@@ -893,7 +882,7 @@ using JLD2
 using LaTeXStrings
 df = jldopen("experiments/space_refinement.jld2")["result"]
 change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-16] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
-p = plot([L"1024 \to 512" , L"512 \to 256" , L"256\to128" , L"128\to64" , L"64 \to32"],change , ylabel = "difference" , yscale=:log10, xlabel = "gridsize" , label=L"\Delta \phi" , xscale=:log2 , seriestype=:scatter , xaxis=:flip , legend=:topright)
+p = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],change , ylabel = "difference" , yscale=:log10, xlabel = "change in number of gridpoints" , label=L"\Delta \phi" , xscale=:log2 , seriestype=:scatter , xaxis=:flip , legend=:topright)
 savefig(p , "images/space-stability.svg")
 #+end_src
 
@@ -966,7 +955,9 @@ As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha
 **** Proposal2  solver
 solving [[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \begin{align*}
-\left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}
+\left( \frac{\Sigma_{G}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}\\
+c_{ij}^{\alpha} = \frac{\alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}}{\frac{\Sigma_{G}}{h^2} + \alpha}\\
+c_{ij}^{\alpha} = \frac{\alpha h^2 \phi^{\alpha}_{ij}}{\Sigma_{G} + \alpha h^2} + \frac{\Sigma_G c_{ij}^{\alpha}}{\Sigma_{G} + \alpha h^{2}}
 \end{align*}
 and can be translated to code as follows
 #+begin_src julia :eval never :tangle src/elypssolver.jl :exports none
@@ -1195,7 +1186,7 @@ jldsave("experiments/relaxed_iteration.jld2"; result)
 #+end_src
 
 
-** rate of convergence
+** rate of stability
 *** convergence of a sub iteration v-cycle
 
 
@@ -1234,20 +1225,21 @@ jldsave("experiments/relaxed_time_refinement.jld2"; result)
 
 #+RESULTS:
 
-#+name: fig:stability-in-time
-#+begin_src julia-vterm :results file graphics :file time-stability.svg :output-dir images :noweb no-export :session jl
+#+name: fig:relaxed-stability-in-time
+#+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg :output-dir images :noweb no-export :session jl
 <<init>>
 using DataFrames
 using JLD2
 using LaTeXStrings
-df = jldopen("experiments/time_refinement.jld2")["result"]
+df = jldopen("experiments/relaxed_time_refinement.jld2")["result"]
 change = [norm(df[!, "phase"][i] .- df[! , "phase"][i-1]) for i=2:size(df , 1)]
 p = plot(change , ylabel = "difference" , xlabel = "number of timesteps" , label=L"\Delta \phi")
-savefig(p , "images/time-stability.svg")
+savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
 #+Caption: behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
-#+RESULTS: fig:stability-in-time
+#+RESULTS: fig:relaxed-stability-in-time
+[[file:images/relaxed-time-stability.svg]]
 
 
 *** convergence under refinement in space
@@ -1373,6 +1365,9 @@ savefig(p, "images/alpha-error.svg")
 #+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
 [[file:images/alpha-error.svg]]
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
+
+
+
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:
 #+name: eq:optimum-function
