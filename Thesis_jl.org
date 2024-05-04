@@ -736,8 +736,6 @@ for task in tasks
 jldsave("experiments/subiteration.jld2"; result)
 #+end_src
 
-#+RESULTS:
-[[file:images/convergence.svg]]
 
 #+begin_src julia
 using LaTeXStrings
@@ -1189,6 +1187,37 @@ jldsave("experiments/relaxed_iteration.jld2"; result)
 ** rate of stability
 *** convergence of a sub iteration v-cycle
 
+#+begin_src julia-vterm :results output :noweb yes
+using DataFrames
+using JLD2
+<<init>>
+<<setup-diverse-testgrids>>
+
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i))
+    end
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i] , 64)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed-subiteration.jld2"; result)
+#+end_src
 
 *** convergence unter refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
