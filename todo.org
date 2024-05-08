@@ -1,27 +1,9 @@
 * Inbox
-** TODO rename tests to initial conditions
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-** TODO add axis descriptioins
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-** TODO Capitalize !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-** TODO plot divergence from original solver  for optimal alpha 7.5e4
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*Comparison][Comparison]]
 ** TODO Project boundary conds
  - first order cons influx
  - side boundary
 
 [[file:~/Projects/julia_tst/Project.org::*Derivation of necessary operators][Derivation of necessary operators]]
-** TODO add \( \Delta t \) to plot label
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*rate of convergence][rate of convergence]]
-** TODO write something on impact of alpha
-
-[[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
 ** DONE Add Proof
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Derivation by mass balance][Derivation by mass balance]]
 ** DONE Write derivation from Paper
@@ -30,13 +12,48 @@
 In combination with fixing my Indicie errors and adding better Explanations for my work.
 [[file:~/Projects/julia_tst/meeting.org::*Weird Behaviour In sphere tests][Weird Behaviour In sphere tests]]
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
-** TODO test making the solver fully explicit
+** CANCELLED  test making the solver fully explicit
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
 ** DONE Plot \( \phi \) and \( c \) nexto to each other for relaxed solver
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed Problem][Relaxed Problem]]
-** TODO change from gaus seidel to jacoby
+** CANCELLED change from gaus seidel to jacoby
 [[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
 ** DONE Test Grid refinment
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]
+* TODO rename tests to initial conditions [0/1]
+- [ ] Add explicit definition of data generation
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+* TODO  Discretization [2/4]
+- [X] remove \( f \) and replace with \( \phi \)
+- [X] state definition of \( \Omega  ,\phi_{ij} , \mu_{ij} \)
+- [ ] make abbreviations more apparent
+- [ ] clear definition of \( G_{ij} \)
+
+* TODO Add explanations to all plots
+* TODO add axis descriptioins
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+* TODO expand operators
+and Write Matrix representation for 1D
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*PDE as operator \( L \)][PDE as operator \( L \)]]
+* TODO Add direct comparison to original
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed PDE as operator L][Relaxed PDE as operator L]]
+* TODO state approach more understandable
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*AI][AI]]
+* TODO Capitalize !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
+* TODO plot divergence from original solver  for optimal alpha 7.5e4
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*Comparison][Comparison]]
+* TODO add \( \Delta t \) to plot label
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*rate of convergence][rate of convergence]]
+* TODO write something on impact of alpha
+
+[[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
 * TODO Comparison
 alpha error for longe time intervall
