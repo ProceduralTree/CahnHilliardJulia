@@ -20,14 +20,14 @@ In combination with fixing my Indicie errors and adding better Explanations for 
 [[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
 ** DONE Test Grid refinment
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]
-* TODO rename tests to initial conditions [0/1]
-- [ ] Add explicit definition of data generation
+* DONE rename tests to initial conditions [1/1]
+- [X] Add explicit definition of data generation
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-* TODO  Discretization [2/4]
+* TODO  Discretization [3/4]
 - [X] remove \( f \) and replace with \( \phi \)
 - [X] state definition of \( \Omega  ,\phi_{ij} , \mu_{ij} \)
 - [ ] make abbreviations more apparent
-- [ ] clear definition of \( G_{ij} \)
+- [X] clear definition of \( G_{ij} \)
 
 * TODO Add explanations to all plots
 * TODO add axis descriptioins
@@ -40,10 +40,10 @@ and Write Matrix representation for 1D
 * TODO Add direct comparison to original
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed PDE as operator L][Relaxed PDE as operator L]]
-* TODO state approach more understandable
+* DONE state approach more understandable
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*AI][AI]]
-* TODO Capitalize !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+* TODO Capitalize
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
 * TODO plot divergence from original solver  for optimal alpha 7.5e4
