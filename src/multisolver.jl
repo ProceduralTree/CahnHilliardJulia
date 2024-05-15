@@ -15,6 +15,54 @@ function dL(solver::multi_solver , i , j)
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 
+function SMOOTH!(
+    solver::T,
+    iterations,
+    adaptive
+) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
+    for k = 1:iterations
+        old_phase = copy(solver.phase)
+        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+            i, j = I.I
+            bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
+
+            coefmatrix = dL(solver, i,j )
+
+            b =
+                [
+                    (
+                        solver.xi[i, j]
+                        +
+                        discrete_G_weigted_neigbour_sum(
+                            i, j, solver.potential, G, solver.len, solver.width
+                        )
+                        /
+                        solver.h^2
+                    ),
+                    (
+                        solver.psi[i, j]
+                        -
+                        (solver.epsilon^2 / solver.h^2)
+                        *
+                        discrete_G_weigted_neigbour_sum(
+                            i, j, solver.phase, G, solver.len, solver.width
+                        )
+                    )
+                ]
+
+            res = coefmatrix \ b
+            solver.phase[i, j] = res[1]
+            solver.potential[i, j] = res[2]
+
+        end
+
+        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
+        #    #println("SMOOTH terminated at $(k) succesfully")
+        #    break
+        #end
+    end
+end
+
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
@@ -63,52 +111,4 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
     solver.phase .+= prolong(u_large , G)
     solver.potential .+= prolong(v_large, G)
     SMOOTH!(solver, 80, true)
-end
-
-function SMOOTH!(
-    solver::T,
-    iterations,
-    adaptive
-) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
-    for k = 1:iterations
-        old_phase = copy(solver.phase)
-        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-            i, j = I.I
-            bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-
-            coefmatrix = dL(solver, i,j )
-
-            b =
-                [
-                    (
-                        solver.xi[i, j]
-                        +
-                        discrete_G_weigted_neigbour_sum(
-                            i, j, solver.potential, G, solver.len, solver.width
-                        )
-                        /
-                        solver.h^2
-                    ),
-                    (
-                        solver.psi[i, j]
-                        -
-                        (solver.epsilon^2 / solver.h^2)
-                        *
-                        discrete_G_weigted_neigbour_sum(
-                            i, j, solver.phase, G, solver.len, solver.width
-                        )
-                    )
-                ]
-
-            res = coefmatrix \ b
-            solver.phase[i, j] = res[1]
-            solver.potential[i, j] = res[2]
-
-        end
-
-        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
-        #    #println("SMOOTH terminated at $(k) succesfully")
-        #    break
-        #end
-    end
 end

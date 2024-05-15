@@ -14,7 +14,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e
             zeros(dims),
             epsilon, h0 * 2^i, 1e-3,
             W_prime,
-            dims...)
+            (dims .- 2)...)
 
     end
     copyto!(grid[1].phase, phase)
@@ -38,7 +38,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, eps
             zeros(dims),
             epsilon, h0 * 2^i, 1e-3,
             W_prime,
-            dims...,
+            (dims .- 2)... ,
             alpha)
 
     end
