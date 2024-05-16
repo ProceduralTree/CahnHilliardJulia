@@ -617,7 +617,7 @@ gif(anim , "images/iteration.gif" , fps = 10)
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 ** Experiments
 *** iteration
-#+begin_src julia-vterm :results output :cache :noweb no-export :session jl
+#+begin_src julia :results output  :noweb yes :eval never :tangle experiments/src/iteration.jl
 using JLD2
 using DataFrames
 using Random
@@ -625,9 +625,9 @@ using Random
 <<setup-diverse-testgrids>>
 function iter(g::Vector{T} , n) where T<: solver
     out = []
-    for j in 1:64
+    for j in 1:1
     set_xi_and_psi!(g[1])
-    for i = 1:64
+    for i = 1:1
         v_cycle!(g, 1)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
@@ -679,29 +679,13 @@ gif(anim , "images/behaviour.gif" , fps = 10)
 #+end_src
 
 #+caption: behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
-#+RESULTS: behaviour
-[[file:images/behaviour.gif]]
 *** subiteration
-#+begin_src julia-vterm :results graphics file :file convergence.svg :output-dir images :noweb yes
+#+begin_src julia :results output :noweb yes :tangle experiments/src/subiteration.jl
 using DataFrames
 using JLD2
 <<init>>
+<<setup-diverse-testgrids>>
 
-incirc(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2)) < min(size(M)...) / 3, CartesianIndices(M))
-insquare(M) = filter(x -> norm(x.I .- (size(M, 1) / 2, size(M, 2) / 2), Inf) < min(size(M)...) / 4, CartesianIndices(M))
-side(M) = filter(x -> x.I[2] < size(M, 2) ÷ 2, CartesianIndices(M))
-halfcirc(M) = filter(x -> norm(x.I .- (1, size(M, 2) / 2), 2) < min(size(M)...) / 3, CartesianIndices(M))
-
-function get_special_input(fn, size)
-    M = fill(-1, size , size )
-    M[fn(M)] .= 1
-    return M
-end
-
-t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
-t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
-tests = [t1 ; t2]
-tests = [testgrid(multi_solver, M , 2) for M in tests]
 
 
 function iter(g::Vector{T} , n) where T<: solver
@@ -729,7 +713,7 @@ for task in tasks
 jldsave("experiments/subiteration.jld2"; result)
 #+end_src
 *** time
-#+begin_src julia-vterm :results output :noweb yes :exports none
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/time.jl
 using DataFrames
 using JLD2
 <<init>>
@@ -758,7 +742,7 @@ for task in tasks
 jldsave("experiments/time_refinement.jld2"; result)
 #+end_src
 *** space
-#+begin_src julia-vterm :results output :noweb yes :session jl
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
 using DataFrames
 using JLD2
 <<init>>
