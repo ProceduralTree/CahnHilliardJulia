@@ -182,40 +182,38 @@ We use this modified Laplacian to deal with boundary conditions. Our abbreviatio
 ** Initial data
 For testing we use initial phase-fields defined by the following equations:
 
-
 \begin{equation}
-\phi_{ij} =
+\begin{aligned}
+\phi_{ij} &=
 \begin{cases}
 1 &\,, \|(i,j) - (\frac{N}{2} , \frac{N}{2})\|_p < \frac{N}{3}\\
 -1 &\,,else
 \end{cases}
-\end{equation}
-where \( p \in \{2,\infty\} \)
-\begin{equation}
-\phi_{ij} =
+&
+\text{where    }  p \in \{2,\infty\}
+\\
+\phi_{ij} &=
 \begin{cases}
 1 &\,,  i < \frac{N}{2} \\
 -1 &\,,else
 \end{cases}
-\end{equation}
-
-\begin{equation}
-\phi_{ij} =
+\\
+\phi_{ij} &=
 \begin{cases}
 1 &\,, \|(i,j) - (\frac{N}{2} , 2)\|_2 < \frac{N}{3} \\
 -1 &\,,else
 \end{cases}
-\end{equation}
-
-\begin{equation}
-\phi_{ij} =
+\\
+\phi_{ij} &=
 \begin{cases}
-1 &\,, \| (i,j) - q_k \|_p < \frac{N}{3}  p \in \{1,2, \infty\} , q_k \in Q \\
+1 &\,, \| (i,j) - q_k \|_p < \frac{N}{5}  \\
 -1 &\,,else
 \end{cases}
+& p \in \{1,2, \infty\} , q_k \in Q
+\end{aligned}
 \end{equation}
-where \( q_k \) are random points inside my domain. Those we generate those using
-#+begin_src julia-vterm :session jl :results table
+where \( q_k \) are random points inside my domain. Those we generate those using the following rng setup in julia
+#+begin_src julia-vterm :session jl :results table :exports both
 using Random
 rng = MersenneTwister(42)
 radius = 8
@@ -474,6 +472,7 @@ The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle mult
 1. a Gauss-Seidel relaxation for smoothing [[SMOOTH operator]].
 2. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
 3. a Newton iteration to solve \( L(x,y)_H = L(\bar{x} , \bar{y}) + (d_h , r_h) \).
+   we solve using the same iteration as in [[SMOOTH operator]] however we replace \( (\zeta , \psi) \) with \( L(\bar{x} , \bar{y}) + (d_h , r_h) \) in the iteration.
 
 The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 #+begin_src julia :tangle src/multisolver.jl :eval never
@@ -625,9 +624,9 @@ using Random
 <<setup-diverse-testgrids>>
 function iter(g::Vector{T} , n) where T<: solver
     out = []
-    for j in 1:1
+    for j in 1:4
     set_xi_and_psi!(g[1])
-    for i = 1:1
+    for i = 1:64
         v_cycle!(g, 1)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
@@ -1213,7 +1212,8 @@ end
 gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 #+end_src
 
-** Test
+** Experiments
+*** Iteration
 #+begin_src julia-vterm :results output :cache :noweb no-export :session jl
 using JLD2
 using DataFrames
@@ -1245,30 +1245,7 @@ for task in tasks
 jldsave("experiments/relaxed_iteration.jld2"; result)
 #+end_src
 
-** rate of stability
-*** massbal
-#+name: relaxed-mass-balance
-#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :output-dir images :noweb no-export :session jl
-<<init>>
-using JLD2
-using DataFrames
-using Measures
-i0 = 64 * 1 +1
-var"W_prime#20"(x) = -x * (1 - x^2)
-results = jldopen("experiments/relaxed_iteration.jld2")["result"]
-energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
-p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
-p2 = heatmap(results.solver[i0].phase , title="initial condition")
-p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps")
-p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,500) , bottom_margin=10Plots.mm , left_margin=10Plots.mm)
-savefig(p , "images/relaxed-mass-balance.svg")
-#+end_src
-
-#+RESULTS: relaxed-mass-balance
-[[file:images/relaxed-mass-balance.svg]]
-
-*** convergence of a sub iteration v-cycle
-
+*** Subiteration
 #+begin_src julia-vterm :results output :noweb yes
 using DataFrames
 using JLD2
@@ -1301,6 +1278,102 @@ for task in tasks
     end
 jldsave("experiments/relaxed-subiteration.jld2"; result)
 #+end_src
+*** Time
+#+begin_src julia-vterm :results output :noweb yes :exports none
+using DataFrames
+using JLD2
+<<init>>
+tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    elyps_solver!(solver , 1000)
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=n))
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed_time_refinement.jld2"; result)
+#+end_src
+*** Space
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
+using DataFrames
+using JLD2
+<<init>>
+
+M = testdata(2^10 , 2^5 , 2^7 , 2 )
+grids = testgrid(relaxed_multi_solver  , M , 7)
+# inits
+for i=2:size(grids,1)
+    restrict_solver!(grids[i-1] , grids[i])
+end
+tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
+
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    elyps_solver!(solver , 1000)
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=j))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], 16)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed_space_refinement.jld2"; result)
+#+end_src
+** rate of stability
+*** massbal
+#+name: relaxed-mass-balance
+#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+i0 = 64 * 1 +1
+var"W_prime#20"(x) = -x * (1 - x^2)
+results = jldopen("experiments/relaxed_iteration.jld2")["result"]
+energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
+p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
+p2 = heatmap(results.solver[i0].phase , title="initial condition")
+p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps")
+p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,500) , bottom_margin=10Plots.mm , left_margin=10Plots.mm)
+savefig(p , "images/relaxed-mass-balance.svg")
+#+end_src
+
+#+RESULTS: relaxed-mass-balance
+[[file:images/relaxed-mass-balance.svg]]
+
+*** convergence of a sub iteration v-cycle
+
 
 
 #+name: fig:relaxed-convergence
@@ -1376,45 +1449,6 @@ savefig(p , "images/relaxed-time-stability.svg")
 we test convergence in space by succesivly subdividing our grid into finer meshes
 
 
-#+begin_src julia-vterm :results output :noweb yes :session jl
-using DataFrames
-using JLD2
-<<init>>
-
-M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 7)
-# inits
-for i=2:size(grids,1)
-    restrict_solver!(grids[i-1] , grids[i])
-end
-tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
-
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=j))
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 16)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed_space_refinement.jld2"; result)
-#+end_src
 
 #+RESULTS:
 
@@ -1820,9 +1854,9 @@ function get_special_input(fn, size)
     M[fn(M)] .= 1
     return M
 end
-
-t1= [testdata(32, 32 ÷ 4, 32 /4 , j) for j in [1,2, Inf]]
-t2 = [get_special_input(fn,32) for  fn in [halfcirc , incirc, side , insquare]]
+SIZE  =64
+t1= [testdata(SIZE, SIZE ÷ 5, SIZE /5 , j) for j in [1,2, Inf]]
+t2 = [get_special_input(fn,SIZE) for  fn in [halfcirc , incirc, side , insquare]]
 tests = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in tests]
 
