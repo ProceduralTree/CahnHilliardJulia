@@ -1,8 +1,10 @@
+function W_prime(x)
+    return -x * (1 - x^2)
+end
 function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e-3)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
-    W_prime(x) = -x * (1 - x^2)
     h0 = 3e-3
 
 
@@ -26,7 +28,6 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, eps
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
-    W_prime(x) = -x * (1 - x^2)
     h0 = 3e-3
 
     for i = 1:len
