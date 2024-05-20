@@ -375,6 +375,7 @@ L
 \end{pmatrix}
 \end{align}
  SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving [[eq:smooth]] for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write [[eq:smooth]] as
+ #+name: eq:explicit-smooth
  \begin{equation}
 \begin{aligned}
 \begin{pmatrix}
@@ -398,7 +399,11 @@ DL\begin{pmatrix}
 \end{pmatrix}
 \end{aligned}
 \end{equation}
-and solve for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
+where
+- \(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),
+- \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
+since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown the authors in [cite:@SHIN20117441] and we use initial approximations  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) in the last smoothing iteration.
+We then and solve [[eq:explicit-smooth]] for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
 #+name:SMOOTH
 #+begin_src julia :tangle src/multisolver.jl :eval never
 function SMOOTH!(
@@ -997,7 +1002,7 @@ As ansatz for the numerical solver we propose:
 \end{equation}
 This approach is inspired by [[eq:discrete-cahn-hilliard]] adapted to the relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]].
 We then adapt the multi-grid solver proposed in [[Baseline multi-grid solver]] to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in [[eq:discretization]],
-and expand them .
+and expand them.
 ** Elliptical PDE:
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
 \begin{align*}
@@ -1074,7 +1079,7 @@ end
 ** Relaxed PDE as operator L
 We reformulate the discretization [[eq:discrete-relaxed-cahn-hilliard]] in terms of the relaxed operator \(L\) as follows:
 \begin{align*}
-L
+L_r
 \begin{pmatrix}
 \phi ^{n+1,\alpha} \\
 \mu^{n+\frac{1}{2},\alpha}
@@ -1098,7 +1103,7 @@ end
 #+end_src
 and its Jacobian:
 \begin{align*}
-DL\begin{pmatrix}
+DL_r\begin{pmatrix}
 \phi \\
 \mu
 \end{pmatrix} &= \begin{pmatrix}
@@ -1122,15 +1127,16 @@ SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \ze
 #+name: eq:discrete-relaxed-smooth
 \begin{equation}
 \begin{aligned}
-  -\frac{\Sigma_G}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
+  -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
  \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
-We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper [cite:@SHIN20117441] because the required system of linear equations in the paper [cite:@SHIN20117441]  was solved numerically. We simplify the relaxed system in one-dimension, and solve explicitly:
+where
+- \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
+We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper [cite:@SHIN20117441] because the required system of linear equations in the paper [cite:@SHIN20117441]  was solved numerically.
 \begin{align*}
 \varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
-in terms of a mass matrix
 \( \implies \)
 \begin{align*}
 \varepsilon^2\alpha (\phi^\alpha_{ij}) + 2\phi^\alpha + \frac{h^2}{\Sigma_{Gij}}\frac{\phi^\alpha_{ij}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
@@ -1198,7 +1204,7 @@ savefig(p,"images/smooth_relaxed.svg")
 [[file:images/smooth_relaxed.svg]]
 
 ** The relaxed V-cycle approach
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in the [[V-cycle approach]]. The only additional step is solving the elliptical equation as following:
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[V-cycle approach]].
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
 <<setup-relaxed-grid>>
 
@@ -1223,6 +1229,7 @@ using JLD2
 using DataFrames
 using Random
 <<init>>
+<<setup-diverse-testgrids>>
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -1287,7 +1294,7 @@ jldsave("experiments/relaxed-subiteration.jld2"; result)
 using DataFrames
 using JLD2
 <<init>>
-tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
+tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
