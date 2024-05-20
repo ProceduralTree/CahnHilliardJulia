@@ -590,8 +590,6 @@ savefig(p, "images/v_cycle.svg")
 #+end_src
 
 #+caption: internal state during one V-cyclce
-#+RESULTS: v-cycle
-[[file:images/v_cycle.svg]]
 
 After a few iterations, V-cycle exhibits the following behavior:
 
@@ -720,7 +718,7 @@ using JLD2
 <<init>>
 SIZE  =64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
-tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
+tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
@@ -744,7 +742,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/time_refinement.jld2"; result)
+jldsave("experiments/time.jld2"; result)
 #+end_src
 *** space
 #+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
@@ -812,7 +810,6 @@ end
 using JLD2
 using DataFrames
 
-var"W_prime#325"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = bulk_energy.(results[1:64,:].solver)
 p = plot(1:64 , energy)
@@ -943,8 +940,9 @@ we test the bahaviour unter refinement in time by succesivly subdeviding the ori
 using DataFrames
 using JLD2
 using LaTeXStrings
-df = jldopen("experiments/time_refinement.jld2")["result"]
-change = [norm(df[!, "phase"][i] .- df[! , "phase"][i-1]) for i=2:size(df , 1)]
+df = jldopen("experiments/time.jld2")["result"]
+sd =  combine(x->(;phase=x[end,:].phase) , gd)
+change = [norm(sd[!, "phase"][i] .- sd[! , "phase"][i-1]) for i=2:size(sd , 1)]
 p = plot(change , ylabel = "difference to previous number time-steps" , xlabel = L"number of time-steps to $t = 10^{-2}s$" , label=L"\|\phi_{ij}^{n+1} - \phi_{ij}^n \|_{Fr}" , title= L"behavior of the original CH solver at $t=10^{-2}s$")
 savefig(p , "images/time-stability.svg")
 #+end_src
