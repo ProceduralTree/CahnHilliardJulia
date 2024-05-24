@@ -340,25 +340,6 @@ function dL(solver::multi_solver , i , j)
              (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
     end
 #+end_src
-*** one dimensional operator
-to gain a better understanding for the method, we derive the one dinensional for of \( L \) in matrix form
-
-\begin{align*}
-L
-\begin{pmatrix}
-\phi^{n+1}_{i} \\
-\mu^{n+\frac{1}{2}}_{i}
-\end{pmatrix}
-&=
-\begin{pmatrix}
-\frac{\phi^{n+1}_{i}}{\Delta t} - \nabla _d \cdot  ( G_{i} \nabla _d \mu^{n+\frac{1}{2}}_{i} ) \\
-\varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{i}^{n+1}) - 2\phi_{i}^{n+1} + \mu_{i}^{n+\frac{1}{2}}
-\end{pmatrix}\\
-&=\begin{pmatrix}
-\frac{\phi^{n+1}_{i}}{\Delta t} -  \frac{G_{i+\frac{1}{2}}\mu_{i+1}^{n+\frac{1}{2}} + G_{i-\frac{1}{2}}\mu_{i-1}^{n+\frac{1}{2}} - G_{i+\frac{1}{2}}\mu^{n+\frac{1}{2}}_i - G_{i-\frac{1}{2}}\mu^{n+\frac{1}{2}}_i}{h^2}\\
-\varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{i}^{n+1}) - 2\phi_{i}^{n+1} + \mu_{i}^{n+\frac{1}{2}}
-\end{pmatrix}\\
-\end{align*}
 ** SMOOTH operator
 The authors [cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
 #+name: eq:smooth
@@ -400,9 +381,9 @@ DL\begin{pmatrix}
 \end{aligned}
 \end{equation}
 where
-- \(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),
+- \(  \Sigma_G \phi_{ij}^{n+1} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),
 - \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
-since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown the authors in [cite:@SHIN20117441] and we use initial approximations  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) in the last smoothing iteration.
+since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown, the authors in [cite:@SHIN20117441] and we use initial approximations,  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) from the last smoothing iteration.
 We then and solve [[eq:explicit-smooth]] for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
 #+name:SMOOTH
 #+begin_src julia :tangle src/multisolver.jl :eval never
@@ -416,30 +397,20 @@ function SMOOTH!(
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-
             coefmatrix = dL(solver, i,j )
 
-            b =
-                [
-                    (
+            b = [(
                         solver.xi[i, j]
                         +
                         discrete_G_weigted_neigbour_sum(
                             i, j, solver.potential, G, solver.len, solver.width
-                        )
-                        /
-                        solver.h^2
-                    ),
-                    (
+                        ) / solver.h^2
+                    ), (
                         solver.psi[i, j]
                         -
-                        (solver.epsilon^2 / solver.h^2)
-                        *
-                        discrete_G_weigted_neigbour_sum(
+                        (solver.epsilon^2 / solver.h^2) * discrete_G_weigted_neigbour_sum(
                             i, j, solver.phase, G, solver.len, solver.width
-                        )
-                    )
-                ]
+                        ))]
 
             res = coefmatrix \ b
             solver.phase[i, j] = res[1]
@@ -603,7 +574,6 @@ After a few iterations, V-cycle exhibits the following behavior:
 <<init>>
 using JLD2
 using DataFrames
-var"W_prime#61"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
 anim = @animate for res in eachrow(results)
     heatmap(res.solver.phase , xlims = (2,size(res.solver.phase , 1)-1) , ylim=(2,size(res.solver.phase , 1)-1) , aspectratio=:equal)
@@ -1121,11 +1091,8 @@ function dL(solver::relaxed_multi_solver , i , j)
 #+end_src
 
 ** SMOOTH operator
+The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the SMOOTH iteration.
 Correspondingly the SMOOTH operation expands to:
-\begin{align*}
-SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \zeta^{n,\alpha} , \psi^{n,\alpha} )
-\end{align*}
-
 #+name: eq:discrete-relaxed-smooth
 \begin{equation}
 \begin{aligned}
@@ -1137,19 +1104,19 @@ where
 - \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
 We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper [cite:@SHIN20117441] because the required system of linear equations in the paper [cite:@SHIN20117441]  was solved numerically.
 \begin{align*}
-\varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
+\varepsilon^2 \alpha(\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
 \( \implies \)
 \begin{align*}
-\varepsilon^2\alpha (\phi^\alpha_{ij}) + 2\phi^\alpha + \frac{h^2}{\Sigma_{Gij}}\frac{\phi^\alpha_{ij}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
+\varepsilon^2\alpha (\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} + \frac{h^2}{\Sigma_{Gij}}\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
 \( \implies \)
 \begin{align*}
-(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
+(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
 \end{align*}
 \( \implies \)
 \begin{align*}
- \phi^\alpha &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
+ \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
 \end{align*}
 #+name: SMOOTH_relaxed
 #+begin_src julia :eval never :tangle src/multi_relaxed.jl :file f.jl
@@ -1183,9 +1150,9 @@ end
 #+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
 <<init>>
 plots = []
-eps = 5e-2
-M = testdata(128, 32, 16 , 4)
-for alpha in [1e3 , 1e4 , 1e5 , 1e6 , 1e7]
+eps = 0.13
+#M = testdata(64, div(64,3), 64/5 , 2)
+for alpha in [1e3 , 1e4 , 1e5 , 1e6 , 32500]
 local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha , epsilon=eps)
 set_xi_and_psi!(testgrd[1])
 elyps_solver!(testgrd[1] , 2000)
@@ -1193,7 +1160,7 @@ SMOOTH!(testgrd[1], 1000, false);
 push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width)));
     end
 
-original = testgrid(multi_solver,M, 2 ;  epsilon=eps)
+original = testgrid(multi_solver,M, 2)
 set_xi_and_psi!(original[1])
 SMOOTH!(original[1], 1000, false);
 push!(plots , heatmap(original[1].phase, aspect_ratio=:equal, title="original SMOOTH" , xlim=(2,original[1].len) , ylim=(2,original[1].width)));
@@ -1204,6 +1171,53 @@ savefig(p,"images/smooth_relaxed.svg")
 #+caption: effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
 #+RESULTS: relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
+
+Furthermore, experimentation shows that alpha allone is insuficcient to get a relaxed method consistent with the original solver, since alpha had an effect simmilar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen indepentantly. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can.
+Monte Carlo Optimizer For \( \varepsilon , \alpha \).
+#+begin_src julia :tangle src/optim.jl :noweb yes
+using Distributions
+using DataFrames
+using JLD2
+<<init>>
+
+function test_values(alpha_distribution::Distribution , epsilon_distribution::Distribution , M)
+    alpha = rand(alpha_distribution)
+    eps = max(rand(epsilon_distribution)  ,1e-10)
+    relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
+    set_xi_and_psi!(relaxed_solver[1])
+    elyps_solver!(relaxed_solver[1], 2000)
+    SMOOTH!(relaxed_solver[1], 100, false)
+    error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
+    return (;alpha=alpha , epsilon=eps , error=error)
+end
+
+original_solver = testgrid(multi_solver, M, 2)
+set_xi_and_psi!(original_solver[1])
+SMOOTH!(original_solver[1], 100, false);
+eps = 3e-3
+#M = testdata(64, div(64,3), 64/5 , 2)
+alpha0 = 10000
+epsilon0 = 1e-2
+best_alpha = alpha0 / 10
+best_epsilon = epsilon0 / 10
+best_error  = Inf
+results = DataFrame()
+for n=1:1000
+    searchradius = 1
+    alpha_distribution = Normal(best_alpha , searchradius * alpha0)
+    epsilon_distribution = Normal(best_epsilon , searchradius * epsilon0)
+    result = test_values(alpha_distribution , epsilon_distribution , M)
+    if result.error < best_error
+        global best_error = result.error
+        global best_alpha = result.alpha
+        global best_epsilon = result.epsilon
+        println(result)
+    end
+push!(results , result)
+end
+jldsave("experiments/alpha-epsilon.jld2"; result=results)
+println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
+#+end_src
 
 ** The relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[V-cycle approach]].
@@ -1566,8 +1580,8 @@ We propose a data motivated alternative to the elliptical PDE in the  relaxed CH
 ||\phi^{n+1} + \frac{1}{\alpha}\nabla\cdot(G\nabla\phi^{n+1}) - c ||_{Fr}
 \end{equation}
 in the Frobenious norm \(||\cdot||_{Fr}\) and implement our loss function accordingly
-#+begin_src julia
-lossfn(y_hat, y) = norm(y .- y_hat)^2
+#+begin_src julia :tangle src/train.jl
+loss(model , x , y) = Flux.Losses.mse(model(x) , y)
 #+end_src
 We calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
 #+begin_src julia :tangle src/utils.jl
@@ -1600,11 +1614,10 @@ df[!,"grad"] = ggrad.(df[!,"expected"] , Ref(test_solver))
 : Executing... 64f93dab
 
 #+name: prepare-data
-#+begin_src julia-vterm :noweb no-export :session jl
+#+begin_src julia :tangle src/train.jl :noweb no-export
 <<init>>
 using JLD2
 using DataFrames
-var"W_prime#173"(x) = -x * (1 - x^2)
 df = jldopen("experiments/subiteration.jld2")["result"]
 prep = (x) -> ggrad(x.phase , x) .+ x.phase
 gd = groupby(df , :subiteration)
@@ -1619,7 +1632,7 @@ train_set = DataLoader((data=reshape_data(data.input) , label=reshape_data(data.
 #+end_src
 
 ** proposal CNN
-#+begin_src julia
+#+begin_src julia :tangle src/train.jl
 using Flux
 
 model = Chain(
@@ -1628,14 +1641,13 @@ model = Chain(
 )
 #+end_src
 ** training
-#+begin_src julia
+#+begin_src julia :tangle src/train.jl
 using Flux.Optimize
-loss(model , x , y) = norm(model(x) .- y)
 opt_state = Flux.setup(Adam() , model)
-train!(model , train_set , opt_state) do m , x , y
-   return norm(m(x) .- y) ^2
-end
 
+@withprogress for epoch in 1:10
+   @logprogress train!(loss, model , train_data, opt_state)
+end
 #+end_src
 * Utility functions :noexport:
 #+name: imports
@@ -1824,7 +1836,8 @@ using LinearAlgebra
 using Printf
 using ProgressBars
 default(fontfamily="computer modern")
-M = testdata(32, 4, 8 , 2)
+SIZE = 64
+M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 #+end_src
 #+name: setup-grid
 #+begin_src julia :eval never :noweb yes

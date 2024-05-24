@@ -25,30 +25,20 @@ function SMOOTH!(
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
             bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-
             coefmatrix = dL(solver, i,j )
 
-            b =
-                [
-                    (
+            b = [(
                         solver.xi[i, j]
                         +
                         discrete_G_weigted_neigbour_sum(
                             i, j, solver.potential, G, solver.len, solver.width
-                        )
-                        /
-                        solver.h^2
-                    ),
-                    (
+                        ) / solver.h^2
+                    ), (
                         solver.psi[i, j]
                         -
-                        (solver.epsilon^2 / solver.h^2)
-                        *
-                        discrete_G_weigted_neigbour_sum(
+                        (solver.epsilon^2 / solver.h^2) * discrete_G_weigted_neigbour_sum(
                             i, j, solver.phase, G, solver.len, solver.width
-                        )
-                    )
-                ]
+                        ))]
 
             res = coefmatrix \ b
             solver.phase[i, j] = res[1]

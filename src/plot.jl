@@ -10,7 +10,9 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-M = testdata(32, 4, 8 , 2)
+default(fontfamily="computer modern")
+SIZE = 64
+M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 
@@ -83,10 +85,11 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-M = testdata(32, 4, 8 , 2)
+default(fontfamily="computer modern")
+SIZE = 64
+M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 using JLD2
 using DataFrames
-var"W_prime#61"(x) = -x * (1 - x^2)
 results = jldopen("experiments/iteration.jld2")["result"]
 anim = @animate for res in eachrow(results)
     heatmap(res.solver.phase , xlims = (2,size(res.solver.phase , 1)-1) , ylim=(2,size(res.solver.phase , 1)-1) , aspectratio=:equal)
