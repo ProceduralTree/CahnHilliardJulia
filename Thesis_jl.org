@@ -1186,14 +1186,20 @@ function test_values(alpha_distribution::Distribution , epsilon_distribution::Di
     relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
     set_xi_and_psi!(relaxed_solver[1])
     elyps_solver!(relaxed_solver[1], 2000)
-    SMOOTH!(relaxed_solver[1], 100, false)
+    #SMOOTH!(relaxed_solver[1], 100, false)
+    for j=1:64
+    v_cycle!(relaxed_solver , 1)
+    end
     error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
     return (;alpha=alpha , epsilon=eps , error=error)
 end
 
 original_solver = testgrid(multi_solver, M, 2)
 set_xi_and_psi!(original_solver[1])
-SMOOTH!(original_solver[1], 100, false);
+for j=1:64
+v_cycle!(original_solver , 1)
+end
+#SMOOTH!(original_solver[1], 100, false);
 eps = 3e-3
 #M = testdata(64, div(64,3), 64/5 , 2)
 alpha0 = 10000
