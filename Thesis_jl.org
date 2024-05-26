@@ -455,7 +455,7 @@ The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
-    SMOOTH!(solver, 40, true)
+    SMOOTH!(solver, 400, true)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
@@ -499,7 +499,7 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 
     solver.phase .+= prolong(u_large , G)
     solver.potential .+= prolong(v_large, G)
-    SMOOTH!(solver, 80, true)
+    SMOOTH!(solver, 800, true)
 end
 #+end_src
 So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
@@ -1240,17 +1240,21 @@ gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 
 ** Experiments
 *** Iteration
-#+begin_src julia-vterm :results output :cache :noweb no-export :session jl
+#+begin_src julia    :noweb no-export :tangle experiments/src/relaxed-iteration.jl :async
 using JLD2
 using DataFrames
 using Random
 <<init>>
 <<setup-diverse-testgrids>>
 
-function iter(g::Vector{T} , n) where T<: solver
+tests = [testgrid(relaxed_multi_solver, M , 2;alpha=60000 , epsilon=0.016) for M in initial_data]
+#tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+
+function iter(g::Vector{relaxed_multi_solver} , n)
     out = []
     for j in 1:64
     set_xi_and_psi!(g[1])
+    elyps_solver!(g[1] , 1000)
     for i = 1:64
         v_cycle!(g, 1)
     end
@@ -1269,23 +1273,42 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/relaxed_iteration.jld2"; result)
+jldsave("experiments/relaxed-iteration.jld2"; result)
 #+end_src
 
+#+name: relaxed-anim
+#+begin_src julia-vterm :results file graphics :file relaxed-anim.gif :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+anim = @animate for s in results.solver
+    heatmap(s.phase)
+    end
+gif(anim , "images/relaxed-anim.gif", fps=10)
+#+end_src
+
+#+RESULTS: relaxed-anim
+[[file:images/relaxed-anim.gif]]
+
 *** Subiteration
-#+begin_src julia-vterm :results output :noweb yes
+#+begin_src julia :tangle experiments/src/relaxed-subiteration.jl :noweb yes
 using DataFrames
 using JLD2
 <<init>>
 <<setup-diverse-testgrids>>
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=32428.2 , epsilon=0.163398) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
 
 
 function iter(g::Vector{T} , n) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
-    for i = 1:64
+    elyps_solver!(g[1] , 1000)
+    for i = 1:1024
         v_cycle!(g, 1)
         push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i))
     end
@@ -1296,7 +1319,7 @@ end
 
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i] , 64)
+    t = Threads.@spawn iter(tests[i] , 4)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -1305,6 +1328,25 @@ for task in tasks
     end
 jldsave("experiments/relaxed-subiteration.jld2"; result)
 #+end_src
+
+#+RESULTS:
+#+begin_example
+LoadError: TaskFailedException
+
+    nested task error: MethodError: no method matching elyps_solver!(::Type{solver}, ::Int64)
+
+    Closest candidates are:
+      elyps_solver!(!Matched::T, ::Any) where T<:Union{adapted_relaxed_multi_solver, relaxed_multi_solver}
+       @ Main ~/Projects/CahnHilliardJulia/src/elypssolver.jl:16
+
+    Stacktrace:
+     [1] (::var"#iter#79")(g::Vector{multi_solver}, n::Int64)
+       @ Main /tmp/babel-XhjdRI/julia-vterm-src-Dv3NQd:41
+     [2] (::var"#66#80"{var"#iter#79", Vector{Vector{multi_solver}}, Int64})()
+       @ Main ./threadingconstructs.jl:373
+in expression starting at /tmp/babel-XhjdRI/julia-vterm-src-Dv3NQd:1
+#+end_example
+
 *** Time
 #+begin_src julia-vterm :results output :noweb yes :exports none
 using DataFrames
@@ -1385,9 +1427,8 @@ jldsave("experiments/relaxed_space_refinement.jld2"; result)
 using JLD2
 using DataFrames
 using Measures
-i0 = 64 * 1 +1
-var"W_prime#20"(x) = -x * (1 - x^2)
-results = jldopen("experiments/relaxed_iteration.jld2")["result"]
+i0 = 64 * 1+1
+results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
 p2 = heatmap(results.solver[i0].phase , title="initial condition")
@@ -1406,14 +1447,14 @@ savefig(p , "images/relaxed-mass-balance.svg")
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :output-dir images :noweb no-export :session jl
 <<init>>
-var"W_prime#39"(x) = -x * (1 - x^2)
 using DataFrames
 using JLD2
 using LaTeXStrings
+n=1024
 df = jldopen("experiments/relaxed-subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
 res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
-p= res.cycle_function[64:127] |> (x)-> plot(x , yscale=:log10)
+p= res.cycle_function[1:49] |> x-> plot(x, yscale=:log10)
 savefig(p , "images/relaxed-convergence.svg")
 #+end_src
 
@@ -1885,8 +1926,8 @@ end
 SIZE  =64
 t1= [testdata(SIZE, SIZE ÷ 5, SIZE /5 , j) for j in [1,2, Inf]]
 t2 = [get_special_input(fn,SIZE) for  fn in [halfcirc , incirc, side , insquare]]
-tests = [t1 ; t2]
-tests = [testgrid(multi_solver, M , 2) for M in tests]
+initial_data = [t1 ; t2]
+tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
 

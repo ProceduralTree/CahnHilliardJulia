@@ -56,7 +56,7 @@ end
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
-    SMOOTH!(solver, 40, true)
+    SMOOTH!(solver, 400, true)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
@@ -100,5 +100,5 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 
     solver.phase .+= prolong(u_large , G)
     solver.potential .+= prolong(v_large, G)
-    SMOOTH!(solver, 80, true)
+    SMOOTH!(solver, 800, true)
 end
