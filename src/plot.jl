@@ -10,12 +10,12 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-default(fontfamily="computer modern")
+default(fontfamily="computer modern" , titlefontsize=23)
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
-
+pgfplots()
 p0 = heatmap(testgrd[1].phase, title="Initial State");
 s = testgrd[1]
 set_xi_and_psi!(s)
@@ -85,7 +85,7 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-default(fontfamily="computer modern")
+default(fontfamily="computer modern" , titlefontsize=23)
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 using JLD2

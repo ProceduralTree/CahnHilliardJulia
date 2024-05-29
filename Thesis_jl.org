@@ -94,7 +94,7 @@ In order to show the CH equation's consistency with thermodynamics we take the t
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in [cite:@SHIN20117441].
 ** The discretization of the CH equation:
 Our discretization closely resembles the one taken by the authors in [cite:@SHIN20117441].
-We discretize our domain \( \Omega \) to be a Cartesian-grid on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=32 \) for all, but in the stability tests in space.
+We discretize our domain \( \Omega \) to be a Cartesian-grid on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=64 \) for all, but in the stability tests in space.
 We discretize the phase-field ,\( \phi \), and chemical potential ,\( \mu \), into grid-wise functions \(\phi_{ij}, \mu_{ij} \), where \( \phi_{ij} \) represents the evaluation of \( \phi \) at index \( ij \) , and at coordinates \( (i\cdot h -1 , j\cdot h - 1) \).
 The authors in [cite:@SHIN20117441] use the characteristic function \( G \) of the  domain \( \Omega \) to enforce no-flux boundary conditions.
 \begin{align*}
@@ -216,20 +216,20 @@ where \( q_k \) are random points inside my domain. Those we generate those usin
 #+begin_src julia-vterm :session jl :results table :exports both
 using Random
 rng = MersenneTwister(42)
-radius = 8
-gridsize = 32
-blobs = 8
+gridsize = 64
+radius = gridsize /5
+blobs = gridsize ÷ 5
 rngpoints = rand(rng,1:gridsize, 2, blobs)
 #+end_src
 
 #+RESULTS:
-: 2×8 Matrix{Int64}:
-:  24  20  10   1  32  25   4  30
-:   9   7  28  26   8   5  15   7
+: 2×12 Matrix{Int64}:
+:  48  40  20   1  63  49   8  60  26  58  26  11
+:  17  13  56  52  15   9  30  14  40   9  40  25
 
 
 #+name: testdata
-#+begin_src julia :eval never :tangle src/utils.jl
+#+begin_src julia :eval never :tangle src/utils.jl :exports none
 using Random
 function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
 rngpoints = rand(rng,1:gridsize, 2, blobs)
@@ -251,8 +251,10 @@ end
 #+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb no-export    :exports results :output-dir images
 <<init>>
 <<setup-diverse-testgrids>>
-plots = [heatmap(t[1].phase , size=(600,600), axis=:none , aspect_ratio=:equal) for t in tests]
-p = plot(plots...)
+plots =[  heatmap(t[1].phase ,  legend=:none , aspectratio=:equal , grid=false , showaxis=false , size=(600,600))
+for t in tests[1:2:end]]
+#plots = [heatmap(t[1].phase , size=(600,600), axis=:none , aspect_ratio=:equal) for t in tests]
+p = plot(plots... , layout=(1,4) , size=(2400,600))
 savefig(p,"images/testdata.svg")
 #+end_src
 
@@ -427,28 +429,29 @@ end
 #+end_src
 
 #+name: smoothing-examples
-#+begin_src julia-vterm :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images :session jl
+#+begin_src julia-vterm :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images
 <<input>>
 <<setup-diverse-testgrids>>
 plots= []
 for t in tests
 set_xi_and_psi!(t[1])
 SMOOTH!(t[1], 2, true);
-push!(plots , heatmap(t[1].phase, aspect_ratio=:equal ,xlim=(2 , t[1].len)))
 end
-p = plot(plots...)
+plots =[  heatmap(t[1].phase ,  legend=:none , aspectratio=:equal , grid=false , showaxis=false , size=(600,600))
+          for t in tests[1:2:end]]
+p = plot(plots... , layout=(1,4) , size=(2400,600))
 savefig(p,"images/smooth.svg")
 #+end_src
 
-#+name: inputs from [[Initial data]] after SMOOTH
+#+caption: inputs from [[Initial data]] after SMOOTH
 #+RESULTS: smoothing-examples
 [[file:images/smooth.svg]]
 ** V-cycle approach
 The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of
 1. a Gauss-Seidel relaxation for smoothing [[SMOOTH operator]].
 2. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
-3. a Newton iteration to solve \( L(x,y)_H = L(\bar{x} , \bar{y}) + (d_h , r_h) \).
-   we solve using the same iteration as in [[SMOOTH operator]] however we replace \( (\zeta , \psi) \) with \( L(\bar{x} , \bar{y}) + (d_h , r_h) \) in the iteration.
+3. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+   we solve using the same iteration as in [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 
 The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 #+begin_src julia :tangle src/multisolver.jl :eval never
@@ -506,7 +509,7 @@ So let's take a closer look at the internals, namely the phase field after pre-S
 #+name: v-cycle
 #+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
 <<setup-grid>>
-
+pgfplots()
 p0 = heatmap(testgrd[1].phase, title="Initial State");
 s = testgrd[1]
 set_xi_and_psi!(s)
@@ -566,6 +569,9 @@ savefig(p, "images/v_cycle.svg")
 #+end_src
 
 #+caption: internal state during one V-cyclce
+#+RESULTS: v-cycle
+[[file:images/v_cycle.svg]]
+
 
 After a few iterations, V-cycle exhibits the following behavior:
 
@@ -587,7 +593,7 @@ gif(anim , "images/iteration.gif" , fps = 10)
 
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
-** Experiments
+** Experiments :noexport:
 *** iteration
 #+begin_src julia :results output  :noweb yes :eval never :tangle experiments/src/iteration.jl
 using JLD2
@@ -784,13 +790,14 @@ end
 <<init>>
 using JLD2
 using DataFrames
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 )
 i0 = 1*64 +1
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = bulk_energy.(results[i0:i0+63,:].solver)
-p1 = plot(1:64 , energy , title=L"Discrete Helmholtz Energy $E_d^{bulk}$", xlabel="timesteps" , ylabel="energy" )
+p1 = plot(1:64 , energy , title=L"Discrete Helmholtz Energy $E_d^{bulk}$", xlabel="timesteps" , ylabel="energy"  , label=false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , aspectratio=:equal , legend=:none , showaxis=false , grid=false)
-p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,500) , bottom_margin=10Plots.mm , left_margin=10Plots.mm)
+p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,700) , bottom_margin=20Plots.mm , left_margin=20Plots.mm)
 savefig(p , "images/energy_balance.svg")
 #+end_src
 
@@ -823,13 +830,15 @@ function massbal(arr)
 using JLD2
 using DataFrames
 using Measures
+pgfplotsx()
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 )
 i0 = 64 * 1 + 1
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = [ massbal(s.phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy .- energy[1], xlabel= "time-steps" , ylabel = "error"  , label ="balance")
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , aspectratio=:equal , grid=false , showaxis=false , legend=:none)
-p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,500) , bottom_margin=10Plots.mm , left_margin=10Plots.mm)
+p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,700) , bottom_margin=20Plots.mm , left_margin=20Plots.mm)
 savefig(p , "images/mass_balance.svg")
 #+end_src
 
@@ -878,6 +887,7 @@ we expect our solver to converge if we do more sub-iterations. To test this we c
 using DataFrames
 using JLD2
 using LaTeXStrings
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=22)
 df = jldopen("experiments/subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
 res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
@@ -1091,7 +1101,7 @@ function dL(solver::relaxed_multi_solver , i , j)
 #+end_src
 
 ** SMOOTH operator
-The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the SMOOTH iteration.
+The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the previous SMOOTH iteration.
 Correspondingly the SMOOTH operation expands to:
 #+name: eq:discrete-relaxed-smooth
 \begin{equation}
@@ -1157,13 +1167,13 @@ local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha , epsilon=eps)
 set_xi_and_psi!(testgrd[1])
 elyps_solver!(testgrd[1] , 2000)
 SMOOTH!(testgrd[1], 1000, false);
-push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width)));
+push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width) , showaxis=false , legend=false));
     end
 
 original = testgrid(multi_solver,M, 2)
 set_xi_and_psi!(original[1])
 SMOOTH!(original[1], 1000, false);
-push!(plots , heatmap(original[1].phase, aspect_ratio=:equal, title="original SMOOTH" , xlim=(2,original[1].len) , ylim=(2,original[1].width)));
+push!(plots , heatmap(original[1].phase, aspect_ratio=:equal, title="original" , xlim=(2,original[1].len) , ylim=(2,original[1].width) , showaxis=false , legend=false));
 p = plot(plots...)
 savefig(p,"images/smooth_relaxed.svg")
 #+end_src
@@ -1172,7 +1182,7 @@ savefig(p,"images/smooth_relaxed.svg")
 #+RESULTS: relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
 
-Furthermore, experimentation shows that alpha allone is insuficcient to get a relaxed method consistent with the original solver, since alpha had an effect simmilar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen indepentantly. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can.
+Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since alpha had an effect similar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen independently. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can.
 Monte Carlo Optimizer For \( \varepsilon , \alpha \).
 #+begin_src julia :tangle src/optim.jl :noweb yes
 using Distributions
@@ -1185,9 +1195,9 @@ function test_values(alpha_distribution::Distribution , epsilon_distribution::Di
     eps = max(rand(epsilon_distribution)  ,1e-10)
     relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
     set_xi_and_psi!(relaxed_solver[1])
-    elyps_solver!(relaxed_solver[1], 2000)
     #SMOOTH!(relaxed_solver[1], 100, false)
     for j=1:64
+    elyps_solver!(relaxed_solver[1], 2000)
     v_cycle!(relaxed_solver , 1)
     end
     error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
@@ -1224,9 +1234,26 @@ end
 jldsave("experiments/alpha-epsilon.jld2"; result=results)
 println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
-
+sadly the MCMC didn't yield results consistent with the original solver after a few Iterations
 ** The relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[V-cycle approach]].
+In the executions for each time step, we add the elliptic solver before the subiteration.
+
+#+name: relaxed-anim
+#+begin_src julia-vterm :results file graphics :file relaxed-anim.gif :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+gr()
+
+results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+anim = @animate for s in results.solver
+    heatmap(s.phase)
+    end
+gif(anim , "images/relaxed-anim.gif", fps=10)
+#+end_src
 #+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
 <<setup-relaxed-grid>>
 
@@ -1244,7 +1271,7 @@ end
 gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
 #+end_src
 
-** Experiments
+** Experiments :noexport:
 *** Iteration
 #+begin_src julia    :noweb no-export :tangle experiments/src/relaxed-iteration.jl :async
 using JLD2
@@ -1281,23 +1308,6 @@ for task in tasks
     end
 jldsave("experiments/relaxed-iteration.jld2"; result)
 #+end_src
-
-#+name: relaxed-anim
-#+begin_src julia-vterm :results file graphics :file relaxed-anim.gif :output-dir images :noweb no-export :session jl
-<<init>>
-using JLD2
-using DataFrames
-using Measures
-
-results = jldopen("experiments/relaxed-iteration.jld2")["result"]
-anim = @animate for s in results.solver
-    heatmap(s.phase)
-    end
-gif(anim , "images/relaxed-anim.gif", fps=10)
-#+end_src
-
-#+RESULTS: relaxed-anim
-[[file:images/relaxed-anim.gif]]
 
 *** Subiteration
 #+begin_src julia :tangle experiments/src/relaxed-subiteration.jl :noweb yes
@@ -1433,7 +1443,7 @@ jldsave("experiments/relaxed_space_refinement.jld2"; result)
 using JLD2
 using DataFrames
 using Measures
-i0 = 64 * 1+1
+i0 = 64 * 0+1
 results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
@@ -1819,11 +1829,10 @@ end
 function W_prime(x)
     return -x * (1 - x^2)
 end
-function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e-3)
+function testgrid(::Type{multi_solver},M, len; dt = 1e-3 ,  epsilon=8e-3 , h0=3e-3)
     grid = Array{multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
-    h0 = 3e-3
 
 
     for i = 1:len
@@ -1832,7 +1841,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e
             zeros(dims),
             zeros(dims),
             zeros(dims),
-            epsilon, h0 * 2^i, 1e-3,
+            epsilon, h0 * 2^i, dt,
             W_prime,
             (dims .- 2)...)
 
@@ -1842,11 +1851,10 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 , h = 3e-3 , epsilon=8e
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, epsilon=8e-3)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, epsilon=8e-3 , h0=3e-3)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M
-    h0 = 3e-3
 
     for i = 1:len
         dims = size(M) .÷ 2^(i-1) .+ 2
@@ -1855,7 +1863,7 @@ function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, eps
             zeros(dims),
             zeros(dims),
             zeros(dims),
-            epsilon, h0 * 2^i, 1e-3,
+            epsilon, h0 * 2^i, dt,
             W_prime,
             (dims .- 2)... ,
             alpha)
@@ -1882,7 +1890,7 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-default(fontfamily="computer modern")
+default(fontfamily="computer modern" , titlefontsize=23)
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 #+end_src
