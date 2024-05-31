@@ -1079,7 +1079,7 @@ function L(solver::relaxed_multi_solver,i,j , phi , mu)
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
           neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - 2 * solver.phase[i,j] - solver.potential[i,j]
+    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] #- 2 * solver.phase[i,j]
     return [xi, psi]
 end
 #+end_src
@@ -1096,7 +1096,7 @@ DL_r\begin{pmatrix}
 #+begin_src julia :tangle src/multi_relaxed.jl :eval never
 function dL(solver::relaxed_multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
+             (-1*solver.epsilon^2 * solver.alpha  - 0) 1]
     end
 #+end_src
 
@@ -1254,22 +1254,11 @@ anim = @animate for s in results.solver
     end
 gif(anim , "images/relaxed-anim.gif", fps=10)
 #+end_src
-#+begin_src julia-vterm :results file graphics  :file iteration_relaxed2.gif :noweb no-export  :exports both :output-dir images :session jl :eval never-export
-<<setup-relaxed-grid>>
 
-pbar = ProgressBar(total = 1000)
+#+RESULTS: relaxed-anim
+[[file:images/relaxed-anim.gif]]
 
-anim = @animate for t in 1:100
-    set_xi_and_psi!(testgrd[1])
-    elyps_solver!(solver , 1000)
-    for j in 1:10
-        v_cycle!(testgrd, 1)
-        update(pbar)
-        end
-    heatmap(testgrd[1].phase , clim =(-1,1) , framestyle=:none )
-end
-gif(anim , "images/iteration_relaxed2.gif" , fps = 10)
-#+end_src
+
 
 ** Experiments :noexport:
 *** Iteration
@@ -1280,15 +1269,15 @@ using Random
 <<init>>
 <<setup-diverse-testgrids>>
 
-tests = [testgrid(relaxed_multi_solver, M , 2;alpha=60000 , epsilon=0.016) for M in initial_data]
-#tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
 
 function iter(g::Vector{relaxed_multi_solver} , n)
     out = []
     for j in 1:64
     set_xi_and_psi!(g[1])
-    elyps_solver!(g[1] , 1000)
     for i = 1:64
+        elyps_solver!(g[1] , 1000)
         v_cycle!(g, 1)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
@@ -1306,7 +1295,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/relaxed-iteration.jld2"; result)
+jldsave("experiments/relaxed-iteration2.jld2"; result)
 #+end_src
 
 *** Subiteration
@@ -1443,7 +1432,7 @@ jldsave("experiments/relaxed_space_refinement.jld2"; result)
 using JLD2
 using DataFrames
 using Measures
-i0 = 64 * 0+1
+i0 = 64 * 3+1
 results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
@@ -1592,27 +1581,27 @@ Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}|| \to 0
 \end{equation}
 In practice we observe the following behaviour:
-#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl :cache yes :exports both :eval never
+#+begin_src julia :noweb no-export :eval never :tangle experiments/src/alpha.jl
 <<init>>
 using JLD2
 using Distributed
-JULIA_NUM_THREADS = 24
-M = jldopen("data/test-phasefield.jld2")["M"]
+using ProgressBars
+using DataFrames
 
 original_grid = testgrid(multi_solver, M, 2)
-alphas = 0:1e3:2e5
+alphas = 0:1e4:2e6
 
 function alpha_error(alpha::Number , solution::Array )
-    test_solver  = testgrid(relaxed_multi_solver, M, 2, alpha=α)
+    test_solver  = testgrid(relaxed_multi_solver, M, 2, alpha=alpha)
     set_xi_and_psi!(test_solver[1])
-    elyps_solver!(test_solver[1], 1000)
-    for j in 1:100
+    for j in 1:64
+        elyps_solver!(test_solver[1], 1000)
         v_cycle!(test_solver , 1)
     end
-return norm(test_solver[1].phase - solution)
+return [(;alpha=alpha , error=norm(test_solver[1].phase - solution))]
 end
 set_xi_and_psi!(original_grid[1])
-for j in 1:100
+for j in 1:64
     v_cycle!(original_grid, 1)
 end
 print("finished original v_cycle")
@@ -1621,13 +1610,27 @@ for alpha in alphas
     t = Threads.@spawn alpha_error(alpha , original_grid[1].phase)
     push!(tasks , (alpha=alpha , task = t))
 end
-results  = @show [(alpha=t.alpha, error=fetch(t.task)) for t in tasks]
-p=plot(results)
+result = DataFrame()
+for task in ProgressBar(tasks)
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/alpha.jld2"; result)
+#+end_src
+
+
+#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+results = jldopen("experiments/alpha.jld2")["result"]
+p=plot(results.alpha  , results.error ./64^2, label=false)
 savefig(p, "images/alpha-error.svg")
 #+end_src
 
-#+RESULTS[0251ebc9f5b173cfb1e04b1d1e765a535ebdaa85]:
+#+RESULTS[c9011a75a329dfad869e8e100b7934bea5836b44]:
 [[file:images/alpha-error.svg]]
+
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 
 * AI
