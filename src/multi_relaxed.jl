@@ -3,13 +3,13 @@ function L(solver::relaxed_multi_solver,i,j , phi , mu)
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
           neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] #- 2 * solver.phase[i,j]
+    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] - 2 * solver.phase[i,j]
     return [xi, psi]
 end
 
 function dL(solver::relaxed_multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2 * solver.alpha  - 0) 1]
+             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
     end
 
 function SMOOTH!(

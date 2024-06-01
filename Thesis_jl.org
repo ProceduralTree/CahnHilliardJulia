@@ -1079,7 +1079,7 @@ function L(solver::relaxed_multi_solver,i,j , phi , mu)
          (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
           -
           neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] #- 2 * solver.phase[i,j]
+    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] - 2 * solver.phase[i,j]
     return [xi, psi]
 end
 #+end_src
@@ -1096,7 +1096,7 @@ DL_r\begin{pmatrix}
 #+begin_src julia :tangle src/multi_relaxed.jl :eval never
 function dL(solver::relaxed_multi_solver , i , j)
     return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2 * solver.alpha  - 0) 1]
+             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
     end
 #+end_src
 
@@ -1248,7 +1248,7 @@ using Measures
 
 gr()
 
-results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+results = jldopen("experiments/relaxed-iteration4.jld2")["result"]
 anim = @animate for s in results.solver
     heatmap(s.phase)
     end
@@ -1295,7 +1295,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/relaxed-iteration2.jld2"; result)
+jldsave("experiments/relaxed-iteration.jld2"; result)
 #+end_src
 
 *** Subiteration
@@ -1433,7 +1433,7 @@ using JLD2
 using DataFrames
 using Measures
 i0 = 64 * 3+1
-results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+results = jldopen("experiments/relaxed-iteration2.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
 p2 = heatmap(results.solver[i0].phase , title="initial condition")
@@ -1632,6 +1632,34 @@ savefig(p, "images/alpha-error.svg")
 [[file:images/alpha-error.svg]]
 
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
+
+#+begin_src julia-vterm :results file graphics :file relaxed-comp.gif :output-dir images :noweb no-export :session jl
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+using LaTeXStrings
+
+gr()
+
+results = jldopen("experiments/iteration.jld2")["result"]
+results1 = jldopen("experiments/relaxed-iteration.jld2")["result"]
+results2 = jldopen("experiments/relaxed-iteration-nophi.jld2")["result"]
+results3 = jldopen("experiments/relaxed-iteration-nosubiter.jld2")["result"]
+
+
+anim = @animate for iter in zip(results.solver,results1.solver ,results2.solver , results3.solver)
+    plots = []
+    for (phase , title) in zip(iter , ["original" , "subiter elliptical" , L"without $2\phi$" , L"without $2\phi$ and subiter"])
+        push!(plots , heatmap(phase.phase , title=title , legend=:none , aspectratio=:equal , grid=false , showaxis=false))
+        plot(plots...)
+        end
+    end
+gif(anim , "images/relaxed-comp.gif", fps=10)
+#+end_src
+
+#+RESULTS:
+[[file:images/relaxed-comp.gif]]
 
 * AI
 We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation [[eq:discrete-relaxed-cahn-hilliard]]. We propose there to be a better solution then the discrete result of [[eq:elliptical-equation]]. We define "better" as minimizing:
