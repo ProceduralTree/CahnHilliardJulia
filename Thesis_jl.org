@@ -1266,6 +1266,7 @@ gif(anim , "images/relaxed-anim.gif", fps=10)
 #+begin_src julia    :noweb no-export :tangle experiments/src/relaxed-iteration.jl :async
 using JLD2
 using DataFrames
+using ProgressMeter
 using Random
 <<init>>
 <<setup-diverse-testgrids>>
@@ -1273,23 +1274,28 @@ using Random
 #tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
 tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
 
-function iter(g::Vector{relaxed_multi_solver} , n)
+n = 64
+m = 64
+
+
+function iter(g::Vector{relaxed_multi_solver} , n , prg::Progress)
     out = []
-    for j in 1:64
+    for j in 1:n
     set_xi_and_psi!(g[1])
-    for i = 1:64
+    for i = 1:m
         elyps_solver!(g[1] , 1000)
         v_cycle!(g, 1)
+        next!(prg)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
     end
     return out
 end
 
-
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
+    t = Threads.@spawn iter(tests[i], i , prg)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -1354,7 +1360,7 @@ in expression starting at /tmp/babel-XhjdRI/julia-vterm-src-Dv3NQd:1
 #+end_example
 
 *** Time
-#+begin_src julia-vterm :results output :noweb yes :exports none
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/relaxed-tiem.jl
 using DataFrames
 using JLD2
 <<init>>
@@ -1364,8 +1370,8 @@ function iter(g::Vector{T} , n) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
     for i = 1:64
+        elyps_solver!(g[1] , 1000)
         v_cycle!(g, 1)
     end
     end
@@ -1383,7 +1389,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/relaxed_time_refinement.jld2"; result)
+jldsave("experiments/relaxed-time.jld2"; result)
 #+end_src
 *** Space
 #+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
@@ -1469,39 +1475,7 @@ savefig(p , "images/relaxed-convergence.svg")
 
 *** convergence unter refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
-#+begin_src julia-vterm :results output :noweb yes :exports none
-using DataFrames
-using JLD2
-<<init>>
-tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:128)]
 
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=n))
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed_time_refinement.jld2"; result)
-#+end_src
-
-#+RESULTS:
 
 #+name: fig:relaxed-stability-in-time
 #+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg :output-dir images :noweb no-export :session jl
@@ -1509,13 +1483,18 @@ jldsave("experiments/relaxed_time_refinement.jld2"; result)
 using DataFrames
 using JLD2
 using LaTeXStrings
-df = jldopen("experiments/relaxed_time_refinement.jld2")["result"]
+df = jldopen("experiments/relaxed-time.jld2")["result"]
+dfo = jldopen("experiments/time.jld2")["result"]
+gdo = groupby(dfo,:iteration)
+dfo = DataFrame([ last(x) for x in gdo])
 change = [norm(df[!, "phase"][i] .- df[! , "phase"][i-1]) for i=2:size(df , 1)]
-p = plot(change , ylabel = "difference" , xlabel = "number of timesteps" , label=L"\Delta \phi")
+change0 = [norm(dfo[!, "phase"][i] .- dfo[! , "phase"][i-1]) for i=2:size(dfo , 1)]
+p = plot(change , ylabel = "difference" , xlabel = "number of timesteps" , label="relaxed" )
+p = plot(p , change0 , ylabel = "difference" , xlabel = "number of timesteps" , label="original")
 savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
-#+Caption: behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
+#+Caption: behavior of both  solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
 #+RESULTS: fig:relaxed-stability-in-time
 [[file:images/relaxed-time-stability.svg]]
 
@@ -1624,9 +1603,6 @@ anim = @animate for iter in zip(results.solver,results1.solver ,results2.solver 
 gif(anim , "images/relaxed-comp.gif", fps=10)
 #+end_src
 
-#+RESULTS:
-[[file:images/relaxed-comp.gif]]
-
 although we can observe slight diffrences between the original solver and the relaxed approach they are barely noticalble by eye. Therefore we also show the numerical difference between both.
 #+begin_src julia-vterm :results file graphics :file relaxed-comparison.gif :output-dir images :noweb no-export :session jl
 <<init>>
@@ -1635,7 +1611,7 @@ using DataFrames
 using Measures
 using LaTeXStrings
 
-i = 4*64 +1
+i = 1*64 +1
 gr()
 
 original_results = jldopen("experiments/iteration.jld2")["result"]
