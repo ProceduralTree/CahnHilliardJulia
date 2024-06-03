@@ -1,4 +1,11 @@
 * Inbox
+** TODO caption
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*massbal][massbal]]
+** TODO change gif
+from gif to svg with \( n=1 , n=64 \)
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:solver-iteration][fig:solver-iteration]]
 ** TODO Project boundary conds
  - first order cons influx
  - side boundary
@@ -27,17 +34,18 @@ In combination with fixing my Indicie errors and adding better Explanations for 
 - [X] remove \( f \) and replace with \( \phi \)
 - [X] state definition of \( \Omega  ,\phi_{ij} , \mu_{ij} \)
 - [ ] make abbreviations more apparent
+  + relaxed
 - [X] clear definition of \( G_{ij} \)
 
 * TODO Add explanations to all plots
 * TODO add axis descriptioins
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-* TODO expand operators
+* DONE expand operators
 and Write Matrix representation for 1D
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*PDE as operator \( L \)][PDE as operator \( L \)]]
-* TODO Add direct comparison to original
+* DONE Add direct comparison to original
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Relaxed PDE as operator L][Relaxed PDE as operator L]]
 * DONE state approach more understandable
@@ -46,14 +54,14 @@ and Write Matrix representation for 1D
 * TODO Capitalize
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-* TODO plot divergence from original solver  for optimal alpha 7.5e4
+* DONE plot divergence from original solver  for optimal alpha 7.5e4
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Comparison][Comparison]]
-* TODO add \( \Delta t \) to plot label
+* DONE add \( \Delta t \) to plot label
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*rate of convergence][rate of convergence]]
 * TODO write something on impact of alpha
 
 [[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
-* TODO Comparison
+* DONE Comparison
 alpha error for longe time intervall

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-05-15 Wed 11:52 -->
+<!-- 2024-06-03 Mon 16:53 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bachelor Thesis</title>
@@ -234,26 +234,25 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org2a0eeee">1. The Cahn-Hilliard equation</a></li>
-<li><a href="#orgdb10c2c">2. Baseline multi-grid solver</a></li>
-<li><a href="#org3921479">3. Numerical evaluation</a></li>
-<li><a href="#orgb532ab5">4. Relaxed problem</a></li>
-<li><a href="#org6b0833b">5. AI</a></li>
-<li><a href="#org11533f2">6. References</a></li>
+<li><a href="#org966127a">1. The Cahn-Hilliard equation</a></li>
+<li><a href="#org794b66c">2. Baseline multi-grid solver</a></li>
+<li><a href="#orgc6eda77">3. Numerical evaluation</a></li>
+<li><a href="#org72757b1">4. Relaxed problem</a></li>
+<li><a href="#org96bb6c6">5. References</a></li>
 </ul>
 </div>
 </div>
 <p>
 This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
 </p>
-<div id="outline-container-org2a0eeee" class="outline-2">
-<h2 id="org2a0eeee"><span class="section-number-2">1.</span> The Cahn-Hilliard equation</h2>
+<div id="outline-container-org966127a" class="outline-2">
+<h2 id="org966127a"><span class="section-number-2">1.</span> The Cahn-Hilliard equation</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the CH equation used in this thesis is
 </p>
 \begin{equation}
-\label{orgaf3610b}
+\label{org11ce745}
 \begin{aligned}
 \partial_{t}\phi(x,t) &=  \nabla \cdot(M(\phi)\nabla\mu) \\
 \mu &= - \varepsilon^2 \Delta\phi  + W'(\phi)
@@ -283,18 +282,18 @@ The advantages of the CH approach, as compared to traditional boundary coupling,
 In practice it enables linear interpolation between different formulas on different phases.
 </p>
 </div>
-<div id="outline-container-org07d8799" class="outline-3">
-<h3 id="org07d8799"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
+<div id="outline-container-org7371738" class="outline-3">
+<h3 id="org7371738"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
 <div class="outline-text-3" id="text-1-1">
 </div>
-<div id="outline-container-orgcb35fff" class="outline-4">
-<h4 id="orgcb35fff"><span class="section-number-4">1.1.1.</span> The free energy</h4>
+<div id="outline-container-orgcbf6397" class="outline-4">
+<h4 id="orgcbf6397"><span class="section-number-4">1.1.1.</span> The free energy</h4>
 <div class="outline-text-4" id="text-1-1-1">
 <p>
 The authors in (<a href="#citeproc_bib_item_2">Wu 2022</a>) define the CH equation using the <b>Ginzburg-Landau</b> free energy equation:
 </p>
 \begin{align}
-\label{orga0fb2ce}
+\label{org3dc641f}
 E^{\text{bulk}} &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
 \end{align}
 <p>
@@ -302,25 +301,25 @@ where \(W(\phi) \) denotes the Helmholtz free energy density of mixing (<a href=
 </p>
 
 <p>
-The chemical potential, \( \mu \), then follows as the variational derivation of the free energy \eqref{orga0fb2ce}.
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy \eqref{org3dc641f}.
 </p>
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 </div>
 </div>
-<div id="outline-container-org3d329b4" class="outline-4">
-<h4 id="org3d329b4"><span class="section-number-4">1.1.2.</span> Derivation of the CH equation from mass balance</h4>
+<div id="outline-container-org8d4ed2f" class="outline-4">
+<h4 id="org8d4ed2f"><span class="section-number-4">1.1.2.</span> Derivation of the CH equation from mass balance</h4>
 <div class="outline-text-4" id="text-1-1-2">
 <p>
 The paper (<a href="#citeproc_bib_item_2">Wu 2022</a>)  motivates us to derive the CH equation as follows:
 </p>
 \begin{equation}
-\label{org8ff20b8}
+\label{org3178581}
     \partial_t \phi + \nabla \cdot J = 0
 \end{equation}
 <p>
-where \( J \) is mass flux. The equation \eqref{org8ff20b8} then ensures continuity of mass
+where \( J \) is mass flux. The equation \eqref{org3178581} then ensures continuity of mass
 Using the no-flux boundary conditions:
 </p>
 \begin{align}
@@ -331,7 +330,7 @@ J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
 conservation of mass follows see(<a href="#citeproc_bib_item_2">Wu 2022</a>).
 </p>
 \begin{equation}
-\label{org9b0f3ba}
+\label{org47129cb}
 \begin{aligned}
 \frac{d}{dt}\int_{\Omega}\phi&=\int_{\Omega}\frac{\partial \phi}{\partial t} dV \\
 &= - \int_{\Omega} \nabla \cdot J \ dV\\
@@ -340,17 +339,17 @@ conservation of mass follows see(<a href="#citeproc_bib_item_2">Wu 2022</a>).
 \end{aligned}
 \end{equation}
 <p>
-Therefore mass is conserved over time, as shown in \eqref{org9b0f3ba}.
+Therefore mass is conserved over time, as shown in \eqref{org47129cb}.
 We define the mass flux, \( J \), as the gradient in chemical potential as follows
 </p>
 \begin{align}
 J &= - \nabla \mu
 \end{align}
 <p>
-This results in the CH equation as stated in \eqref{orgaf3610b}.
+This results in the CH equation as stated in \eqref{org11ce745}.
 </p>
 \begin{equation}
-\label{org657255d}
+\label{org539a963}
 \begin{aligned}
  - \nabla \mu &= 0 \\
 \partial_n \phi &= 0
@@ -358,7 +357,7 @@ This results in the CH equation as stated in \eqref{orgaf3610b}.
 \end{equation}
 <p>
 i.e. no flow leaves and potential on the border doesn&rsquo;t change.
-In order to show the CH equation&rsquo;s consistency with thermodynamics we take the time derivation of the free energy \eqref{orga0fb2ce} and we show that it decreases in time.
+In order to show the CH equation&rsquo;s consistency with thermodynamics we take the time derivation of the free energy \eqref{org3dc641f} and we show that it decreases in time.
 </p>
 \begin{align*}
 \frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
@@ -372,19 +371,19 @@ In order to show the CH equation&rsquo;s consistency with thermodynamics we take
 </div>
 </div>
 </div>
-<div id="outline-container-orgdb10c2c" class="outline-2">
-<h2 id="orgdb10c2c"><span class="section-number-2">2.</span> Baseline multi-grid solver</h2>
+<div id="outline-container-org794b66c" class="outline-2">
+<h2 id="org794b66c"><span class="section-number-2">2.</span> Baseline multi-grid solver</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
 </p>
 </div>
-<div id="outline-container-orgd5e0c35" class="outline-3">
-<h3 id="orgd5e0c35"><span class="section-number-3">2.1.</span> The discretization of the CH equation:</h3>
+<div id="outline-container-org19b3b02" class="outline-3">
+<h3 id="org19b3b02"><span class="section-number-3">2.1.</span> The discretization of the CH equation:</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 Our discretization closely resembles the one taken by the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
-We discretize our domain \( \Omega \) to be a Cartesian-grid on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=32 \) for all, but in the stability tests in space.
+We discretize our domain \( \Omega \) to be a Cartesian-grid on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=64 \) for all, but in the stability tests in space.
 We discretize the phase-field ,\( \phi \), and chemical potential ,\( \mu \), into grid-wise functions \(\phi_{ij}, \mu_{ij} \), where \( \phi_{ij} \) represents the evaluation of \( \phi \) at index \( ij \) , and at coordinates \( (i\cdot h -1 , j\cdot h - 1) \).
 The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) use the characteristic function \( G \) of the  domain \( \Omega \) to enforce no-flux boundary conditions.
 </p>
@@ -429,7 +428,7 @@ D_x\phi_{i+\frac{1}{2} j} &= \frac{\phi_{i+1j} - \phi_{ij}}{h} & D_y\phi_{ij+\fr
 For \( \nabla_d \phi_{ij}, \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) then follows:
 </p>
 \begin{align}
-\label{org824d0dd}
+\label{org604dca6}
 \nabla_d \phi_{ij} &= (D_x \phi_{i+1j} , \ D_y \phi_{ij+1}) \\
  \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij}) &= \frac{D_x \phi_{i+\frac{1}{2}j} -  D_x \phi_{i-\frac{1}{2}j} + D_y \phi_{ij+\frac{1}{2}} - D_y \phi_{ij-\frac{1}{2}}}{h},
 \end{align}
@@ -487,93 +486,80 @@ We use this modified Laplacian to deal with boundary conditions. Our abbreviatio
 </p>
 </div>
 </div>
-<div id="outline-container-org6c1774a" class="outline-3">
-<h3 id="org6c1774a"><span class="section-number-3">2.2.</span> Initial data</h3>
+<div id="outline-container-org16d02bd" class="outline-3">
+<h3 id="org16d02bd"><span class="section-number-3">2.2.</span> Initial data</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 For testing we use initial phase-fields defined by the following equations:
 </p>
 
-
 \begin{equation}
-\phi_{ij} =
+\begin{aligned}
+\phi_{ij} &=
 \begin{cases}
 1 &\,, \|(i,j) - (\frac{N}{2} , \frac{N}{2})\|_p < \frac{N}{3}\\
 -1 &\,,else
 \end{cases}
-\end{equation}
-<p>
-where \( p \in \{2,\infty\} \)
-</p>
-\begin{equation}
-\phi_{ij} =
+&
+\text{where    }  p \in \{2,\infty\}
+\\
+\phi_{ij} &=
 \begin{cases}
 1 &\,,  i < \frac{N}{2} \\
 -1 &\,,else
 \end{cases}
-\end{equation}
-
-\begin{equation}
-\phi_{ij} =
+\\
+\phi_{ij} &=
 \begin{cases}
 1 &\,, \|(i,j) - (\frac{N}{2} , 2)\|_2 < \frac{N}{3} \\
 -1 &\,,else
 \end{cases}
-\end{equation}
-
-\begin{equation}
-\phi_{ij} =
+\\
+\phi_{ij} &=
 \begin{cases}
-1 &\,, \| (i,j) - q_k \|_p < \frac{N}{3}  p \in \{1,2, \infty\} , q_k \in Q \\
+1 &\,, \| (i,j) - q_k \|_p < \frac{N}{5}  \\
 -1 &\,,else
 \end{cases}
+& p \in \{1,2, \infty\} , q_k \in Q
+\end{aligned}
 \end{equation}
 <p>
-where \( q_k \) are random points inside my domain. Those we generate those using
+where \( q_k \) are random points inside my domain. Those we generate those using the following rng setup in julia
 </p>
-<pre class="example">
-2×8 Matrix{Int64}:
- 24  20  10   1  32  25   4  30
-  9   7  28  26   8   5  15   7
-</pre>
-
-
-
 <div class="org-src-container">
-<pre class="src src-julia" id="orgf70cfc1"><span style="color: #fb4934;">using</span> <span style="color: #83a598;">Random</span>
-<span style="color: #fb4934;">function</span> <span style="color: #83a598;">testdata</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">gridsize</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">blobs</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">radius</span> <span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">norm</span><span style="color: #ebdbb2; background-color: #282828;">;</span><span style="color: #83a598;">rng</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">MersenneTwister</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">42</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
+<pre class="src src-julia-vterm"><span style="color: #fb4934;">using</span> <span style="color: #83a598;">Random</span>
+<span style="color: #83a598;">rng</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">MersenneTwister</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">42</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598;">gridsize</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">64</span>
+<span style="color: #83a598;">radius</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">gridsize</span> <span style="color: #fabd2f;">/</span><span style="color: #d3869b;">5</span>
+<span style="color: #83a598;">blobs</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">gridsize</span> &#247; <span style="color: #d3869b;">5</span>
 <span style="color: #83a598;">rngpoints</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">rand</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">rng</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">gridsize</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">blobs</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">M</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">gridsize</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">gridsize</span><span style="color: #ebdbb2; background-color: #282828;">)</span> .<span style="color: #fabd2f;">-</span> <span style="color: #d3869b;">1</span>
-<span style="color: #fb4934;">for</span> <span style="color: #83a598;">p</span> in <span style="color: #83a598; font-weight: bold;">axes</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">rngpoints</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">point</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">rngpoints</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">p</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">I</span> in <span style="color: #83a598; font-weight: bold;">CartesianIndices</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #fb4934;">if</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">LinearAlgebra</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">point</span> .<span style="color: #fabd2f;">-</span> <span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">I</span>  <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">norm</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">&lt;</span> <span style="color: #83a598;">radius</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-            <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1</span>
-        <span style="color: #fb4934;">end</span>
-    <span style="color: #fb4934;">end</span>
-<span style="color: #fb4934;">end</span>
-<span style="color: #83a598;">M</span>
-<span style="color: #fb4934;">end</span>
 </pre>
 </div>
 
+<pre class="example">
+2×12 Matrix{Int64}:
+ 48  40  20   1  63  49   8  60  26  58  26  11
+ 17  13  56  52  15   9  30  14  40   9  40  25
+</pre>
 
 
-<div id="org7979bf1" class="figure">
+
+
+<div id="org36a1710" class="figure">
 <p><img src="images/testdata.svg" alt="testdata.svg" class="org-svg" />
 </p>
 <p><span class="figure-number">Figure 1: </span>Examples of different phase-fields used as the initial condition in this work.</p>
 </div>
 </div>
 </div>
-<div id="outline-container-org6c0284c" class="outline-3">
-<h3 id="org6c0284c"><span class="section-number-3">2.3.</span> Numerical ansatz</h3>
+<div id="outline-container-org001373b" class="outline-3">
+<h3 id="org001373b"><span class="section-number-3">2.3.</span> Numerical ansatz</h3>
 <div class="outline-text-3" id="text-2-3">
 <p>
 The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) then define the discrete CH equation adapted for the domain as:
 </p>
 \begin{equation}
-\label{orgd4d6b52}
+\label{org590182b}
 \begin{aligned}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
  \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
@@ -584,11 +570,11 @@ and derive a numerical scheme from this implicit equation.
 </p>
 </div>
 </div>
-<div id="outline-container-org0197808" class="outline-3">
-<h3 id="org0197808"><span class="section-number-3">2.4.</span> PDE as operator \( L \)</h3>
+<div id="outline-container-orga97dd1b" class="outline-3">
+<h3 id="orga97dd1b"><span class="section-number-3">2.4.</span> PDE as operator \( L \)</h3>
 <div class="outline-text-3" id="text-2-4">
 <p>
-The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) derive their method by seperating \eqref{orgd4d6b52} into implicit and linear terms, and explicit non-linear terms. Linear terms are collected in an Operator \( L \), and the explicit terms in \( (\zeta^n_{ij} , \psi^n_{ij})^T \).
+The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) derive their method by seperating \eqref{org590182b} into implicit and linear terms, and explicit non-linear terms. Linear terms are collected in an Operator \( L \), and the explicit terms in \( (\zeta^n_{ij} , \psi^n_{ij})^T \).
 We derive the iteration operator \( L(\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij}) = (\zeta^n_{ij} ,\psi^n_{ij}) \)as in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
 </p>
 \begin{align*}
@@ -618,7 +604,7 @@ L
 </pre>
 </div>
 <p>
-This operator follows from \eqref{orgd4d6b52} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \), respectively.
+This operator follows from \eqref{org590182b} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \), respectively.
 </p>
 \begin{align*}
 \begin{pmatrix}
@@ -668,40 +654,15 @@ DL\begin{pmatrix}
 </pre>
 </div>
 </div>
-<div id="outline-container-orgd95f70d" class="outline-4">
-<h4 id="orgd95f70d"><span class="section-number-4">2.4.1.</span> one dimensional operator</h4>
-<div class="outline-text-4" id="text-2-4-1">
-<p>
-to gain a better understanding for the method, we derive the one dinensional for of \( L \) in matrix form
-</p>
-
-\begin{align*}
-L
-\begin{pmatrix}
-\phi^{n+1}_{i} \\
-\mu^{n+\frac{1}{2}}_{i}
-\end{pmatrix}
-&=
-\begin{pmatrix}
-\frac{\phi^{n+1}_{i}}{\Delta t} - \nabla _d \cdot  ( G_{i} \nabla _d \mu^{n+\frac{1}{2}}_{i} ) \\
-\varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{i}^{n+1}) - 2\phi_{i}^{n+1} + \mu_{i}^{n+\frac{1}{2}}
-\end{pmatrix}\\
-&=\begin{pmatrix}
-\frac{\phi^{n+1}_{i}}{\Delta t} -  \frac{G_{i+\frac{1}{2}}\mu_{i+1}^{n+\frac{1}{2}} + G_{i-\frac{1}{2}}\mu_{i-1}^{n+\frac{1}{2}} - G_{i+\frac{1}{2}}\mu^{n+\frac{1}{2}}_i - G_{i-\frac{1}{2}}\mu^{n+\frac{1}{2}}_i}{h^2}\\
-\varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{i}^{n+1}) - 2\phi_{i}^{n+1} + \mu_{i}^{n+\frac{1}{2}}
-\end{pmatrix}\\
-\end{align*}
 </div>
-</div>
-</div>
-<div id="outline-container-orgec1ee1b" class="outline-3">
-<h3 id="orgec1ee1b"><span class="section-number-3">2.5.</span> SMOOTH operator</h3>
+<div id="outline-container-org4a9aeb6" class="outline-3">
+<h3 id="org4a9aeb6"><span class="section-number-3">2.5.</span> SMOOTH operator</h3>
 <div class="outline-text-3" id="text-2-5">
 <p>
 The authors (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)derived Gauss-Seidel Smoothing from:
 </p>
 \begin{align}
-\label{orgfe19c7f}
+\label{org0801adf}
 L
 \begin{pmatrix}
 \phi^{n+1}_{ij} \\
@@ -714,9 +675,10 @@ L
 \end{pmatrix}
 \end{align}
 <p>
-SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving \eqref{orgfe19c7f} for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write \eqref{orgfe19c7f} as
+SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving \eqref{org0801adf} for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write \eqref{org0801adf} as
 </p>
  \begin{equation}
+\label{org71ac405}
 \begin{aligned}
 \begin{pmatrix}
   \zeta_{ij}^n\\
@@ -740,10 +702,18 @@ DL\begin{pmatrix}
 \end{aligned}
 \end{equation}
 <p>
-and solve for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
+where
+</p>
+<ul class="org-ul">
+<li>\(  \Sigma_G \phi_{ij}^{n+1} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),</li>
+<li>\(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),</li>
+</ul>
+<p>
+since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown, the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) and we use initial approximations,  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) from the last smoothing iteration.
+We then and solve \eqref{org71ac405} for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="org318e631"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
+<pre class="src src-julia" id="org0a2e774"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">iterations</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">adaptive</span>
@@ -753,30 +723,20 @@ and solve for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
         <span style="color: #fb4934;">for</span> <span style="color: #83a598;">I</span> in <span style="color: #83a598; font-weight: bold;">CartesianIndices</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">end</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">end</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
             <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">I</span>
             <span style="color: #83a598;">bordernumber</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">neighbours_in_domain</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-
             <span style="color: #83a598;">coefmatrix</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">dL</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
 
-            <span style="color: #83a598;">b</span> <span style="color: #fb4934;">=</span>
-                <span style="color: #ebdbb2; background-color: #282828;">[</span>
-                    <span style="color: #ebdbb2; background-color: #282828;">(</span>
+            <span style="color: #83a598;">b</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; background-color: #282828;">[(</span>
                         <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">xi</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
                         <span style="color: #fb4934;">+</span>
                         <span style="color: #83a598; font-weight: bold;">discrete_G_weigted_neigbour_sum</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
                             <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span>
-                        <span style="color: #ebdbb2; background-color: #282828;">)</span>
-                        <span style="color: #fb4934;">/</span>
-                        <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-                    <span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
-                    <span style="color: #ebdbb2; background-color: #282828;">(</span>
+                        <span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
+                    <span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #ebdbb2; background-color: #282828;">(</span>
                         <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">psi</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
                         <span style="color: #fabd2f;">-</span>
-                        <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">epsilon</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-                        <span style="color: #fb4934;">*</span>
-                        <span style="color: #83a598; font-weight: bold;">discrete_G_weigted_neigbour_sum</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
+                        <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">epsilon</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598; font-weight: bold;">discrete_G_weigted_neigbour_sum</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
                             <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span>
-                        <span style="color: #ebdbb2; background-color: #282828;">)</span>
-                    <span style="color: #ebdbb2; background-color: #282828;">)</span>
-                <span style="color: #ebdbb2; background-color: #282828;">]</span>
+                        <span style="color: #ebdbb2; background-color: #282828;">))]</span>
 
             <span style="color: #83a598;">res</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">coefmatrix</span> <span style="color: #fabd2f;">\</span> <span style="color: #83a598;">b</span>
             <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
@@ -793,23 +753,23 @@ and solve for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
 </pre>
 </div>
 
-
-<div id="org939bded" class="figure">
-<p><img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
+<p>
+<img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
+Notably the sharp interphase of the  initial phase-fields has been smoothed, and the values are between \( -1,1 \).
 </p>
 </div>
 </div>
-</div>
-<div id="outline-container-org079313f" class="outline-3">
-<h3 id="org079313f"><span class="section-number-3">2.6.</span> V-cycle approach</h3>
+<div id="outline-container-orga4dfb9e" class="outline-3">
+<h3 id="orga4dfb9e"><span class="section-number-3">2.6.</span> V-cycle approach</h3>
 <div class="outline-text-3" id="text-2-6">
 <p>
-The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of
+The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of.
 </p>
 <ol class="org-ol">
-<li>a Gauss-Seidel relaxation for smoothing <a href="#org6e28d67">4.3</a>.</li>
+<li>a Gauss-Seidel relaxation for smoothing <a href="#org1b0f347">4.3</a>.</li>
 <li>restriction and prolongation methods between grids \(  h \leftrightarrow H  \).</li>
-<li>a Newton iteration to solve \( L(x,y)_H = L(\bar{x} , \bar{y}) + (d_h , r_h) \).</li>
+<li>a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+we solve using the same iteration as in <a href="#org1b0f347">4.3</a> however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.</li>
 </ol>
 
 <p>
@@ -819,7 +779,7 @@ The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">grid</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Array</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">}</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">level</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span> <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">solver</span>
     <span style="color: #83a598;">solver</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">grid</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">level</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
     <span style="color: #928374;">#pre SMOOTHing:</span>
-    <span style="color: #83a598; font-weight: bold;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">40</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598; font-weight: bold;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">400</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 
     <span style="color: #83a598;">d</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
     <span style="color: #83a598;">r</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
@@ -863,7 +823,7 @@ The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> .<span style="color: #fabd2f;">+=</span> <span style="color: #83a598; font-weight: bold;">prolong</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">u_large</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span> .<span style="color: #fabd2f;">+=</span> <span style="color: #83a598; font-weight: bold;">prolong</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">v_large</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">80</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598; font-weight: bold;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">800</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #fb4934;">end</span>
 </pre>
 </div>
@@ -871,21 +831,22 @@ The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 So let&rsquo;s take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
 </p>
 
-<div id="orgca9fd81" class="figure">
+
+<div id="orgff741cd" class="figure">
 <p><img src="images/v_cycle.svg" alt="v_cycle.svg" class="org-svg" />
 </p>
 <p><span class="figure-number">Figure 2: </span>internal state during one V-cyclce</p>
 </div>
+
 
 <p>
 After a few iterations, V-cycle exhibits the following behavior:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-julia-vterm" id="org2136383"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
+<pre class="src src-julia-vterm" id="org81aed92"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">JLD2</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">DataFrames</span>
-<span style="color: #83a598;">var</span><span style="color: #b8bb26;">"W_prime#61"</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #fabd2f;">-</span><span style="color: #83a598;">x</span> <span style="color: #fabd2f;">*</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">x</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #83a598;">results</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">jldopen</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"experiments/iteration.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #b8bb26;">"result"</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
 <span style="color: #83a598;">anim</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">animate</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">res</span> in <span style="color: #83a598; font-weight: bold;">eachrow</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">xlims</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">ylim</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">aspectratio</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">equal</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
@@ -895,82 +856,29 @@ After a few iterations, V-cycle exhibits the following behavior:
 </div>
 
 
-<div id="org5cffed6" class="figure">
+<div id="org69e6a13" class="figure">
 <p><img src="images/iteration.gif" alt="iteration.gif" />
 </p>
-<p><span class="figure-number">Figure 3: </span>a fex timesteps of the solver for different initial contitions as shown in <a href="#org6c1774a">2.2</a></p>
+<p><span class="figure-number">Figure 3: </span>a fex timesteps of the solver for different initial contitions as shown in <a href="#org16d02bd">2.2</a></p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-org3921479" class="outline-2">
-<h2 id="org3921479"><span class="section-number-2">3.</span> Numerical evaluation</h2>
+<div id="outline-container-orgc6eda77" class="outline-2">
+<h2 id="orgc6eda77"><span class="section-number-2">3.</span> Numerical evaluation</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-The analytical CH equation conserves mass \eqref{org8ff20b8} and the free energy ,\( E_{bulk} \), \eqref{orga0fb2ce}  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
+The analytical CH equation conserves mass \eqref{org3178581} and the free energy ,\( E_{bulk} \), \eqref{org3dc641f}  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 </p>
 </div>
-<div id="outline-container-org6b1ca52" class="outline-3">
-<h3 id="org6b1ca52"><span class="section-number-3">3.1.</span> Experiments</h3>
+<div id="outline-container-org5b011c7" class="outline-3">
+<h3 id="org5b011c7"><span class="section-number-3">3.1.</span> Energy evaluations</h3>
 <div class="outline-text-3" id="text-3-1">
-</div>
-<div id="outline-container-org72372fd" class="outline-4">
-<h4 id="org72372fd"><span class="section-number-4">3.1.1.</span> iteration</h4>
-<div class="outline-text-4" id="text-3-1-1">
-<div class="org-src-container">
-<pre class="src src-julia-vterm" id="org153ed61"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
-<span style="color: #fb4934;">using</span> <span style="color: #83a598;">JLD2</span>
-<span style="color: #fb4934;">using</span> <span style="color: #83a598;">DataFrames</span>
-<span style="color: #83a598;">var</span><span style="color: #b8bb26;">"W_prime#61"</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #fabd2f;">-</span><span style="color: #83a598;">x</span> <span style="color: #fabd2f;">*</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">x</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">results</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">jldopen</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"experiments/iteration.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #b8bb26;">"result"</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
-<span style="color: #83a598;">n</span>  <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">pbar</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">ProgressBar</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">total</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">n</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">energy</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">0</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">massbalance</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">0</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-
-<span style="color: #83a598;">anim</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">animate</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">res</span> in <span style="color: #83a598; font-weight: bold;">eachrow</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">push!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">energy</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598; font-weight: bold;">bulk_energy</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
-    <span style="color: #83a598; font-weight: bold;">push!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">massbalance</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598; font-weight: bold;">massbal</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
-
-    <span style="color: #83a598;">p0</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">legend</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">lims</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">))</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">aspect_ratio</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">equal</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span>  <span style="color: #fb4934;">=</span> <span style="color: #b8bb26;">"phasefield"</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-   <span style="color: #83a598;">p1</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">legend</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">true</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">lims</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">))</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">aspect_ratio</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">equal</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span>  <span style="color: #fb4934;">=</span> <span style="color: #b8bb26;">"potential"</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-
-    <span style="color: #83a598;">current_range</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">experiment</span> <span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">*</span><span style="color: #d3869b;">64</span> <span style="color: #fabd2f;">+</span><span style="color: #d3869b;">1</span>
-
-    <span style="color: #83a598;">p3</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">plot</span><span style="color: #ebdbb2; background-color: #282828;">(</span> <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">iteration</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">massbalance</span> .<span style="color: #fabd2f;">-</span><span style="color: #83a598;">massbalance</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">current_range</span><span style="color: #ebdbb2; background-color: #282828;">])[</span><span style="color: #83a598;">current_range</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">current_range</span><span style="color: #fabd2f;">+</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">iteration</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">xlim</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">64</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #ebdbb2; background-color: #282828;">,</span>  <span style="color: #83a598;">title</span> <span style="color: #fb4934;">=</span> <span style="color: #b8bb26;">"Mass change"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">p2</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">plot</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">iteration</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">energy</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">current_range</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">current_range</span><span style="color: #fabd2f;">+</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">iteration</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">xlim</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">64</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #ebdbb2; background-color: #282828;">,</span>  <span style="color: #83a598;">title</span> <span style="color: #fb4934;">=</span> <span style="color: #b8bb26;">"Bulk energy"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">plot</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">p0</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p3</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #fb4934;">end</span>
-<span style="color: #83a598; font-weight: bold;">gif</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">anim</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #b8bb26;">"images/behaviour.gif"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">fps</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-</pre>
-</div>
-
-
-<div id="org375652f" class="figure">
-<p><img src="images/behaviour.gif" alt="behaviour.gif" />
-</p>
-<p><span class="figure-number">Figure 4: </span>behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions</p>
-</div>
-</div>
-</div>
-<div id="outline-container-org50be25a" class="outline-4">
-<h4 id="org50be25a"><span class="section-number-4">3.1.2.</span> subiteration</h4>
-</div>
-<div id="outline-container-orge5c2d94" class="outline-4">
-<h4 id="orge5c2d94"><span class="section-number-4">3.1.3.</span> time</h4>
-</div>
-<div id="outline-container-orga5bed77" class="outline-4">
-<h4 id="orga5bed77"><span class="section-number-4">3.1.4.</span> space</h4>
-</div>
-</div>
-<div id="outline-container-orgd0884e3" class="outline-3">
-<h3 id="orgd0884e3"><span class="section-number-3">3.2.</span> Energy evaluations</h3>
-<div class="outline-text-3" id="text-3-2">
 <p>
 As discrete energy measure we use:
 </p>
 \begin{align*}
-E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{ij} |^2 + W\left(\phi_{ij}\right) \, dx \\
+E^{\text{bulk}}_d &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{ij} |^2 + W\left(\phi_{ij}\right) \, dx \\
 &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right) \, dx \\
 \end{align*}
 <div class="org-src-container">
@@ -990,16 +898,20 @@ E^{\text{bulk}} &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{
 
 
 
-<div id="orga21f41f" class="figure">
+<div id="org3eb83d6" class="figure">
 <p><img src="images/energy_balance.svg" alt="energy_balance.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 5: </span>behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \)</p>
+<p><span class="figure-number">Figure 4: </span>behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \).</p>
+</div>
+
+<p>
+here we observe the discrete Helmholtz energy going down with increasing number of timesteps, as we expect from a cahn hilliard based solver.
+</p>
 </div>
 </div>
-</div>
-<div id="outline-container-org98d2d46" class="outline-3">
-<h3 id="org98d2d46"><span class="section-number-3">3.3.</span> Mass balance</h3>
-<div class="outline-text-3" id="text-3-3">
+<div id="outline-container-org100ba1f" class="outline-3">
+<h3 id="org100ba1f"><span class="section-number-3">3.2.</span> Mass balance</h3>
+<div class="outline-text-3" id="text-3-2">
 <p>
 Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\) written as:
 </p>
@@ -1012,7 +924,7 @@ Instead of a physical mass we use the average of \(\phi\) over the domain \(\Ome
 We calculate this balance as:
 </p>
 \begin{align*}
-b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{|\{(i,j) \in \Omega\}|}
+b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{N^2}
 \end{align*}
 <p>
 such that \( b = 1 \) means there is only phase 1, \( \phi \equiv 1 \), and \( b = -1 \) means there is only phase 2, \( \phi \equiv -1 \).
@@ -1025,21 +937,19 @@ such that \( b = 1 \) means there is only phase 1, \( \phi \equiv 1 \), and \( b
 </pre>
 </div>
 
-
-<div id="org68ced44" class="figure">
-<p><img src="images/mass_balance.svg" alt="mass_balance.svg" class="org-svg" />
+<p>
+<img src="images/mass_balance.svg" alt="mass_balance.svg" class="org-svg" />
+The baseline solver manages a massbalance close to machine precision for our test cases. Mass loss and phase change is therefore negligible.
 </p>
-<p><span class="figure-number">Figure 6: </span>behaviour of phase change over time for one initial condition \( \phi_0 \)</p>
 </div>
 </div>
+<div id="outline-container-orgfa68b41" class="outline-3">
+<h3 id="orgfa68b41"><span class="section-number-3">3.3.</span> <span class="todo TODO">TODO</span> stability</h3>
+<div class="outline-text-3" id="text-3-3">
 </div>
-<div id="outline-container-org95e81c4" class="outline-3">
-<h3 id="org95e81c4"><span class="section-number-3">3.4.</span> <span class="todo TODO">TODO</span> stability</h3>
-<div class="outline-text-3" id="text-3-4">
-</div>
-<div id="outline-container-orgb2e89c5" class="outline-4">
-<h4 id="orgb2e89c5"><span class="section-number-4">3.4.1.</span> stability of a sub iteration v-cycle</h4>
-<div class="outline-text-4" id="text-3-4-1">
+<div id="outline-container-orga2b8503" class="outline-4">
+<h4 id="orga2b8503"><span class="section-number-4">3.3.1.</span> stability of a sub iteration v-cycle</h4>
+<div class="outline-text-4" id="text-3-3-1">
 <p>
 in order to evaluate convergence we observe the change in phase
 </p>
@@ -1083,67 +993,69 @@ discetized as follows:
 we expect our solver to converge if we do more sub-iterations. To test this we compare the phase-field \( \phi_{ij}^{n+1,m-1} \) after \( m-1 \) sub-iterations with the phase-field \( \phi_{ij}^{n+1,m} \) after m sub-iterations. As sub-iterations increase , \( m\to\infty \) we expect the difference between both phase-fields to go to zero \( \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} \to 0 \)
 </p>
 
-<div id="orge4d1d65" class="figure">
+<div id="org70947e2" class="figure">
 <p><img src="images/convergence.svg" alt="convergence.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 7: </span>stability of the original CH solver for increasing sub-iterations</p>
+<p><span class="figure-number">Figure 5: </span>stability of the original CH solver for increasing sub-iterations</p>
 </div>
 
-
-<div id="org4eef8bc" class="figure">
-<p><img src="images/subiteration.svg" alt="subiteration.svg" class="org-svg" />
+<p>
+in practise we observe the behaviour we expect, where an increasing number of sub-iterations leads to decreasing change compared to the previous sub-iteration.
 </p>
 </div>
 </div>
-</div>
-<div id="outline-container-orge57cfbf" class="outline-4">
-<h4 id="orge57cfbf"><span class="section-number-4">3.4.2.</span> stability under refinment in time</h4>
-<div class="outline-text-4" id="text-3-4-2">
+<div id="outline-container-org765fab5" class="outline-4">
+<h4 id="org765fab5"><span class="section-number-4">3.3.2.</span> stability under refinment in time</h4>
+<div class="outline-text-4" id="text-3-3-2">
 <p>
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 </p>
 
 
 
-<div id="org7a496e7" class="figure">
+<div id="org52937ad" class="figure">
 <p><img src="images/time-stability.svg" alt="time-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 8: </span>behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps</p>
+<p><span class="figure-number">Figure 6: </span>behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.</p>
+</div>
+
+<p>
+In this experiment we ran our solver on a fixed length time intervall ie. we ran our solver for one time.step with \( \Delta t = 10^{-2}  \) , for two time-steps with \( \Delta t = \frac{10^{-2}}{2}  \) and so on until 64 time-steps with \( \Delta t = \frac{10^{-2}}{64}  \).
+</p>
 </div>
 </div>
-</div>
-<div id="outline-container-org0ce64e6" class="outline-4">
-<h4 id="org0ce64e6"><span class="section-number-4">3.4.3.</span> stability under refinement in space</h4>
-<div class="outline-text-4" id="text-3-4-3">
+<div id="outline-container-org3bbed74" class="outline-4">
+<h4 id="org3bbed74"><span class="section-number-4">3.3.3.</span> stability under refinement in space</h4>
+<div class="outline-text-4" id="text-3-3-3">
 <p>
 We expect our methods to be stable in space. Therefore we expect
 </p>
 
-<div id="orgda02177" class="figure">
+<div id="orgd90442f" class="figure">
 <p><img src="images/space-stability.svg" alt="space-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 9: </span>behavior of the baseline solver while solving on successively finer grids</p>
+<p><span class="figure-number">Figure 7: </span>behavior of the baseline solver while solving on successively finer grids</p>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-orgb532ab5" class="outline-2">
-<h2 id="orgb532ab5"><span class="section-number-2">4.</span> Relaxed problem</h2>
+<div id="outline-container-org72757b1" class="outline-2">
+<h2 id="org72757b1"><span class="section-number-2">4.</span> Relaxed problem</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 </p>
 \begin{align}
-\label{org4ccdc94}
+\label{org65214e5}
 - \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha,
 \end{align}
 <p>
-where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation \eqref{orgaf3610b} as  \( \alpha \to \infty \).
-This results in the following relaxation for the classical CH equation \eqref{orgaf3610b}:
+where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation \eqref{org11ce745} as  \( \alpha \to \infty \).
+This results in the following relaxation for the classical CH equation \eqref{org11ce745}:
 </p>
 \begin{equation}
-\label{org76e69d5}
+\label{org644fcd1}
 \begin{aligned}
 \partial_t \phi^\alpha  &= \Delta \mu \\
 \mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
@@ -1157,20 +1069,20 @@ It requires solving the elliptical PDE each time-step to calculate \(c\).
 As ansatz for the numerical solver we propose:
 </p>
 \begin{equation}
-\label{org7e9f7c7}
+\label{org887e196}
 \begin{aligned}
 \frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \\
  \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
 <p>
-This approach is inspired by \eqref{orgd4d6b52} adapted to the relaxed CH equation \eqref{org7e9f7c7}.
-We then adapt the multi-grid solver proposed in <a href="#orgdb10c2c">2</a> to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org824d0dd},
-and expand them .
+This approach is inspired by \eqref{org590182b} adapted to the relaxed CH equation \eqref{org887e196}.
+We then adapt the multi-grid solver proposed in <a href="#org794b66c">2</a> to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org604dca6},
+and expand them.
 </p>
 </div>
-<div id="outline-container-org4688773" class="outline-3">
-<h3 id="org4688773"><span class="section-number-3">4.1.</span> Elliptical PDE:</h3>
+<div id="outline-container-org36db745" class="outline-3">
+<h3 id="org36db745"><span class="section-number-3">4.1.</span> Elliptical PDE:</h3>
 <div class="outline-text-3" id="text-4-1">
 <p>
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
@@ -1183,11 +1095,11 @@ In order to solve the relaxed CH equation we solve the following PDE in each  ti
 Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
 </p>
 </div>
-<div id="outline-container-orgb9895c1" class="outline-4">
-<h4 id="orgb9895c1"><span class="section-number-4">4.1.1.</span> Discretization</h4>
+<div id="outline-container-org7edc286" class="outline-4">
+<h4 id="org7edc286"><span class="section-number-4">4.1.1.</span> Discretization</h4>
 <div class="outline-text-4" id="text-4-1-1">
 <p>
-The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation \eqref{org4ccdc94}.
+The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation \eqref{org65214e5}.
 </p>
 \begin{align*}
 - \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
@@ -1214,12 +1126,12 @@ The discretization of the PDE expands the differential operators in the same way
 As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 </p>
 \begin{align}
-\label{org90de68c}
+\label{orge926629}
 -\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
 \end{align}
 
 <p>
-solving \eqref{org90de68c} for \(c_{ij}^\alpha \) then results in.
+solving \eqref{orge926629} for \(c_{ij}^\alpha \) then results in.
 </p>
 \begin{align*}
 \left( \frac{\Sigma_{Gij}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}\\
@@ -1230,7 +1142,7 @@ c_{ij}^{\alpha} = \frac{\alpha h^2 \phi^{\alpha}_{ij}}{\Sigma_{Gij} + \alpha h^2
 and can be translated to code as follows
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="orgbf4c5ce"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">n</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span>  <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">relaxed_multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">adapted_relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
+<pre class="src src-julia" id="org3750e04"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">n</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span>  <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">relaxed_multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">adapted_relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
     <span style="color: #fb4934;">for</span> <span style="color: #83a598;">k</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">n</span>
         <span style="color: #fb4934;">for</span> <span style="color: #83a598;">i</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #fabd2f;">+</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
             <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #fabd2f;">+</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
@@ -1250,14 +1162,14 @@ and can be translated to code as follows
 </div>
 </div>
 </div>
-<div id="outline-container-org5df86c6" class="outline-3">
-<h3 id="org5df86c6"><span class="section-number-3">4.2.</span> Relaxed PDE as operator L</h3>
+<div id="outline-container-orgfc9a7a5" class="outline-3">
+<h3 id="orgfc9a7a5"><span class="section-number-3">4.2.</span> Relaxed PDE as operator L</h3>
 <div class="outline-text-3" id="text-4-2">
 <p>
-We reformulate the discretization \eqref{org7e9f7c7} in terms of the relaxed operator \(L\) as follows:
+We reformulate the discretization \eqref{org887e196} in terms of the relaxed operator \(L\) as follows:
 </p>
 \begin{align*}
-L
+L_r
 \begin{pmatrix}
 \phi ^{n+1,\alpha} \\
 \mu^{n+\frac{1}{2},\alpha}
@@ -1275,7 +1187,7 @@ L
          <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">discrete_G_weigted_neigbour_sum</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
           <span style="color: #fabd2f;">-</span>
           <span style="color: #83a598; font-weight: bold;">neighbours_in_domain</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">mu</span> <span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">/</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-    <span style="color: #83a598;">psi</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">epsilon</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">alpha</span><span style="color: #fabd2f;">*</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">c</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">phi</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">-</span> <span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
+    <span style="color: #83a598;">psi</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">epsilon</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">alpha</span><span style="color: #fabd2f;">*</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">c</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">phi</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
     <span style="color: #fb4934;">return</span> <span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">xi</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">psi</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
 <span style="color: #fb4934;">end</span>
 </pre>
@@ -1284,7 +1196,7 @@ L
 and its Jacobian:
 </p>
 \begin{align*}
-DL\begin{pmatrix}
+DL_r\begin{pmatrix}
 \phi \\
 \mu
 \end{pmatrix} &= \begin{pmatrix}
@@ -1301,50 +1213,55 @@ DL\begin{pmatrix}
 </div>
 </div>
 </div>
-<div id="outline-container-org6e28d67" class="outline-3">
-<h3 id="org6e28d67"><span class="section-number-3">4.3.</span> SMOOTH operator</h3>
+<div id="outline-container-org1b0f347" class="outline-3">
+<h3 id="org1b0f347"><span class="section-number-3">4.3.</span> SMOOTH operator</h3>
 <div class="outline-text-3" id="text-4-3">
+<p>
+The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing, evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the previous SMOOTH iteration.
+</p>
+
 <p>
 Correspondingly the SMOOTH operation expands to:
 </p>
-\begin{align*}
-SMOOTH( \phi^{n+1,m,\alpha}_{ij}, \mu^{n + \frac{1}{2},m,\alpha}_{ji}, L_h , \zeta^{n,\alpha} , \psi^{n,\alpha} )
-\end{align*}
-
 \begin{equation}
-\label{orgeea659a}
+\label{orgdf4ebdb}
 \begin{aligned}
-  -\frac{\Sigma_G}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
+  -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
  \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
 <p>
-We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) because the required system of linear equations in the paper (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)  was solved numerically. We simplify the relaxed system in one-dimension, and solve explicitly:
+where
 </p>
-\begin{align*}
-\varepsilon^2 \alpha(\phi^\alpha) + 2\phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi^\alpha}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
-\end{align*}
+<ul class="org-ul">
+<li>\(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),</li>
+</ul>
 <p>
-in terms of a mass matrix
-\( \implies \)
+We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) because the required system of linear equations in the paper (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)  was solved numerically.
 </p>
 \begin{align*}
-\varepsilon^2\alpha (\phi^\alpha_{ij}) + 2\phi^\alpha + \frac{h^2}{\Sigma_{Gij}}\frac{\phi^\alpha_{ij}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
-\end{align*}
-<p>
-\( \implies \)
-</p>
-\begin{align*}
-(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi^\alpha &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
+\varepsilon^2 \alpha(\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
 <p>
 \( \implies \)
 </p>
 \begin{align*}
- \phi^\alpha &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
+\varepsilon^2\alpha (\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} + \frac{h^2}{\Sigma_{Gij}}\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
+\end{align*}
+<p>
+\( \implies \)
+</p>
+\begin{align*}
+(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
+\end{align*}
+<p>
+\( \implies \)
+</p>
+\begin{align*}
+ \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia" id="org9e8cade"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
+<pre class="src src-julia" id="org3d5b068"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">iterations</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">adaptive</span>
@@ -1372,136 +1289,175 @@ in terms of a mass matrix
 </div>
 
 
-<div id="org4bff71d" class="figure">
+<div id="orgb4b4afa" class="figure">
 <p><img src="images/smooth_relaxed.svg" alt="smooth_relaxed.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 10: </span>effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha</p>
+<p><span class="figure-number">Figure 8: </span>effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha</p>
 </div>
-</div>
-</div>
-<div id="outline-container-org0d49b74" class="outline-3">
-<h3 id="org0d49b74"><span class="section-number-3">4.4.</span> The relaxed V-cycle approach</h3>
-<div class="outline-text-3" id="text-4-4">
+
 <p>
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle is identical to the original counterpart. Therefore we reuse the original V-cycle in the <a href="#org079313f">2.6</a>. The only additional step is solving the elliptical equation as following:
+Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since alpha had an effect similar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen independently. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can.
+Monte Carlo Optimizer For \( \varepsilon , \alpha \).
 </p>
 <div class="org-src-container">
-<pre class="src src-julia-vterm"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">setup</span><span style="color: #fabd2f;">-</span><span style="color: #83a598;">relaxed</span><span style="color: #fabd2f;">-</span><span style="color: #83a598;">grid</span><span style="color: #fabd2f;">&gt;&gt;</span>
+<pre class="src src-julia"><span style="color: #fb4934;">using</span> <span style="color: #83a598;">Distributions</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">DataFrames</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">JLD2</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/solvers.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/adapted_solvers.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/utils.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/multisolver.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/multi_relaxed.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/testgrids.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">include</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">pwd</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #fabd2f;">*</span> <span style="color: #b8bb26;">"/src/elypssolver.jl"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">Plots</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">LaTeXStrings</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">LinearAlgebra</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">Printf</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">ProgressBars</span>
+<span style="color: #83a598; font-weight: bold;">default</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">fontfamily</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"computer modern"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">titlefontsize</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">23</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598;">SIZE</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">64</span>
+<span style="color: #83a598;">M</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testdata</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">SIZE</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">SIZE</span> &#247; <span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">SIZE</span> <span style="color: #fabd2f;">/</span><span style="color: #d3869b;">5</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 
-<span style="color: #83a598;">pbar</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">ProgressBar</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">total</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-
-<span style="color: #83a598;">anim</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">animate</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">t</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">100</span>
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">testgrd</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">10</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">testgrd</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">update</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">pbar</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #fb4934;">end</span>
-    <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">testgrd</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #fb4934;">function</span> <span style="color: #83a598;">test_values</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha_distribution</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">epsilon_distribution</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">alpha</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">rand</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha_distribution</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">eps</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">max</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">rand</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">epsilon_distribution</span><span style="color: #ebdbb2; background-color: #282828;">)</span>  <span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1e-10</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">relaxed_solver</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testgrid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">alpha</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">epsilon</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">eps</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
+    <span style="color: #928374;">#SMOOTH!(relaxed_solver[1], 100, false)</span>
+    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">64</span>
+    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">end</span>
+    <span style="color: #83a598;">error</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> .<span style="color: #fabd2f;">-</span> <span style="color: #83a598;">original_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">/</span> <span style="color: #fb4934;">*</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fb4934;">...</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">return</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #ebdbb2; background-color: #282828;">;</span><span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">alpha</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">epsilon</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">eps</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">error</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">error</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #fb4934;">end</span>
-<span style="color: #83a598; font-weight: bold;">gif</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">anim</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #b8bb26;">"images/iteration_relaxed2.gif"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">fps</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+
+<span style="color: #83a598;">original_solver</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testgrid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
+<span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">64</span>
+<span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #fb4934;">end</span>
+<span style="color: #928374;">#SMOOTH!(original_solver[1], 100, false);</span>
+<span style="color: #83a598;">eps</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">3e-3</span>
+<span style="color: #928374;">#M = testdata(64, div(64,3), 64/5 , 2)</span>
+<span style="color: #83a598;">alpha0</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10000</span>
+<span style="color: #83a598;">epsilon0</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1e-2</span>
+<span style="color: #83a598;">best_alpha</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">alpha0</span> <span style="color: #fabd2f;">/</span> <span style="color: #d3869b;">10</span>
+<span style="color: #83a598;">best_epsilon</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">epsilon0</span> <span style="color: #fabd2f;">/</span> <span style="color: #d3869b;">10</span>
+<span style="color: #83a598;">best_error</span>  <span style="color: #fb4934;">=</span> <span style="color: #83a598;">Inf</span>
+<span style="color: #83a598;">results</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">DataFrame</span><span style="color: #ebdbb2; background-color: #282828;">()</span>
+<span style="color: #fb4934;">for</span> <span style="color: #83a598;">n</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">1000</span>
+    <span style="color: #83a598;">searchradius</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1</span>
+    <span style="color: #83a598;">alpha_distribution</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">Normal</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">best_alpha</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">searchradius</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">alpha0</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">epsilon_distribution</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">Normal</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">best_epsilon</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">searchradius</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">epsilon0</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">result</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">test_values</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha_distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">epsilon_distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">if</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">error</span> <span style="color: #fabd2f;">&lt;</span> <span style="color: #83a598;">best_error</span>
+        <span style="color: #83a598;">global</span> <span style="color: #83a598;">best_error</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">error</span>
+        <span style="color: #83a598;">global</span> <span style="color: #83a598;">best_alpha</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">alpha</span>
+        <span style="color: #83a598;">global</span> <span style="color: #83a598;">best_epsilon</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">epsilon</span>
+        <span style="color: #83a598; font-weight: bold;">println</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">end</span>
+<span style="color: #83a598; font-weight: bold;">push!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #fb4934;">end</span>
+<span style="color: #83a598; font-weight: bold;">jldsave</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"experiments/alpha-epsilon.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">result</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">println</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"Best alpha: $best_alpha , Best epsilon: $best_epsilon"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 </pre>
 </div>
+<p>
+sadly the MCMC didn&rsquo;t yield results consistent with the original solver after a few Iterations
+</p>
 </div>
 </div>
-<div id="outline-container-orgcbd6590" class="outline-3">
-<h3 id="orgcbd6590"><span class="section-number-3">4.5.</span> Test</h3>
-</div>
-<div id="outline-container-orgdbbeccb" class="outline-3">
-<h3 id="orgdbbeccb"><span class="section-number-3">4.6.</span> rate of stability</h3>
-<div class="outline-text-3" id="text-4-6">
-</div>
-<div id="outline-container-org6268cb6" class="outline-4">
-<h4 id="org6268cb6"><span class="section-number-4">4.6.1.</span> massbal</h4>
-<div class="outline-text-4" id="text-4-6-1">
+<div id="outline-container-orge688cb1" class="outline-3">
+<h3 id="orge688cb1"><span class="section-number-3">4.4.</span> The relaxed V-cycle approach</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the <a href="#orga4dfb9e">2.6</a>.
+In the executions for each time step, we add the elliptic solver before the subiteration.
+</p>
 
-<div id="orgee98725" class="figure">
+
+<div id="org7f588bc" class="figure">
+<p><img src="images/relaxed-anim.gif" alt="relaxed-anim.gif" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgfd9fccd" class="outline-3">
+<h3 id="orgfd9fccd"><span class="section-number-3">4.5.</span> rate of stability</h3>
+<div class="outline-text-3" id="text-4-5">
+</div>
+<div id="outline-container-orgf04c170" class="outline-4">
+<h4 id="orgf04c170"><span class="section-number-4">4.5.1.</span> massbal</h4>
+<div class="outline-text-4" id="text-4-5-1">
+
+<div id="orgd0c2b49" class="figure">
 <p><img src="images/relaxed-mass-balance.svg" alt="relaxed-mass-balance.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-orga8f2fbf" class="outline-4">
-<h4 id="orga8f2fbf"><span class="section-number-4">4.6.2.</span> convergence of a sub iteration v-cycle</h4>
-<div class="outline-text-4" id="text-4-6-2">
+<div id="outline-container-org647d3be" class="outline-4">
+<h4 id="org647d3be"><span class="section-number-4">4.5.2.</span> energy</h4>
+<div class="outline-text-4" id="text-4-5-2">
 
-<div id="org7e53260" class="figure">
+<div id="org46540c8" class="figure">
+<p><img src="images/relaxed-energy-balance.svg" alt="relaxed-energy-balance.svg" class="org-svg" />
+</p>
+<p><span class="figure-number">Figure 9: </span>energy decay of the relaxed solver compared to the original solver.</p>
+</div>
+
+<p>
+We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
+</p>
+</div>
+</div>
+<div id="outline-container-org0cf2306" class="outline-4">
+<h4 id="org0cf2306"><span class="section-number-4">4.5.3.</span> convergence of a sub iteration v-cycle</h4>
+<div class="outline-text-4" id="text-4-5-3">
+
+<div id="org75c9c71" class="figure">
 <p><img src="images/relaxed-convergence.svg" alt="relaxed-convergence.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-org7f80265" class="outline-4">
-<h4 id="org7f80265"><span class="section-number-4">4.6.3.</span> convergence unter refinment in time</h4>
-<div class="outline-text-4" id="text-4-6-3">
+<div id="outline-container-org1f077ef" class="outline-4">
+<h4 id="org1f077ef"><span class="section-number-4">4.5.4.</span> convergence unter refinment in time</h4>
+<div class="outline-text-4" id="text-4-5-4">
 <p>
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 </p>
 
-<div id="org4e98174" class="figure">
+
+
+<div id="orga6b7353" class="figure">
 <p><img src="images/relaxed-time-stability.svg" alt="relaxed-time-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 11: </span>behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps</p>
+<p><span class="figure-number">Figure 10: </span>behavior of both  solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps</p>
 </div>
 </div>
 </div>
-<div id="outline-container-org9d38a7a" class="outline-4">
-<h4 id="org9d38a7a"><span class="section-number-4">4.6.4.</span> convergence under refinement in space</h4>
-<div class="outline-text-4" id="text-4-6-4">
+<div id="outline-container-org6c3365f" class="outline-4">
+<h4 id="org6c3365f"><span class="section-number-4">4.5.5.</span> convergence under refinement in space</h4>
+<div class="outline-text-4" id="text-4-5-5">
 <p>
 we test convergence in space by succesivly subdividing our grid into finer meshes
 </p>
 
 
 
-<div id="org3629146" class="figure">
+<div id="org482f7b7" class="figure">
 <p><img src="images/relaxed-space-stability.svg" alt="relaxed-space-stability.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-orgc643055" class="outline-3">
-<h3 id="orgc643055"><span class="section-number-3">4.7.</span> Comparison</h3>
-<div class="outline-text-3" id="text-4-7">
-<div class="org-src-container">
-<pre class="src src-julia-vterm" id="orgd1d8672"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">setup</span><span style="color: #fabd2f;">-</span><span style="color: #83a598;">comparison</span><span style="color: #fabd2f;">&gt;&gt;</span>
-<span style="color: #83a598;">n</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">100</span>
-<span style="color: #83a598;">m</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">100</span>
-<span style="color: #83a598;">pbar</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">ProgressBar</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">total</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">n</span><span style="color: #fabd2f;">*</span><span style="color: #83a598;">m</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-
-<span style="color: #83a598;">anim</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">animate</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">i</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">n</span>
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid1</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid2</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid3</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid1</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid2</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid3</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">m</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid1</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid2</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid3</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">update</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">pbar</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #fb4934;">end</span>
-    <span style="color: #83a598;">p0</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"Original"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">p1</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid1</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"alpha=1e3"</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">p2</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid2</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"alpha=1e4"</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">p3</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_grid3</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">clim</span> <span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">framestyle</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">none</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">title</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"alpha=1e5"</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">plot</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">p0</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">p3</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #fb4934;">end</span>
-<span style="color: #83a598; font-weight: bold;">gif</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">anim</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #b8bb26;">"images/comparison.gif"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">fps</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-</pre>
-</div>
-
-
-<div id="org2cb9144" class="figure">
-<p><img src="images/comparison.gif" alt="comparison.gif" />
-</p>
-<p><span class="figure-number">Figure 12: </span>relaxed solver with different ralaxation values \( \alpha \) compared to the original approach</p>
-</div>
-
+<div id="outline-container-orgd49a4b3" class="outline-3">
+<h3 id="orgd49a4b3"><span class="section-number-3">4.6.</span> Comparison</h3>
+<div class="outline-text-3" id="text-4-6">
 <p>
 Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 </p>
@@ -1512,26 +1468,26 @@ Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 In practice we observe the following behaviour:
 </p>
 <div class="org-src-container">
-<pre class="src src-julia-vterm"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
+<pre class="src src-julia"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">JLD2</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">Distributed</span>
-<span style="color: #83a598;">JULIA_NUM_THREADS</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">24</span>
-<span style="color: #83a598;">M</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">jldopen</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"data/test-phasefield.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #b8bb26;">"M"</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">ProgressBars</span>
+<span style="color: #fb4934;">using</span> <span style="color: #83a598;">DataFrames</span>
 
 <span style="color: #83a598;">original_grid</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testgrid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">alphas</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">0</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">1e3</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">2e5</span>
+<span style="color: #83a598;">alphas</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">0</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">1e4</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">2e6</span>
 
 <span style="color: #fb4934;">function</span> <span style="color: #83a598;">alpha_error</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Number</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solution</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Array</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">test_solver</span>  <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testgrid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">&#945;</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598;">test_solver</span>  <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testgrid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">alpha</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-    <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">100</span>
+    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">64</span>
+        <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
         <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #fb4934;">end</span>
-<span style="color: #fb4934;">return</span> <span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solution</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #fb4934;">return</span> <span style="color: #ebdbb2; background-color: #282828;">[(</span><span style="color: #ebdbb2; background-color: #282828;">;</span><span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">alpha</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">error</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">test_solver</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solution</span><span style="color: #ebdbb2; background-color: #282828;">))]</span>
 <span style="color: #fb4934;">end</span>
 <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-<span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">100</span>
+<span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #d3869b;">64</span>
     <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #fb4934;">end</span>
 <span style="color: #83a598; font-weight: bold;">print</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"finished original v_cycle"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
@@ -1540,93 +1496,52 @@ In practice we observe the following behaviour:
     <span style="color: #83a598;">t</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">Threads</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">spawn</span> <span style="color: #83a598; font-weight: bold;">alpha_error</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">original_grid</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598; font-weight: bold;">push!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">tasks</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">alpha</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">task</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">t</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
 <span style="color: #fb4934;">end</span>
-<span style="color: #83a598;">results</span>  <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">show</span> <span style="color: #ebdbb2; background-color: #282828;">[(</span><span style="color: #83a598;">alpha</span><span style="color: #fb4934;">=</span><span style="color: #83a598;">t</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">alpha</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">error</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">fetch</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">t</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">task</span><span style="color: #ebdbb2; background-color: #282828;">))</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">t</span> in <span style="color: #83a598;">tasks</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
-<span style="color: #83a598;">p</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">plot</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598; font-weight: bold;">savefig</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">p</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #b8bb26;">"images/alpha-error.svg"</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598;">result</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">DataFrame</span><span style="color: #ebdbb2; background-color: #282828;">()</span>
+<span style="color: #fb4934;">for</span> <span style="color: #83a598;">task</span> in <span style="color: #83a598; font-weight: bold;">ProgressBar</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">tasks</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #83a598; font-weight: bold;">append!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">result</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598; font-weight: bold;">fetch</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">task</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">task</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">end</span>
+<span style="color: #83a598; font-weight: bold;">jldsave</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"experiments/alpha.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">result</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 </pre>
 </div>
 
+
+
+<div id="org876b099" class="figure">
+<p><img src="images/alpha-error.svg" alt="alpha-error.svg" class="org-svg" />
+</p>
+</div>
+
 <p>
-<img src="images/alpha-error.svg" alt="alpha-error.svg" class="org-svg" />
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 </p>
+
+<p>
+although we can observe slight diffrences between the original solver and the relaxed approach they are barely noticalble by eye. Therefore we also show the numerical difference between both.
+</p>
+
+<div id="org39d3325" class="figure">
+<p><img src="images/relaxed-comparison.gif" alt="relaxed-comparison.gif" />
+</p>
+</div>
+
+
+
+
+<div id="org95cae1e" class="figure">
+<p><img src="images/relaxed-comparison.svg" alt="relaxed-comparison.svg" class="org-svg" />
+</p>
+<p><span class="figure-number">Figure 11: </span>comparison between the original and the relaxed CH solvers.</p>
+</div>
+
+<p>
+Comparing both solvers visually yields little to no difference. Numerically we observe small discrepancies. However with values around \( 10^{-3} \) after 64 time-steps we are still far from the maximum error of 4, which would correspond to the inverse of the original phase.
+</p>
 </div>
 </div>
 </div>
-<div id="outline-container-org6b0833b" class="outline-2">
-<h2 id="org6b0833b"><span class="section-number-2">5.</span> AI</h2>
+<div id="outline-container-org96bb6c6" class="outline-2">
+<h2 id="org96bb6c6"><span class="section-number-2">5.</span> References</h2>
 <div class="outline-text-2" id="text-5">
-<p>
-We propose a data motivated alternative to the elliptical PDE in the  relaxed CH equation \eqref{org7e9f7c7}. We propose there to be a better solution then the discrete result of \eqref{org4ccdc94}. We define &ldquo;better&rdquo; as minimizing:
-</p>
-\begin{equation}
-\label{orga7a4de4}
-||\phi^{n+1} + \frac{1}{\alpha}\nabla\cdot(G\nabla\phi^{n+1}) - c ||_{Fr}
-\end{equation}
-<p>
-in the Frobenious norm \(||\cdot||_{Fr}\) and implement our loss function accordingly
-</p>
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #83a598; font-weight: bold;">lossfn</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">y_hat</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">y</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">y</span> .<span style="color: #fabd2f;">-</span> <span style="color: #83a598;">y_hat</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-</pre>
-</div>
-<p>
-We calculate the expected value \( \phi^{n+1} + \frac{1}{\alpha} \nabla \cdot (G\nabla\phi^{n+1}) \) before training and use it as \( \hat{y} \)
-</p>
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">ggrad</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">AbstractArray</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span> <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">solver</span>
-<span style="color: #83a598;">Indices</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">CartesianIndices</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">Ifirst</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">Ilast</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">first</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">Indices</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598; font-weight: bold;">last</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">Indices</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">padding</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">oneunit</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">Ifirst</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">res</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">zeros</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">))</span>
-
-<span style="color: #fb4934;">for</span> <span style="color: #83a598;">I</span> in <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">Ifirst</span> <span style="color: #fabd2f;">+</span> <span style="color: #83a598;">padding</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">Ilast</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">padding</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">I</span>
-   <span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">+</span>  <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">discrete_G_weigted_neigbour_sum</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-             <span style="color: #fabd2f;">-</span> <span style="color: #83a598; font-weight: bold;">neighbours_in_domain</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">*</span> <span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">])</span><span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">h</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-    <span style="color: #fb4934;">end</span>
-<span style="color: #fb4934;">return</span> <span style="color: #83a598;">res</span>
-<span style="color: #fb4934;">end</span>
-</pre>
-</div>
-
-<pre class="example">
-Executing... 64f93dab
-</pre>
-</div>
-<div id="outline-container-org372ec53" class="outline-3">
-<h3 id="org372ec53"><span class="section-number-3">5.1.</span> proposal CNN</h3>
-<div class="outline-text-3" id="text-5-1">
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #fb4934;">using</span> <span style="color: #83a598;">Flux</span>
-
-<span style="color: #83a598;">model</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">Chain</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
-    <span style="color: #83a598; font-weight: bold;">Conv</span><span style="color: #ebdbb2; background-color: #282828;">((</span><span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #fabd2f;">=&gt;</span><span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">stride</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">1</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">pad</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">SamePad</span><span style="color: #ebdbb2; background-color: #282828;">())</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
-    <span style="color: #83a598; font-weight: bold;">Conv</span><span style="color: #ebdbb2; background-color: #282828;">((</span><span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">5</span><span style="color: #fabd2f;">=&gt;</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">stride</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">1</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">pad</span><span style="color: #fb4934;">=</span><span style="color: #83a598; font-weight: bold;">SamePad</span><span style="color: #ebdbb2; background-color: #282828;">())</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
-<span style="color: #ebdbb2; background-color: #282828;">)</span>
-</pre>
-</div>
-</div>
-</div>
-<div id="outline-container-orge24d1e9" class="outline-3">
-<h3 id="orge24d1e9"><span class="section-number-3">5.2.</span> training</h3>
-<div class="outline-text-3" id="text-5-2">
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #fb4934;">using</span> <span style="color: #83a598;">Flux</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">Optimize</span>
-<span style="color: #83a598; font-weight: bold;">loss</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">model</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">x</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">y</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">model</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> .<span style="color: #fabd2f;">-</span> <span style="color: #83a598;">y</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598;">opt_state</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">Flux</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598; font-weight: bold;">setup</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">Adam</span><span style="color: #ebdbb2; background-color: #282828;">()</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">model</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #83a598; font-weight: bold;">train!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">model</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">train_set</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">opt_state</span><span style="color: #ebdbb2; background-color: #282828;">)</span> do <span style="color: #83a598;">m</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">x</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">y</span>
-   <span style="color: #fb4934;">return</span> <span style="color: #83a598; font-weight: bold;">norm</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598; font-weight: bold;">m</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> .<span style="color: #fabd2f;">-</span> <span style="color: #83a598;">y</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-end
-
-</pre>
-</div>
-</div>
-</div>
-</div>
-<div id="outline-container-org11533f2" class="outline-2">
-<h2 id="org11533f2"><span class="section-number-2">6.</span> References</h2>
-<div class="outline-text-2" id="text-6">
 <style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Shin, Jaemin, Darae Jeong, and Junseok Kim. 2011. “A Conservative Numerical Method for the Cahn–Hilliard Equation in Complex Domains.” <i>Journal of Computational Physics</i> 230 (19): 7441–55. <a href="https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009">https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009</a>.</div>
   <div class="csl-entry"><a id="citeproc_bib_item_2"></a>Wu, Hao. 2022. “A Review on the Cahnhilliard Equation: Classical Results and Recent Advances in Dynamic Boundary Conditions.” <i>Electronic Research Archive</i> 30 (8): 2788–2832. <a href="https://doi.org/10.3934/era.2022143">https://doi.org/10.3934/era.2022143</a>.</div>
@@ -1636,7 +1551,7 @@ end
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Jonathan Ulmer</p>
-<p class="date">Created: 2024-05-15 Wed 11:52</p>
+<p class="date">Created: 2024-06-03 Mon 16:53</p>
 </div>
 </body>
 </html>
