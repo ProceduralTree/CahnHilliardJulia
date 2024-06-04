@@ -1,11 +1,4 @@
 * Inbox
-** TODO caption
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::*massbal][massbal]]
-** TODO change gif
-from gif to svg with \( n=1 , n=64 \)
-
-[[file:~/Projects/julia_tst/Thesis_jl.org::fig:solver-iteration][fig:solver-iteration]]
 ** TODO Project boundary conds
  - first order cons influx
  - side boundary
@@ -27,6 +20,13 @@ In combination with fixing my Indicie errors and adding better Explanations for 
 [[file:~/Projects/julia_tst/Thesis_jl.org::elyps_solver][elyps_solver]]
 ** DONE Test Grid refinment
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Massbalance][Massbalance]]
+* TODO caption
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::*massbal][massbal]]
+* TODO change gif
+from gif to svg with \( n=1 , n=64 \)
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:solver-iteration][fig:solver-iteration]]
 * DONE rename tests to initial conditions [1/1]
 - [X] Add explicit definition of data generation
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
@@ -65,3 +65,26 @@ and Write Matrix representation for 1D
 [[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
 * DONE Comparison
 alpha error for longe time intervall
+
+* TODO clean Plots [0/25]
+- [ ] [[file:images/testdata.svg]]
+- [ ] [[file:images/smooth.svg]]
+- [ ] [[file:images/v_cycle.svg]]
+- [ ] [[file:images/iteration.gif]]
+- [ ] [[file:images/behaviour.gif]]
+- [ ] [[file:images/energy_balance.svg]]
+- [ ] [[file:images/mass_balance.svg]]
+- [ ] [[file:images/convergence.svg]]
+- [ ] [[file:images/subiteration.svg]]
+- [ ] [[file:images/time-stability.svg]]
+- [ ] [[file:images/space-stability.svg]]
+- [ ] [[file:images/smooth_relaxed.svg]]
+- [ ] [[file:images/relaxed-anim.gif]]
+- [ ] [[file:images/relaxed-mass-balance.svg]]
+- [ ] [[file:images/relaxed-energy-balance.svg]]
+- [ ] [[file:images/relaxed-convergence.svg]]
+- [ ] [[file:images/relaxed-time-stability.svg]]
+- [ ] [[file:images/relaxed-space-stability.svg]]
+- [ ] [[file:images/alpha-error.svg]]
+- [ ] [[file:images/relaxed-comparison.gif]]
+- [ ] [[file:images/relaxed-comparison.svg]]

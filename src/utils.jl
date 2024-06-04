@@ -84,20 +84,6 @@ function bulk_energy_potential(solver::T) where T <: solver
    return energy
 end
 
-function ggrad(x::AbstractArray, solver::T) where T <: solver
-Indices = CartesianIndices(x)
-Ifirst , Ilast = first(Indices) , last(Indices)
-padding = oneunit(Ifirst)
-res = zeros(size(x))
-
-for I in (Ifirst + padding):(Ilast - padding)
-    i,j = I.I
-   res[I] = x[i] +  (discrete_G_weigted_neigbour_sum(i,j,x,G,solver.len,solver.width)
-             - neighbours_in_domain(i,j,G, solver.len , solver.width) * x[I])/ solver.h^2
-    end
-return res
-end
-
 ###############################################################################
 #                  Common Utility Functions For Multi Solvers                 #
 ###############################################################################

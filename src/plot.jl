@@ -11,6 +11,8 @@ using LinearAlgebra
 using Printf
 using ProgressBars
 default(fontfamily="computer modern" , titlefontsize=23)
+layout2x2 = grid(2,2)
+layout3x1 = @layout [ b  c ; a]
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 testgrd = testgrid(multi_solver,M, 2)
@@ -86,6 +88,8 @@ using LinearAlgebra
 using Printf
 using ProgressBars
 default(fontfamily="computer modern" , titlefontsize=23)
+layout2x2 = grid(2,2)
+layout3x1 = @layout [ b  c ; a]
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 using JLD2
