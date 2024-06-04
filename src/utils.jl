@@ -32,29 +32,6 @@ function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
     )
 end
 
-using Random
-function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
-rngpoints = rand(rng,1:gridsize, 2, blobs)
-M = zeros(gridsize,gridsize) .- 1
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in CartesianIndices(M)
-        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-            M[I] = 1
-        end
-    end
-end
-M
-end
-
-function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
-    xi_init(x) = x / solver.dt
-    psi_init(x) = solver.W_prime(x) - 2 * x
-    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
-    return nothing
-end
-
 function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     energy = 0
     dx = CartesianIndex(1,0)
@@ -82,6 +59,29 @@ function bulk_energy_potential(solver::T) where T <: solver
         energy +=  G(i+ 0.5,j ,solver.len, solver.width) * (solver.potential[I+dx] - solver.potential[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.potential[I+dy] - solver.potential[I])^2
         end
    return energy
+end
+
+function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    return nothing
+end
+
+using Random
+function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
 end
 
 ###############################################################################
