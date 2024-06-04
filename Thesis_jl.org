@@ -213,38 +213,6 @@ For testing we use initial phase-fields defined by the following equations:
 \end{aligned}
 \end{equation}
 where \( q_k \) are random points inside my domain. Those we generate those using the following rng setup in julia
-#+begin_src julia-vterm :session jl :results table :exports both
-using Random
-rng = MersenneTwister(42)
-gridsize = 64
-radius = gridsize /5
-blobs = gridsize ÷ 5
-rngpoints = rand(rng,1:gridsize, 2, blobs)
-#+end_src
-
-#+RESULTS:
-: 2×12 Matrix{Int64}:
-:  48  40  20   1  63  49   8  60  26  58  26  11
-:  17  13  56  52  15   9  30  14  40   9  40  25
-
-
-#+name: testdata
-#+begin_src julia :eval never :tangle src/utils.jl :exports none
-using Random
-function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
-rngpoints = rand(rng,1:gridsize, 2, blobs)
-M = zeros(gridsize,gridsize) .- 1
-for p in axes(rngpoints , 2)
-    point = rngpoints[:, p]
-    for I in CartesianIndices(M)
-        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
-            M[I] = 1
-        end
-    end
-end
-M
-end
-#+end_src
 
 
 #+name: fig:testinput
@@ -258,9 +226,10 @@ p = plot(plots... , layout=(1,4) , size=(2400,600))
 savefig(p,"images/testdata.svg")
 #+end_src
 
-#+caption: Examples of different phase-fields used as the initial condition in this work.
 #+RESULTS: fig:testinput
 [[file:images/testdata.svg]]
+
+#+caption: Examples of different phase-fields used as the initial condition in this work.
 
 ** Numerical ansatz
 The authors in [cite:@SHIN20117441] then define the discrete CH equation adapted for the domain as:
@@ -287,19 +256,6 @@ L
 \varepsilon^2 \nabla _d \cdot  (G \nabla_d \phi_{ij}^{n+1}) - 2\phi_{ij}^{n+1} + \mu_{ij}^{n+\frac{1}{2}}
 \end{pmatrix}
 \end{align*}
-#+begin_src julia :tangle src/multisolver.jl :eval never
-function L(solver::multi_solver,i,j , phi , mu)
-    xi = solver.phase[i, j] / solver.dt -
-         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          -
-          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2/solver.h^2 *
-          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
-           -
-           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
-    return [xi, psi]
-end
-#+end_src
 This operator follows from [[eq:discrete-cahn-hilliard]] by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \), respectively.
 \begin{align*}
 \begin{pmatrix}
@@ -314,15 +270,6 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{pmatrix}
 \end{align*}
 Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \) at the beginning of each time step. We compute those values  once and store them in the solver.
-#+begin_src julia :tangle src/utils.jl :eval never
-function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
-    xi_init(x) = x / solver.dt
-    psi_init(x) = solver.W_prime(x) - 2 * x
-    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
-    return nothing
-end
-#+end_src
 
 Furthermore, as it enables a Newton iteration, we derive its Jacobian with respect to the current grid point \( (\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij})^{T} \):
 
@@ -336,12 +283,6 @@ DL\begin{pmatrix}
 \end{pmatrix}
 \end{align*}
 
-#+begin_src julia :tangle src/multisolver.jl :eval never
-function dL(solver::multi_solver , i , j)
-    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
-    end
-#+end_src
 ** SMOOTH operator
 The authors [cite:@SHIN20117441]derived Gauss-Seidel Smoothing from:
 #+name: eq:smooth
@@ -380,15 +321,56 @@ DL\begin{pmatrix}
  - \frac{1}{h^2} \Sigma_{Gij}\mu_{ij}^{n+\frac{1}{2}} \\
 + \frac{\varepsilon^2}{h^2} \Sigma_{Gij}\phi_{ij}^{n+1} \\
 \end{pmatrix}
+\\
+
+\begin{pmatrix}
+  \zeta_{ij}^n\\
+\psi_{ij}^n
+\end{pmatrix}
+-
+\begin{pmatrix}
+ - \frac{1}{h^2} \Sigma_{Gij}\mu_{ij}^{n+\frac{1}{2}} \\
++ \frac{\varepsilon^2}{h^2} \Sigma_{Gij}\phi_{ij}^{n+1} \\
+\end{pmatrix}
+&=
+DL\begin{pmatrix}
+\phi_{ij}^{n+1} \\
+\mu_{ij}^{n+\frac{1}{2}}
+\end{pmatrix}
+\cdot
+\begin{pmatrix}
+\phi^{n+1}_{ij} \\
+\mu^{n+\frac{1}{2}}_{ij}
+\end{pmatrix}
 \end{aligned}
 \end{equation}
 where
 - \(  \Sigma_G \phi_{ij}^{n+1} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),
 - \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
 since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown, the authors in [cite:@SHIN20117441] and we use initial approximations,  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) from the last smoothing iteration.
+The equation [[eq:explicit-smooth]] is of form \(b = Ax\)
 We then and solve [[eq:explicit-smooth]] for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
+#+name: calculate-left-hand-side-b
+#+begin_src julia :eval never :exports none
+bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
+
+b = [(
+            solver.xi[i, j]
+            +
+            discrete_G_weigted_neigbour_sum(
+                i, j, solver.potential, G, solver.len, solver.width
+            ) / solver.h^2
+        ), (
+            solver.psi[i, j]
+            -
+            (solver.epsilon^2 / solver.h^2) * discrete_G_weigted_neigbour_sum(
+                i, j, solver.phase, G, solver.len, solver.width
+            ))]
+
+
+#+end_src
 #+name:SMOOTH
-#+begin_src julia :tangle src/multisolver.jl :eval never
+#+begin_src julia :tangle src/multisolver.jl :eval never :noweb no-export
 function SMOOTH!(
     solver::T,
     iterations,
@@ -398,32 +380,13 @@ function SMOOTH!(
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
-            bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-            coefmatrix = dL(solver, i,j )
 
-            b = [(
-                        solver.xi[i, j]
-                        +
-                        discrete_G_weigted_neigbour_sum(
-                            i, j, solver.potential, G, solver.len, solver.width
-                        ) / solver.h^2
-                    ), (
-                        solver.psi[i, j]
-                        -
-                        (solver.epsilon^2 / solver.h^2) * discrete_G_weigted_neigbour_sum(
-                            i, j, solver.phase, G, solver.len, solver.width
-                        ))]
+            <<calculate-left-hand-side-b>>
 
-            res = coefmatrix \ b
+            res = dL(solver, i,j ) \ b
             solver.phase[i, j] = res[1]
             solver.potential[i, j] = res[2]
-
         end
-
-        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-8
-        #    #println("SMOOTH terminated at $(k) succesfully")
-        #    break
-        #end
     end
 end
 #+end_src
@@ -455,12 +418,39 @@ The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle mult
 3. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
    we solve using the same iteration as in [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 
+#+name: restrict-to-coarse-grid
+#+begin_src julia :eval never :exports none
+restrict_solver!(grid[level], grid[level+1])
+solver = grid[level+1]
+solution = deepcopy(solver)
+
+d_large = restrict(d, G)
+r_large = restrict(r, G)
+
+
+u_large = zeros(size(d_large))
+v_large = zeros(size(d_large))
+
+#+end_src
+
+#+name: prolong-to-fine-grid
+#+begin_src julia :eval never :exports none
+u_large = solver.phase .- solution.phase
+v_large = solver.potential .- solution.potential
+
+solver = grid[level]
+
+solver.phase .+= prolong(u_large , G)
+solver.potential .+= prolong(v_large, G)
+
+#+end_src
+
 The V-cycle of a two-grid method using pre and post smoothing is then stated by:
-#+begin_src julia :tangle src/multisolver.jl :eval never
+#+begin_src julia :tangle src/multisolver.jl :eval never :noweb no-export
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
     #pre SMOOTHing:
-    SMOOTH!(solver, 400, true)
+    SMOOTH!(solver, 400, false)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
@@ -470,24 +460,15 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
         d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
     end
 
-    restrict_solver!(grid[level], grid[level+1])
-    solver = grid[level+1]
-    solution = deepcopy(solver)
-
-    d_large = restrict(d, G)
-    r_large = restrict(r, G)
-
-
-    u_large = zeros(size(d_large))
-    v_large = zeros(size(d_large))
+    <<restrict-to-coarse-grid>>
 
     #Newton Iteration for solving smallgrid
     for i = 1:300
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
 
-            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-            #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
-            #diffrence = [d_large[I] , r_large[I]]
+            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I])
+                        .- [d_large[I], r_large[I]]
+                        .- L(solver, I.I..., solver.phase[I], solver.potential[I])
 
             local ret = dL(solution, I.I...) \ diffrence
 
@@ -497,14 +478,10 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
         solution.phase .-= u_large
         solution.potential .-= v_large
     end
-    u_large = solver.phase .- solution.phase
-    v_large = solver.potential .- solution.potential
 
-    solver = grid[level]
+    <<prolong-to-fine-grid>>
 
-    solver.phase .+= prolong(u_large , G)
-    solver.potential .+= prolong(v_large, G)
-    SMOOTH!(solver, 800, true)
+    SMOOTH!(solver, 800, false)
 end
 #+end_src
 So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
@@ -579,6 +556,18 @@ savefig(p, "images/v_cycle.svg")
 [[file:images/v_cycle.svg]]
 
 
+The iteration of the solver is then done as follows
+#+begin_src julia :eval never :exports code
+for j in 1:timesteps
+
+    set_xi_and_psi!(solvers[1])
+
+    for i = 1:subiterations
+
+        v_cycle!(solvers, 1)
+    end
+end
+#+end_src
 After a few iterations, V-cycle exhibits the following behavior:
 
 #+name: fig:solver-iteration
@@ -599,177 +588,6 @@ gif(anim , "images/iteration.gif" , fps = 10)
 
 * Numerical evaluation
 The analytical CH equation conserves mass [[eq:massbal]] and the free energy ,\( E_{bulk} \), [[eq:energy]]  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a "good" solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
-** Experiments :noexport:
-*** iteration
-#+begin_src julia :results output  :noweb yes :eval never :tangle experiments/src/iteration.jl
-using JLD2
-using DataFrames
-using Random
-<<init>>
-<<setup-diverse-testgrids>>
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:64
-    set_xi_and_psi!(g[1])
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/iteration.jld2"; result)
-#+end_src
-
-#+RESULTS:
-
-#+name: fig:behaviour
-#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports none :noweb no-export
-<<init>>
-using JLD2
-using DataFrames
-results = jldopen("experiments/iteration.jld2")["result"]
-n  = size(results.solver , 1)
-pbar = ProgressBar(total = 10 * n)
-energy = zeros(0)
-massbalance = zeros(0)
-
-anim = @animate for res in eachrow(results)
-    push!(energy , bulk_energy(res.solver))
-    push!(massbalance , massbal(res.solver.phase))
-
-    p0 = heatmap(res.solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1, size(res.solver.phase , 1)) , aspect_ratio=:equal, title  = "phasefield" )
-   p1 = heatmap(res.solver.potential , framestyle=:none , legend=true, lims=(1,size(res.solver.phase , 1)), aspect_ratio=:equal, title  = "potential" )
-
-    current_range = (res.experiment -1)*64 +1
-
-    p3 = plot( 1:res.iteration, (massbalance .-massbalance[current_range])[current_range:current_range+res.iteration-1] , xlim=(1,64),  title = "Mass change")
-    p2 = plot(1:res.iteration , energy[current_range:current_range+res.iteration-1], xlim=(1,64),  title = "Bulk energy")
-    plot(p0,p1,p2,p3)
-end
-gif(anim , "images/behaviour.gif" , fps = 10)
-#+end_src
-
-#+caption: behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
-#+RESULTS: fig:behaviour
-[[file:images/behaviour.gif]]
-
-*** subiteration
-#+begin_src julia :results output :noweb yes :tangle experiments/src/subiteration.jl
-using DataFrames
-using JLD2
-<<init>>
-<<setup-diverse-testgrids>>
-
-
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    for i = 1:64
-        v_cycle!(g, 1)
-        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i))
-    end
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i] , 64)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/subiteration.jld2"; result)
-#+end_src
-*** time
-#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/time.jl
-using DataFrames
-using JLD2
-<<init>>
-SIZE  =64
-M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
-tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for i = 1:n
-    set_xi_and_psi!(g[1])
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=n))
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/time.jld2"; result)
-#+end_src
-*** space
-#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
-using DataFrames
-using JLD2
-<<init>>
-
-M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(multi_solver  , M , 7)
-# inits
-for i=2:size(grids,1)
-    restrict_solver!(grids[i-1] , grids[i])
-end
-tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
-
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=j))
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 16)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/space_refinement.jld2"; result)
-#+end_src
 ** Energy evaluations
 As discrete energy measure we use:
 \begin{align*}
@@ -894,6 +712,7 @@ we expect our solver to converge if we do more sub-iterations. To test this we c
 #+name: fig:convergence
 #+begin_src julia-vterm :results file graphics :file convergence.svg :output-dir images :noweb no-export :session jl
 <<init>>
+<<setup-diverse-testgrids>>
 using DataFrames
 using JLD2
 using LaTeXStrings
@@ -902,9 +721,9 @@ i0 = 1
 df = jldopen("experiments/subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
 res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
-p1= res.cycle_function[i0*64:(i0+1)*64-2] |> (x)-> plot(x , yscale=:log10 , title="Behaviour of the solver for increasing sub-iterations" , xlabel="sub-iterations" , ylabel= "diffrence" , label= L" \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} ")
-p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
-p = plot(p1 , p2)
+
+gres =  groupby(res , :iteration)[1]
+p= res.cycle_function[i0*64:(i0+1)*64-2] |> (x)-> plot(x , yscale=:log10 , title="Behaviour" , xlabel="sub-iterations" , ylabel= "diffrence" , label= L" \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} ")
 savefig(p , "images/convergence.svg")
 #+end_src
 
@@ -919,7 +738,6 @@ in practise we observe the behaviour we expect, where an increasing number of su
 using DataFrames
 using JLD2
 using LaTeXStrings
-var"W_prime#173"(x) = -x * (1 - x^2)
 df = jldopen("experiments/subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
 p1 = heatmap(gd[1].cycle[1].phase , aspectratio=:equal , title= "one subiteration" , showaxis=false  )
@@ -1088,16 +906,6 @@ L_r
 \end{pmatrix}
 \end{align*}
 
-#+begin_src julia :tangle src/multi_relaxed.jl :eval never
-function L(solver::relaxed_multi_solver,i,j , phi , mu)
-    xi = solver.phase[i, j] / solver.dt -
-         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          -
-          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] - 2 * solver.phase[i,j]
-    return [xi, psi]
-end
-#+end_src
 and its Jacobian:
 \begin{align*}
 DL_r\begin{pmatrix}
@@ -1108,12 +916,6 @@ DL_r\begin{pmatrix}
 - \varepsilon^2 \alpha  - 2 & 1
 \end{pmatrix}
 \end{align*}
-#+begin_src julia :tangle src/multi_relaxed.jl :eval never
-function dL(solver::relaxed_multi_solver , i , j)
-    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
-    end
-#+end_src
 
 ** SMOOTH operator
 The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing, evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the previous SMOOTH iteration.
@@ -1144,8 +946,18 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
 \begin{align*}
  \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
 \end{align*}
+#+name: solve-for-phi
+#+begin_src julia :eval never :exports none
+bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
+
+solver.phase[I] = (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.h^2 / bordernumber * ( -solver.xi[I]  - discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) / solver.h^2 ) - solver.psi[I]) / (solver.epsilon^2 * solver.alpha  + 2 + solver.h^2 / (bordernumber*solver.dt))
+#+end_src
+#+name: update-the-potential
+#+begin_src julia :eval never :exports none
+            solver.potential[I] = (solver.phase[I]/solver.dt - solver.xi[I] - discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)/solver.h^2) * (-solver.h^2/bordernumber)
+#+end_src
 #+name: SMOOTH_relaxed
-#+begin_src julia :eval never :tangle src/multi_relaxed.jl :file f.jl
+#+begin_src julia :eval never :tangle src/multi_relaxed.jl :noweb no-export
 function SMOOTH!(
     solver::T,
     iterations,
@@ -1155,19 +967,14 @@ function SMOOTH!(
         old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
-            bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-
-
-            solver.phase[I] = (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.h^2 / bordernumber * ( -solver.xi[I]  - discrete_G_weigted_neigbour_sum(i,j,solver.potential , G , solver.len , solver.width) / solver.h^2 ) - solver.psi[I]) / (solver.epsilon^2 * solver.alpha  + 2 + solver.h^2 / (bordernumber*solver.dt))
-
-            #since the solver still needs the potetential we calculate it as well
-            solver.potential[I] = (solver.phase[I]/solver.dt - solver.xi[I] - discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)/solver.h^2) * (-solver.h^2/bordernumber)
+            <<solve-for-phi>>
+            <<update-potential>>
         end
 
-        if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-10
-            #println("SMOOTH terminated at $(k) succesfully")
-            break
-        end
+        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-10
+            ##println("SMOOTH terminated at $(k) succesfully")
+            #break
+        #end
     end
 end
 #+end_src
@@ -1253,7 +1060,19 @@ println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 sadly the MCMC didn't yield results consistent with the original solver after a few Iterations
 ** The relaxed V-cycle approach
 As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[V-cycle approach]].
-In the executions for each time step, we add the elliptic solver before the subiteration.
+In the executions for each time step, we add the elliptic solver in the subiteration.
+#+begin_src julia :eval never :exports code
+for j in 1:timesteps
+
+    set_xi_and_psi!(solvers[1])
+
+    for i = 1:subiterations
+
+        elyps_solver!(solvers[1] , 1000)
+        v_cycle!(solvers, 1)
+    end
+end
+#+end_src
 
 #+name: fig:relaxed-anim
 #+begin_src julia-vterm :results file graphics :file relaxed-anim.gif :output-dir images :noweb no-export :session jl
@@ -1274,178 +1093,6 @@ gif(anim , "images/relaxed-anim.gif", fps=10)
 #+RESULTS: fig:relaxed-anim
 [[file:images/relaxed-anim.gif]]
 
-
-
-** Experiments :noexport:
-*** Iteration
-#+begin_src julia    :noweb no-export :tangle experiments/src/relaxed-iteration.jl :async
-using JLD2
-using DataFrames
-using ProgressMeter
-using Random
-<<init>>
-<<setup-diverse-testgrids>>
-
-#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
-tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
-
-n = 64
-m = 64
-
-
-function iter(g::Vector{relaxed_multi_solver} , n , prg::Progress)
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    for i = 1:m
-        elyps_solver!(g[1] , 1000)
-        v_cycle!(g, 1)
-        next!(prg)
-    end
-    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
-    end
-    return out
-end
-
-prg=Progress(size(tests ,1)*n*m , showspeed=true , )
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i , prg)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed-iteration.jld2"; result)
-#+end_src
-
-*** Subiteration
-#+begin_src julia :tangle experiments/src/relaxed-subiteration.jl :noweb yes
-using DataFrames
-using JLD2
-<<init>>
-<<setup-diverse-testgrids>>
-#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=32428.2 , epsilon=0.163398) for M in initial_data]
-tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
-
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    elyps_solver!(g[1] , 1000)
-    for i = 1:1024
-        v_cycle!(g, 1)
-        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i))
-    end
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i] , 4)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed-subiteration.jld2"; result)
-#+end_src
-
-#+RESULTS:
-#+begin_example
-LoadError: TaskFailedException
-
-    nested task error: MethodError: no method matching elyps_solver!(::Type{solver}, ::Int64)
-
-    Closest candidates are:
-      elyps_solver!(!Matched::T, ::Any) where T<:Union{adapted_relaxed_multi_solver, relaxed_multi_solver}
-       @ Main ~/Projects/CahnHilliardJulia/src/elypssolver.jl:16
-
-    Stacktrace:
-     [1] (::var"#iter#79")(g::Vector{multi_solver}, n::Int64)
-       @ Main /tmp/babel-XhjdRI/julia-vterm-src-Dv3NQd:41
-     [2] (::var"#66#80"{var"#iter#79", Vector{Vector{multi_solver}}, Int64})()
-       @ Main ./threadingconstructs.jl:373
-in expression starting at /tmp/babel-XhjdRI/julia-vterm-src-Dv3NQd:1
-#+end_example
-
-*** Time
-#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/relaxed-tiem.jl
-using DataFrames
-using JLD2
-<<init>>
-tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    for i = 1:64
-        elyps_solver!(g[1] , 1000)
-        v_cycle!(g, 1)
-    end
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=n))
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], i)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed-time.jld2"; result)
-#+end_src
-*** Space
-#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
-using DataFrames
-using JLD2
-<<init>>
-
-M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 7)
-# inits
-for i=2:size(grids,1)
-    restrict_solver!(grids[i-1] , grids[i])
-end
-tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
-
-
-function iter(g::Vector{T} , n) where T<: solver
-    out = []
-    for j in 1:n
-    set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
-    for i = 1:64
-        v_cycle!(g, 1)
-    end
-    push!(out, (phase=copy(g[1].phase), iteration=j))
-    end
-    return out
-end
-
-
-tasks = []
-for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 16)
-    push!(tasks , (iteration = 1 , task = t))
-    end
-result = DataFrame()
-for task in tasks
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/relaxed_space_refinement.jld2"; result)
-#+end_src
 ** rate of stability
 *** massbal
 #+name: fig:relaxed-mass-balance
@@ -1457,10 +1104,10 @@ using Measures
 i0 = 64 * 3+1
 results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
-p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label ="balance")
-p2 = heatmap(results.solver[i0].phase , title="initial condition")
-p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps")
-p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,500) , bottom_margin=10Plots.mm , left_margin=10Plots.mm)
+p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
+p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
 savefig(p , "images/relaxed-mass-balance.svg")
 #+end_src
 
@@ -1484,7 +1131,7 @@ p1 = plot(1:64 , original_energy , title=L"Discrete Helmholtz Energy $E_d^{bulk}
 p1 = plot!(p1,1:64 , relaxed_energy , title=L"Discrete Helmholtz Energy $E_d^{bulk}$", xlabel="timesteps" , ylabel="energy"  , label="relaxed")
 p2 = heatmap(relaxed_results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
 p3 = heatmap(relaxed_results.solver[i0+63].phase , title="after 64 time-steps" , aspectratio=:equal , legend=:none , showaxis=false , grid=false)
-p = plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,700) , bottom_margin=20Plots.mm , left_margin=20Plots.mm)
+p = plot(p2,p3,p1 , layout=layout3x1 , size=(1600 ,1600))
 savefig(p , "images/relaxed-energy-balance.svg")
 #+end_src
 
@@ -1495,8 +1142,6 @@ savefig(p , "images/relaxed-energy-balance.svg")
 We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
 *** convergence of a sub iteration v-cycle
 
-
-
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :output-dir images :noweb no-export :session jl
 <<init>>
@@ -1504,10 +1149,23 @@ using DataFrames
 using JLD2
 using LaTeXStrings
 n=1024
-df = jldopen("experiments/relaxed-subiteration.jld2")["result"]
+
+i0 = 1
+df = jldopen("experiments/subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
 gd = groupby(df , :iteration)
-res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
-p= res.cycle_function[1:49] |> x-> plot(x, yscale=:log10)
+original_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+original_res =  groupby(original_res , :iteration)[1].cycle_function
+
+
+df = jldopen("experiments/relaxed-subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
+gd = groupby(df , :iteration)
+relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
+p=plot([original_res, relaxed_res],label= ["original"  "relaxed"])
 savefig(p , "images/relaxed-convergence.svg")
 #+end_src
 
@@ -1701,7 +1359,419 @@ savefig(p , "images/relaxed-comparison.svg")
 
 Comparing both solvers visually yields little to no difference. Numerically we observe small discrepancies. However with values around \( 10^{-3} \) after 64 time-steps we are still far from the maximum error of 4, which would correspond to the inverse of the original phase.
 
+* Apendix
+** Operator implementation
+#+begin_src julia :tangle src/utils.jl :eval never
+function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    return nothing
+end
+#+end_src
+*** baseline
+#+begin_src julia :tangle src/multisolver.jl :eval never
+function L(solver::multi_solver,i,j , phi , mu)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
+    psi = solver.epsilon^2/solver.h^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
+           -
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
+    return [xi, psi]
+end
+#+end_src
+#+begin_src julia :tangle src/multisolver.jl :eval never
+function dL(solver::multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
+    end
+#+end_src
+*** relaxed
+#+begin_src julia :tangle src/multi_relaxed.jl :eval never
+function L(solver::relaxed_multi_solver,i,j , phi , mu)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
+    psi = solver.epsilon^2 * solver.alpha*(solver.c[i,j] - phi) - solver.potential[i,j] - 2 * solver.phase[i,j]
+    return [xi, psi]
+end
+#+end_src
+#+begin_src julia :tangle src/multi_relaxed.jl :eval never
+function dL(solver::relaxed_multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2 * solver.alpha  - 2) 1]
+    end
+#+end_src
+** rng generation
+for random point generation we use the folowing Function and seed.
+#+begin_src julia-vterm :session jl :results table :exports both
+using Random
+rng = MersenneTwister(42)
+gridsize = 64
+radius = gridsize /5
+blobs = gridsize ÷ 5
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+#+end_src
 
+#+RESULTS:
+: 2×12 Matrix{Int64}:
+:  48  40  20   1  63  49   8  60  26  58  26  11
+:  17  13  56  52  15   9  30  14  40   9  40  25
+
+
+the random testdata is then generated as follows
+#+name: testdata
+#+begin_src julia :eval never :tangle src/utils.jl :exports none
+using Random
+function testdata(gridsize , blobs , radius ,norm;rng=MersenneTwister(42))
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+M = zeros(gridsize,gridsize) .- 1
+for p in axes(rngpoints , 2)
+    point = rngpoints[:, p]
+    for I in CartesianIndices(M)
+        if (LinearAlgebra.norm(point .- I.I  , norm) < radius)
+            M[I] = 1
+        end
+    end
+end
+M
+end
+#+end_src
+** Experiments :noexport:
+*** iteration
+#+begin_src julia :results output  :noweb yes :eval never :tangle experiments/src/iteration.jl
+using JLD2
+using DataFrames
+using Random
+<<init>>
+<<setup-diverse-testgrids>>
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:64
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/iteration.jld2"; result)
+#+end_src
+
+#+RESULTS:
+
+#+name: fig:behaviour
+#+begin_src julia-vterm :results graphics file :file behaviour.gif :chache :session jl :noweb no-export :output-dir images :exports none :noweb no-export
+<<init>>
+using JLD2
+using DataFrames
+results = jldopen("experiments/iteration.jld2")["result"]
+n  = size(results.solver , 1)
+pbar = ProgressBar(total = 10 * n)
+energy = zeros(0)
+massbalance = zeros(0)
+
+anim = @animate for res in eachrow(results)
+    push!(energy , bulk_energy(res.solver))
+    push!(massbalance , massbal(res.solver.phase))
+
+    p0 = heatmap(res.solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1, size(res.solver.phase , 1)) , aspect_ratio=:equal, title  = "phasefield" )
+   p1 = heatmap(res.solver.potential , framestyle=:none , legend=true, lims=(1,size(res.solver.phase , 1)), aspect_ratio=:equal, title  = "potential" )
+
+    current_range = (res.experiment -1)*64 +1
+
+    p3 = plot( 1:res.iteration, (massbalance .-massbalance[current_range])[current_range:current_range+res.iteration-1] , xlim=(1,64),  title = "Mass change")
+    p2 = plot(1:res.iteration , energy[current_range:current_range+res.iteration-1], xlim=(1,64),  title = "Bulk energy")
+    plot(p0,p1,p2,p3)
+end
+gif(anim , "images/behaviour.gif" , fps = 10)
+#+end_src
+
+#+caption: behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
+#+RESULTS: fig:behaviour
+[[file:images/behaviour.gif]]
+
+*** subiteration
+#+begin_src julia :results output :noweb yes :tangle experiments/src/subiteration.jl
+using DataFrames
+using JLD2
+using ProgressMeter
+<<init>>
+<<setup-diverse-testgrids>>
+n = 4
+m = 64
+
+function iter(g::Vector{T} , n , k , prg::Progress) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        v_cycle!(g, 1)
+        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=k))
+        next!(prg)
+    end
+    end
+    return out
+end
+
+
+tasks = []
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i] , n , i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/subiteration.jld2"; result)
+#+end_src
+*** time
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/time.jl
+using DataFrames
+using JLD2
+<<init>>
+SIZE  =64
+M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
+tests = [testgrid(multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for i = 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=n))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/time.jld2"; result)
+#+end_src
+*** space
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
+using DataFrames
+using JLD2
+<<init>>
+
+M = testdata(2^10 , 2^5 , 2^7 , 2 )
+grids = testgrid(multi_solver  , M , 7)
+# inits
+for i=2:size(grids,1)
+    restrict_solver!(grids[i-1] , grids[i])
+end
+tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
+
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=j))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], 16)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/space_refinement.jld2"; result)
+#+end_src
+** Relaxed experiments :noexport:
+*** Iteration
+#+begin_src julia    :noweb no-export :tangle experiments/src/relaxed-iteration.jl :async
+using JLD2
+using DataFrames
+using ProgressMeter
+using Random
+<<init>>
+<<setup-diverse-testgrids>>
+
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+
+n = 64
+m = 64
+
+
+function iter(g::Vector{relaxed_multi_solver} , n , prg::Progress)
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        elyps_solver!(g[1] , 1000)
+        v_cycle!(g, 1)
+        next!(prg)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=n))
+    end
+    return out
+end
+
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed-iteration.jld2"; result)
+#+end_src
+
+*** Subiteration
+#+begin_src julia :tangle experiments/src/relaxed-subiteration.jl :noweb yes
+using DataFrames
+using JLD2
+using ProgressMeter
+<<init>>
+<<setup-diverse-testgrids>>
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=32428.2 , epsilon=0.163398) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+n = 4
+m = 1024
+
+function iter(g::Vector{T} , n ,k , prg::Progress) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        elyps_solver!(g[1] , 1000)
+        v_cycle!(g, 1)
+        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=k))
+        next!(prg)
+    end
+    end
+    return out
+end
+
+
+tasks = []
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i] , n , i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed-subiteration.jld2"; result)
+#+end_src
+
+*** Time
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/relaxed-tiem.jl
+using DataFrames
+using JLD2
+<<init>>
+tests = [testgrid(relaxed_multi_solver , M , 2 , dt = t ) for t in 1e-2./(1:64)]
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:64
+        elyps_solver!(g[1] , 1000)
+        v_cycle!(g, 1)
+    end
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=n))
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed-time.jld2"; result)
+#+end_src
+*** Space
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
+using DataFrames
+using JLD2
+<<init>>
+
+M = testdata(2^10 , 2^5 , 2^7 , 2 )
+grids = testgrid(relaxed_multi_solver  , M , 7)
+# inits
+for i=2:size(grids,1)
+    restrict_solver!(grids[i-1] , grids[i])
+end
+tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
+
+
+function iter(g::Vector{T} , n) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    elyps_solver!(solver , 1000)
+    for i = 1:64
+        v_cycle!(g, 1)
+    end
+    push!(out, (phase=copy(g[1].phase), iteration=j))
+    end
+    return out
+end
+
+
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], 16)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/relaxed_space_refinement.jld2"; result)
+#+end_src
 * Utility functions :noexport:
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
