@@ -66,7 +66,7 @@ and Write Matrix representation for 1D
 * DONE Comparison
 alpha error for longe time intervall
 
-* TODO clean Plots [0/25]
+* TODO clean Plots [0/21]
 - [ ] [[file:images/testdata.svg]]
 - [ ] [[file:images/smooth.svg]]
 - [ ] [[file:images/v_cycle.svg]]
