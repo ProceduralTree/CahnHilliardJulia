@@ -13,8 +13,10 @@ using ProgressBars
 default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 , tickfontsize = 22 )
 layout2x2 = grid(2,2)
 layout3x1 = @layout [ b  c ; a]
+size3x1 = (1600,1600)
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
+# comment
 using JLD2
 using DataFrames
 results = jldopen("experiments/iteration.jld2")["result"]

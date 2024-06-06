@@ -49,18 +49,6 @@ function massbal(arr)
     return sum(arr[2:end-1, 2:end-1])/num_cells
     end
 
-function bulk_energy_potential(solver::T) where T <: solver
-    energy = 0
-    dx = CartesianIndex(1,0)
-    dy = CartesianIndex(0,1)
-    W(x) = 1/4 * (1-x^2)^2
-    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
-        i,j = I.I
-        energy +=  G(i+ 0.5,j ,solver.len, solver.width) * (solver.potential[I+dx] - solver.potential[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.potential[I+dy] - solver.potential[I])^2
-        end
-   return energy
-end
-
 function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
