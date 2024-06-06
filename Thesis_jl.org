@@ -1,11 +1,21 @@
 #+title: Bachelor Thesis
+#+subtitle: Chan Hilliard Equation
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
+#+latex_class: mimosis
 #+property: header-args:julia :noweb no-export
-#+options:  toc:1
 #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :eval never-export
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :cache
+# #+include: title.org
+#+latex_header: \renewcommand{\floatpagefraction}{.7}%
+#+latex_header: \usepackage[level]{datetime}
+
+#+begin_abstract
+This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation. It uses a discretization by the authors [cite:@SHIN20117441] as baseline, and expands upon this dicretisation with an elliptical relaxation approach. It introduces evaluation metrics in terms of time , space and subiteration stability and compares the elliptical approach against the baseline. It shows a qualitative succes of the elliptical solver, however it also highlights challanges in numerical stability.
+#+end_abstract
+
+* Introduction
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is
@@ -216,7 +226,7 @@ where \( q_k \) are random points inside my domain. Those we generate those usin
 
 
 #+name: fig:testinput
-#+begin_src julia-vterm :results file graphics  :file testdata.svg :noweb no-export    :exports results :output-dir images
+#+begin_src julia-vterm :results file graphics  :file testdata.svg
 <<init>>
 <<setup-diverse-testgrids>>
 plots =[  heatmap(t[1].phase ,  legend=:none , aspectratio=:equal , grid=false , showaxis=false , size=(600,600))
@@ -226,10 +236,10 @@ p = plot(plots... , layout=(1,4) , size=(2400,600))
 savefig(p,"images/testdata.svg")
 #+end_src
 
+#+caption: Examples of different phase-fields used as the initial condition in this work.
 #+RESULTS: fig:testinput
 [[file:images/testdata.svg]]
 
-#+caption: Examples of different phase-fields used as the initial condition in this work.
 
 ** Numerical ansatz
 The authors in [cite:@SHIN20117441] then define the discrete CH equation adapted for the domain as:
@@ -322,7 +332,6 @@ DL\begin{pmatrix}
 + \frac{\varepsilon^2}{h^2} \Sigma_{Gij}\phi_{ij}^{n+1} \\
 \end{pmatrix}
 \\
-
 \begin{pmatrix}
   \zeta_{ij}^n\\
 \psi_{ij}^n
@@ -392,7 +401,7 @@ end
 #+end_src
 
 #+name: fig:smoothing-examples
-#+begin_src julia-vterm :results file graphics  :file smooth.svg :noweb no-export :async t :exports results :output-dir images
+#+begin_src julia-vterm :results file graphics  :file smooth.svg
 <<input>>
 <<setup-diverse-testgrids>>
 plots= []
@@ -407,16 +416,18 @@ savefig(p,"images/smooth.svg")
 
 #+end_src
 
+#+ATTR_LATEX: :placement[Htb]
 #+caption: inputs from [[Initial data]] after SMOOTH.
 #+RESULTS: fig:smoothing-examples
 [[file:images/smooth.svg]]
+
 Notably the sharp interphase of the  initial phase-fields has been smoothed, and the values are between \( -1,1 \).
 ** V-cycle approach
 The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of.
-1. a Gauss-Seidel relaxation for smoothing [[SMOOTH operator]].
+1. a Gauss-Seidel relaxation for smoothing Chapter [[SMOOTH operator]].
 2. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
 3. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
-   we solve using the same iteration as in [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
+   we solve using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
@@ -484,76 +495,6 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
     SMOOTH!(solver, 800, false)
 end
 #+end_src
-So let's take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
-#+begin_comment
-perhaps remove
-#+end_comment
-
-#+name: fig:v-cycle
-#+begin_src julia-vterm :results file graphics  :file v_cycle.svg :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl
-<<setup-grid>>
-pgfplots()
-p0 = heatmap(testgrd[1].phase, title="Initial State");
-s = testgrd[1]
-set_xi_and_psi!(s)
-SMOOTH!(s, 400, true);
-p1 = heatmap(s.phase, title="After Pre Smoothing");
-
-
-d = zeros(size(s.phase))
-r = zeros(size(s.phase))
-
-for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
-    d[I], r[I] = [s.xi[I], s.psi[I]] .- L(s, I.I..., s.phase[I] , s.potential[I])
-end
-
-p2 = heatmap(d, title="Phase Residuals");
-level = 1
-
-restrict_solver!(testgrd[level], testgrd[level+1])
-s =testgrd[level+1]
-solution = deepcopy(s)
-
-
-
-d_large = restrict(d, G)
-r_large = restrict(r, G)
-
-println(" d $(norm(d_large))")
-println(" r $(norm(r_large))")
-
-u_large = zeros(size(d_large))
-v_large = zeros(size(d_large))
-
-
-
-for i = 1:300
-    for I in CartesianIndices(s.phase)[2:end-1, 2:end-1]
-
-
-        diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I]) .- [d_large[I], r_large[I]] .- L(s, I.I... , s.phase[I] , s.potential[I])
-        #diffrence = collect(L(solution, I.I...)) .- collect(L(solver, I.I...))
-        #diffrence = [d_large[I] , r_large[I]]
-
-        local ret = dL(solution , I.I...) \ diffrence
-        #if I == CartesianIndex(2,2)  println("Diffrence: $(diffrence) , Ret: $(ret)") end
-
-        u_large[I] = ret[1]
-        v_large[I] = ret[2]
-    end
-    solution.phase .-= u_large
-    solution.potential .-= v_large
-end
-
-
-p3 = heatmap(u_large, title=@sprintf "Change: %.1e" norm(u_large))
-p = plot(p0, p1, p2,p3, layout=(2, 2));
-savefig(p, "images/v_cycle.svg")
-#+end_src
-
-#+caption: internal state during one V-cyclce
-#+RESULTS: fig:v-cycle
-[[file:images/v_cycle.svg]]
 
 
 The iteration of the solver is then done as follows
@@ -571,13 +512,13 @@ end
 After a few iterations, V-cycle exhibits the following behavior:
 
 #+name: fig:solver-iteration
-#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb no-export :async t :exports both :output-dir images  :tangle src/plot.jl :session jl :eval never-export
+#+begin_src julia-vterm :results file graphics  :file iteration.gif :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl :eval never-export
 <<init>>
 using JLD2
 using DataFrames
 results = jldopen("experiments/iteration.jld2")["result"]
 anim = @animate for res in eachrow(results)
-    heatmap(res.solver.phase , xlims = (2,size(res.solver.phase , 1)-1) , ylim=(2,size(res.solver.phase , 1)-1) , aspectratio=:equal)
+    heatmap(res.solver.phase , title="phase field" , legend=:none , aspectratio=:equal , showaxis=false , grid=false , size=(400 ,400))
 end
 gif(anim , "images/iteration.gif" , fps = 10)
 #+end_src
@@ -610,18 +551,17 @@ end
 
 
 #+name: fig:energy-balance
-#+begin_src julia-vterm :results file graphics :file energy_balance.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file energy_balance.svg
 <<init>>
 using JLD2
 using DataFrames
-default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 , tickfontsize = 22 )
 i0 = 1*64 +1
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = bulk_energy.(results[i0:i0+63,:].solver)
 p1 = plot(1:64 , energy , title=L"Discrete Helmholtz Energy $E_d^{bulk}$", xlabel="timesteps" , ylabel="energy"  , label=false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , aspectratio=:equal , legend=:none , showaxis=false , grid=false)
-p = plot(p2,p3,p1 , layout=layout3x1 , size=(1600 ,1600)  )
+p = plot(p2,p3,p1 , layout=layout3x1 , size=size3x1  )
 
 savefig(p , "images/energy_balance.svg")
 #+end_src
@@ -633,11 +573,6 @@ savefig(p , "images/energy_balance.svg")
 here we observe the discrete Helmholtz energy going down with increasing number of timesteps, as we expect from a cahn hilliard based solver.
 ** Mass balance
 Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\) written as:
-\begin{equation}
-\begin{aligned}
-\frac{1}{|\Omega|}\int_{\Omega}\phi \ dx
-\end{aligned}
-\end{equation}
 We calculate this balance as:
 \begin{align*}
 b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{N^2}
@@ -657,15 +592,33 @@ using JLD2
 using DataFrames
 using Measures
 pgfplotsx()
-default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 , tickfontsize=22 )
 i0 = 64 * 1 + 1
 results = jldopen("experiments/iteration.jld2")["result"]
 energy = [ massbal(s.phase) for s in results[i0:i0+63,:].solver]
-p1 = plot(1:64 , energy .- energy[1], xlabel= "time-steps" , ylabel = "error")
-p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
-p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , aspectratio=:equal , grid=false , showaxis=false , legend=:none)
+p1 = plot(1:64 ,
+          energy .- energy[1],
+          xlabel= "time-steps" ,
+          ylabel = "error" ,
+          title = "phase change",
+          label=false)
+p2 = heatmap(results.solver[i0].phase ,
+             title="initial condition" ,
+             legend=:none ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false)
+p3 = heatmap(results.solver[i0+63].phase ,
+             title="after 64 time-steps" ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false ,
+             legend=:none)
 
-p = plot(p2,p3 ,p1 , layout= layout3x1 , size=(1600 ,1600))
+p = plot(p2,
+         p3 ,
+         p1 ,
+         layout= layout3x1 ,
+         size=(1600 , 1600))
 
 savefig(p , "images/mass_balance.svg")
 #+end_src
@@ -673,57 +626,52 @@ savefig(p , "images/mass_balance.svg")
         #+caption: behaviour of phase change over time for one initial condition \( \phi_0 \).
 #+RESULTS: fig:mass-balance
 [[file:images/mass_balance.svg]]
+
 The baseline solver manages a massbalance close to machine precision for our test cases. Mass loss and phase change is therefore negligible.
-** TODO stability
-*** stability of a sub iteration v-cycle
+** stability of a sub iteration v-cycle
 in order to evaluate convergence we observe the change in phase
 \begin{equation}
 \| \phi^n - \phi^{n+1,m} \|_{Fr}
 \end{equation}
 where \( \|\cdot\|_{Fr} \) represents a Frobenious norm over the tensors representing \( \phi.^n,\phi^{n+1,m} \).
-In addition we track the change of bulk energy:
-
-\begin{equation}
-\frac{d}{dt} E^{bulk} = - \int_{\Omega} |\nabla\mu|^2 \ dx
-\end{equation}
-discetized as follows:
-\begin{equation}
-\Delta E^{bulk} = - \sum_{ij \in \Omega} |\nabla_d\mu|^2
-\end{equation}
-
-#+begin_src julia :tangle src/utils.jl
-function bulk_energy_potential(solver::T) where T <: solver
-    energy = 0
-    dx = CartesianIndex(1,0)
-    dy = CartesianIndex(0,1)
-    W(x) = 1/4 * (1-x^2)^2
-    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
-        i,j = I.I
-        energy +=  G(i+ 0.5,j ,solver.len, solver.width) * (solver.potential[I+dx] - solver.potential[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.potential[I+dy] - solver.potential[I])^2
-        end
-   return energy
-end
-#+end_src
-
-
-
-
 we expect our solver to converge if we do more sub-iterations. To test this we compare the phase-field \( \phi_{ij}^{n+1,m-1} \) after \( m-1 \) sub-iterations with the phase-field \( \phi_{ij}^{n+1,m} \) after m sub-iterations. As sub-iterations increase , \( m\to\infty \) we expect the difference between both phase-fields to go to zero \( \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} \to 0 \)
 #+name: fig:convergence
-#+begin_src julia-vterm :results file graphics :file convergence.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file convergence.svg
 <<init>>
 <<setup-diverse-testgrids>>
 using DataFrames
 using JLD2
 using LaTeXStrings
-default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=22)
-i0 = 1
+i0 = 4
 df = jldopen("experiments/subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
 res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
 
 gres =  groupby(res , :iteration)[1]
-p= res.cycle_function[i0*64:(i0+1)*64-2] |> (x)-> plot(x , yscale=:log10 , title="Behaviour" , xlabel="sub-iterations" , ylabel= "diffrence" , label= L" \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} ")
+p1= res.cycle_function[i0*64:(i0+1)*64-2] |>
+    (x)-> plot(x ,
+               yscale=:log10 ,
+               title="Behaviour" ,
+               xlabel="sub-iterations" ,
+               ylabel= "diffrence" ,
+               label= L" \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} ")
+p2 = heatmap(df.cycle[i0].phase ,
+             title="initial condition" ,
+             legend=:none ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false)
+p3 = heatmap(df.cycle[i0].phase .-df.cycle[i0+62].phase ,
+             title="after 64 subiteration" ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false )
+
+p = plot(p2,
+         p3 ,
+         p1 ,
+         layout= layout3x1 ,
+         size=(1600 , 1600))
 savefig(p , "images/convergence.svg")
 #+end_src
 
@@ -749,12 +697,12 @@ savefig(p , "images/subiteration.svg")
 #+RESULTS:
 [[file:images/subiteration.svg]]
 
-*** stability under refinment in time
+** stability under refinment in time
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 
 
 #+name: fig:stability-in-time
-#+begin_src julia-vterm :results file graphics :file time-stability.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file time-stability.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -771,11 +719,11 @@ savefig(p , "images/time-stability.svg")
 [[file:images/time-stability.svg]]
 
 In this experiment we ran our solver on a fixed length time intervall ie. we ran our solver for one time.step with \( \Delta t = 10^{-2}  \) , for two time-steps with \( \Delta t = \frac{10^{-2}}{2}  \) and so on until 64 time-steps with \( \Delta t = \frac{10^{-2}}{64}  \).
-*** stability under refinement in space
+** stability under refinement in space
 We expect our methods to be stable in space. Therefore we expect
 #+RESULTS:
 #+name: fig:stability-in-space
-#+begin_src julia-vterm :results file graphics :file space-stability.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file space-stability.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -980,7 +928,7 @@ end
 #+end_src
 
 #+name: fig:relaxed-smooth-eval
-#+begin_src julia-vterm :file smooth_relaxed.svg :output-dir images :results file graphics :noweb no-export :session
+#+begin_src julia-vterm :results file graphics :file smooth_relaxed.svg
 <<init>>
 plots = []
 eps = 0.13
@@ -1075,7 +1023,7 @@ end
 #+end_src
 
 #+name: fig:relaxed-anim
-#+begin_src julia-vterm :results file graphics :file relaxed-anim.gif :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-anim.gif
 <<init>>
 using JLD2
 using DataFrames
@@ -1096,7 +1044,7 @@ gif(anim , "images/relaxed-anim.gif", fps=10)
 ** rate of stability
 *** massbal
 #+name: fig:relaxed-mass-balance
-#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1117,7 +1065,7 @@ savefig(p , "images/relaxed-mass-balance.svg")
 *** energy
 
 #+name: fig:relaxed-enrgy-balance
-#+begin_src julia-vterm :results file graphics :file relaxed-energy-balance.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-energy-balance.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1143,7 +1091,7 @@ We observe the discrete Helmoltz energy decrease is the same manner as with the 
 *** convergence of a sub iteration v-cycle
 
 #+name: fig:relaxed-convergence
-#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -1177,7 +1125,7 @@ we test the bahaviour unter refinement in time by succesivly subdeviding the ori
 
 
 #+name: fig:relaxed-stability-in-time
-#+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -1202,7 +1150,7 @@ we test convergence in space by succesivly subdividing our grid into finer meshe
 
 
 #+name: fig:relaxed-stability-in-space
-#+begin_src julia-vterm :results file graphics :file relaxed-space-stability.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-space-stability.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -1259,7 +1207,7 @@ jldsave("experiments/alpha.jld2"; result)
 #+end_src
 
 
-#+begin_src julia-vterm :noweb no-export :results graphics file :file alpha-error.svg :output-dir images :session jl
+#+begin_src julia-vterm :results graphics file :file alpha-error.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1274,7 +1222,7 @@ savefig(p, "images/alpha-error.svg")
 
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 
-#+begin_src julia-vterm :results file graphics :file relaxed-comp.gif :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-comp.gif
 <<init>>
 using JLD2
 using DataFrames
@@ -1300,7 +1248,7 @@ gif(anim , "images/relaxed-comp.gif", fps=10)
 #+end_src
 
 although we can observe slight diffrences between the original solver and the relaxed approach they are barely noticalble by eye. Therefore we also show the numerical difference between both.
-#+begin_src julia-vterm :results file graphics :file relaxed-comparison.gif :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-comparison.gif
 <<init>>
 using JLD2
 using DataFrames
@@ -1330,7 +1278,7 @@ gif(anim , "images/relaxed-comparison.gif", fps=10)
 
 
 #+name: fig:relaxed-original-comparison
-#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg :output-dir images :noweb no-export :session jl
+#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1956,9 +1904,10 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-default(fontfamily="computer modern" , titlefontsize=23)
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 , tickfontsize = 22 )
 layout2x2 = grid(2,2)
 layout3x1 = @layout [ b  c ; a]
+size3x1 = (1600,1600)
 SIZE = 64
 M = testdata(SIZE, SIZE ÷ 5, SIZE /5 , 2)
 #+end_src
@@ -2012,6 +1961,16 @@ initial_data = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
+
+
+
+
+
+
+
+
+
+
 
 * References
 #+PRINT_BIBLIOGRAPHY:
