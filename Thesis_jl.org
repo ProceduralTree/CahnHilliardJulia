@@ -53,7 +53,7 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 * Introduction
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
 * The Cahn-Hilliard equation
-The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis is
+The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain  \( \Omega \times [0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
@@ -61,30 +61,37 @@ The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that gov
 \mu &= - \varepsilon^2 \Delta\phi  + W'(\phi)
 \end{aligned}
 \end{equation}
-where, \( \phi\) is a phase-field variable representing the different states of the fluids through an interval \(I=[-1,1] \)
+where the variables \( \phi , \mu \) are phase-field variable and chemical potential,
+\begin{equation}
+\begin{aligned}
+\phi: \Omega \times [0, T) \to \RR^d \\
+\mu: \Omega \times [0, T) \to \RR^d \\
+
+\end{aligned}
+\end{equation}
+\(\varepsilon\) is a positive constant correlated with interface thickness, \( W(\phi) \) is a double well potential and \(M(\phi) > 0\) is a mobility coefficient [cite:@Wu_2022].
+ \( \phi\) is defined in an interval \(I=[-1,1] \) and  represent the different phases.
 \begin{align*}
 \phi &=
 \begin{cases}
-1 &\,, \phi = \text{phase 1} \\
--1 &\,, \phi =\text{ phase 2}
+1 &\,, \phi \in \text{phase 1} \\
+-1 &\,, \phi \in\text{phase 2}
 \end{cases}
 \end{align*}
 
- \(\varepsilon\) is a positive constant correlated with boundary thickness and \(\mu\) is the chemical potential[cite:@Wu_2022].
-
- In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation used in [cite:@Wu_2022] [cite:@SHIN20117441].
+ In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation.
 
 The advantages of the CH approach, as compared to traditional boundary coupling, are for example: "explicit tracking of the interface" [cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way" [cite:@Wu_2022].
 In practice it enables linear interpolation between different formulas on different phases.
-** Derivation from paper
+** Physical derivation of the CH equation [[eq:CH]]
 *** The free energy
 The authors in [cite:@Wu_2022] define the CH equation using the *Ginzburg-Landau* free energy equation:
 #+name: eq:energy
 \begin{align}
-E^{\text{bulk}}(\phi) &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
+E^{\text{bulk}}[\phi] &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx ,
 \end{align}
-where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441]. \( W(\phi) \) is a double well potential with minima at \( \phi \in {-1,1} \).
-#+name: double-well
+where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441] shown in Fig. [[fig:double-well]].
+#+name: fig:double-well
 #+begin_src julia-vterm :results file graphics :file double-well.svg
 using Plots
 using LaTeXStrings
@@ -95,8 +102,9 @@ savefig(p, "images/double-well.svg")
 #+end_src
 
 #+caption: Double well potential \( W(\phi) \)
-#+RESULTS[978b0588e2d59be5e973459583ee383508f68433]: double-well
+#+RESULTS[978b0588e2d59be5e973459583ee383508f68433]: fig:double-well
 [[file:images/double-well.svg]]
+
 
 
 
@@ -231,19 +239,24 @@ We then define the discrete derivatives \( D_x\phi_{ij}, \ D_y\phi_{ij} \) using
 \begin{align}
 D_x\phi_{i+\frac{1}{2} j} &= \frac{\phi_{i+1j} - \phi_{ij}}{h} & D_y\phi_{ij+\frac{1}{2}} &= \frac{\phi_{ij+1} - \phi_{ij}}{h}
 \end{align}
-We then define the discrete gradient \( \nabla_d \phi_{ij}\)  as well as a modified laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\):
+We define \( D_x\mu_{ij}^{n+\frac{1}{2}} , D_y\mu_{ij}^{n+\frac{1}{2}} \) in the same way.
+Next we define the discrete gradient \( \nabla_d \phi_{ij}\), as well as a modified Laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\):
+
+
 #+name: eq:discretization
 \begin{align}
 \nabla_d \phi_{ij} &= (D_x \phi_{i+1j} , \ D_y \phi_{ij+1}) \\
  \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi_{i+\frac{1}{2}j} -  G_{i-172}D_x \phi_{i-\frac{1}{2}j} + D_y \phi_{ij+\frac{1}{2}} - D_y \phi_{ij-\frac{1}{2}}}{h},
 \end{align}
- We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions [[eq:boundary-conditions]]. The authors in [cite:@SHIN20117441] show this to be the case by expanding \( \nabla_d \cdot (G_{ij} \nabla_d\phi_{ij}) \).
+ We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions [[eq:boundary-conditions]].
+the discretizations for \(  \nabla_d\mu_{ij}^{n+\frac{1}{2}} ,  \nabla_d \cdot (G_{ij} \nabla_d \mu_{ij}) \) are done the same as for \( \phi_{ij}^{n+1} \)
+
+ The authors in [cite:@SHIN20117441] show this to be the case by expanding \( \nabla_d \cdot (G_{ij} \nabla_d\phi_{ij}) \).
 
 notably, when one point lies outside the domain, then \( G_{i \pm \frac{1}{2}} = 0 \)  and therefore the corresponding discrete gradient \( \frac{\phi_{i\pm1} - \phi_i}{h}  \) is weighted by 0. This corresponds the discrete version of \( \partial_n\phi = 0 \).
 The authors in [cite:@SHIN20117441]
 
 To simplify the notation for discretized derivatives we use the following abbreviations:
-Math:
 - \(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + \frac{1}{2},m}_{ij-1}  \)
 - \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)
 Code:
@@ -267,9 +280,9 @@ function discrete_G_weigted_neigbour_sum(i, j, arr, G, len, width)
 end
 #+end_src
 
-We can then write the modified Laplacian \( \nabla_d (G \nabla_df_{ij}) \) as:
+We can then write the modified Laplacian \( \nabla_d (G \nabla_d\phi_{ij}) \) as:
 \begin{align*}
-\nabla_{d} \cdot(G \nabla_df_{ij}) &= \frac{\Sigma_Gf_{ij} - \Sigma_G\cdot f_{ij}}{h^2}
+\nabla_{d} \cdot(G \nabla_d\phi_{ij}) &= \frac{\Sigma_G\phi_{ij} - \Sigma_G\cdot \phi_{ij}}{h^2}
 \end{align*}
 We use this modified Laplacian to deal with boundary conditions. Our abbreviations simplify separating implicit and explicit terms in the discretization.
 ** Initial data
@@ -616,6 +629,7 @@ As discrete energy measure we use:
 E^{\text{bulk}}_d(\phi_{ij}) &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla_d \phi_{ij} |^2 + W\left(\phi_{ij}\right)  \\
 &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right)  \\
 \end{align*}
+Since the continous Helmholtz energy [[eq:energy]].
 #+begin_src julia :tangle src/utils.jl :eval never
 function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
     energy = 0
@@ -832,8 +846,7 @@ savefig(p , "images/time-stability.svg")
 
 In this experiment we ran our solver on a fixed length time intervall ie. we ran our solver for one time.step with \( \Delta t = 10^{-2}  \) , for two time-steps with \( \Delta t = \frac{10^{-2}}{2}  \) and so on until 64 time-steps with \( \Delta t = \frac{10^{-2}}{64}  \).
 ** stability under refinement in space
-We expect our methods to be stable in space. Therefore we expect
-#+RESULTS:
+We expect our methods to be stable under different grid-sizes \( h \) and gridpoints \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
 #+name: fig:stability-in-space
 #+begin_src julia-vterm :results file graphics :file space-stability.svg
 <<init>>
