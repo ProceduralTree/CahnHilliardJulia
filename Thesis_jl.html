@@ -3,10 +3,10 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-06-05 Wed 11:45 -->
+<!-- 2024-06-07 Fri 20:14 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bachelor Thesis</title>
+<title>Numerical methods</title>
 <meta name="author" content="Jonathan Ulmer" />
 <meta name="generator" content="Org Mode" />
 <style type="text/css">
@@ -229,53 +229,131 @@
 </head>
 <body>
 <div id="content" class="content">
-<h1 class="title">Bachelor Thesis</h1>
+<h1 class="title">Numerical methods
+<br />
+<span class="subtitle">on the Cahn-Hilliard Equation</span>
+</h1>
+<div class="abstract" id="org1c8a735">
+<p>
+This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation. It uses a discretization by the authors (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) as baseline, and expands upon this dicretisation with an elliptical relaxation approach. It introduces evaluation metrics in terms of time , space and subiteration stability and compares the elliptical approach against the baseline. It shows a qualitative succes of the elliptical solver, however it also highlights challanges in numerical stability.
+</p>
+
+</div>
+
 <div id="table-of-contents" role="doc-toc">
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org1b6b029">1. The Cahn-Hilliard equation</a></li>
-<li><a href="#org9b156e1">2. Baseline multi-grid solver</a></li>
-<li><a href="#org8bc1428">3. Numerical evaluation</a></li>
-<li><a href="#org62093b2">4. Relaxed problem</a></li>
-<li><a href="#org9a8fc92">5. Apendix</a></li>
-<li><a href="#org695487a">6. References</a></li>
+<li><a href="#org925c935">1. Introduction</a></li>
+<li><a href="#orge2bfcda">2. The Cahn-Hilliard equation</a>
+<ul>
+<li><a href="#org6909cd0">2.1. Physical derivation of the CH equation eq:CH</a>
+<ul>
+<li><a href="#orgabff9c2">2.1.1. The free energy</a></li>
+<li><a href="#orgb316b5f">2.1.2. Derivation of the CH equation from mass balance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org0f5bd6b">3. Baseline multi-grid solver</a>
+<ul>
+<li><a href="#org0dfc253">3.1. The discretization of the CH equation:</a></li>
+<li><a href="#org0cf3181">3.2. Initial data</a></li>
+<li><a href="#orga1864fc">3.3. Numerical ansatz</a></li>
+<li><a href="#org9188642">3.4. The discrete scheme</a></li>
+<li><a href="#org2b8f678">3.5. SMOOTH operator</a></li>
+<li><a href="#org54567a3">3.6. Multigrid method</a></li>
+</ul>
+</li>
+<li><a href="#orgcc9d11f">4. Numerical experiments</a>
+<ul>
+<li><a href="#org79a99bf">4.1. Energy evaluations</a></li>
+<li><a href="#org9a23559">4.2. Numerical mass balance</a></li>
+<li><a href="#org7ca558d">4.3. stability of a multigrid sub iteration</a></li>
+<li><a href="#org2720636">4.4. stability under refinment in time</a></li>
+<li><a href="#org4b740b4">4.5. stability under refinement in space</a></li>
+</ul>
+</li>
+<li><a href="#org36e6dc2">5. Relaxed problem</a>
+<ul>
+<li><a href="#orgd34dd6f">5.1. Elliptical PDE:</a>
+<ul>
+<li><a href="#orge75ed93">5.1.1. Discretization</a></li>
+</ul>
+</li>
+<li><a href="#orgba61ae7">5.2. Relaxed PDE as operator L</a></li>
+<li><a href="#org5e215a4">5.3. The relaxed multigrid method</a></li>
+<li><a href="#orgf4c833d">5.4. SMOOTH operator</a></li>
+</ul>
+</li>
+<li><a href="#orgd01ed8e">6. Relaxed Experiments</a>
+<ul>
+<li><a href="#org2b9e7d0">6.1. Relaxed energy evaluations</a></li>
+<li><a href="#org1d29008">6.2. Relaxed numerical mass balance</a></li>
+<li><a href="#org06f872b">6.3. Stability of a relaxed multigrid sub-iteration</a></li>
+<li><a href="#orgfce2c28">6.4. Stability under refinment in time</a></li>
+<li><a href="#org08c7d7b">6.5. Stability under refinement in space</a></li>
+</ul>
+</li>
+<li><a href="#org28c1348">7. Comparison</a></li>
+<li><a href="#orge9a6d34">8. Apendix</a>
+<ul>
+<li><a href="#org16ed1b8">8.1. Operator implementation</a>
+<ul>
+<li><a href="#org8319cbf">8.1.1. baseline</a></li>
+<li><a href="#org7d5f12d">8.1.2. relaxed</a></li>
+</ul>
+</li>
+<li><a href="#org6536148">8.2. rng generation</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
+<div id="outline-container-org925c935" class="outline-2">
+<h2 id="org925c935"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
 <p>
 This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
 </p>
-<div id="outline-container-org1b6b029" class="outline-2">
-<h2 id="org1b6b029"><span class="section-number-2">1.</span> The Cahn-Hilliard equation</h2>
-<div class="outline-text-2" id="text-1">
+</div>
+</div>
+<div id="outline-container-orge2bfcda" class="outline-2">
+<h2 id="orge2bfcda"><span class="section-number-2">2.</span> The Cahn-Hilliard equation</h2>
+<div class="outline-text-2" id="text-2">
 <p>
-The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) solving the state of a two-phase fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the CH equation used in this thesis is
+The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid(<a href="#citeproc_bib_item_2">Wu 2022</a>). The form of the CH equation used in this thesis in the domain  \( \Omega \times [0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
 </p>
 \begin{equation}
-\label{orge2de12c}
+\label{org2195ee2}
 \begin{aligned}
 \partial_{t}\phi(x,t) &=  \nabla \cdot(M(\phi)\nabla\mu) \\
 \mu &= - \varepsilon^2 \Delta\phi  + W'(\phi)
 \end{aligned}
 \end{equation}
 <p>
-where, \( \phi\) is a phase-field variable representing the different states of the fluids through an interval \(I=[-1,1] \)
+where the variables \( \phi , \mu \) are phase-field variable and chemical potential,
+</p>
+\begin{equation}
+\begin{aligned}
+\phi: \Omega \times [0, T) &\to \mathbb{R}^d \\
+\mu: \Omega \times [0, T) &\to \mathbb{R}^d
+\end{aligned}
+\end{equation}
+<p>
+\(\varepsilon\) is a positive constant correlated with interface thickness, \( W(\phi) \) is a double well potential and \(M(\phi) > 0\) is a mobility coefficient (<a href="#citeproc_bib_item_2">Wu 2022</a>).
+ \( \phi\) is defined in an interval \(I=[-1,1] \) and  represent the different phases.
 </p>
 \begin{align*}
 \phi &=
 \begin{cases}
-1 &\,, \phi = \text{phase 1} \\
--1 &\,, \phi =\text{ phase 2}
+1 &\,, \phi \in \text{phase 1} \\
+-1 &\,, \phi \in\text{phase 2}
 \end{cases}
 \end{align*}
 
 <p>
-\(\varepsilon\) is a positive constant correlated with boundary thickness and \(\mu\) is the chemical potential(<a href="#citeproc_bib_item_2">Wu 2022</a>).
-</p>
-
-<p>
-In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation used in (<a href="#citeproc_bib_item_2">Wu 2022</a>) (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
+In this thesis we assume \(M(\phi) \equiv 1 \), simplifying the CH equation.
 </p>
 
 <p>
@@ -283,55 +361,68 @@ The advantages of the CH approach, as compared to traditional boundary coupling,
 In practice it enables linear interpolation between different formulas on different phases.
 </p>
 </div>
-<div id="outline-container-org9661b57" class="outline-3">
-<h3 id="org9661b57"><span class="section-number-3">1.1.</span> Derivation from paper</h3>
-<div class="outline-text-3" id="text-1-1">
+<div id="outline-container-org6909cd0" class="outline-3">
+<h3 id="org6909cd0"><span class="section-number-3">2.1.</span> Physical derivation of the CH equation \eqref{org2195ee2}</h3>
+<div class="outline-text-3" id="text-2-1">
 </div>
-<div id="outline-container-org3c22390" class="outline-4">
-<h4 id="org3c22390"><span class="section-number-4">1.1.1.</span> The free energy</h4>
-<div class="outline-text-4" id="text-1-1-1">
+<div id="outline-container-orgabff9c2" class="outline-4">
+<h4 id="orgabff9c2"><span class="section-number-4">2.1.1.</span> The free energy</h4>
+<div class="outline-text-4" id="text-2-1-1">
 <p>
 The authors in (<a href="#citeproc_bib_item_2">Wu 2022</a>) define the CH equation using the <b>Ginzburg-Landau</b> free energy equation:
 </p>
 \begin{align}
-\label{org6ebebb3}
-E^{\text{bulk}} &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx
+\label{org799fc59}
+E^{\text{bulk}}[\phi] &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 + W(\phi) \, dx ,
 \end{align}
 <p>
-where \(W(\phi) \) denotes the Helmholtz free energy density of mixing (<a href="#citeproc_bib_item_2">Wu 2022</a>) that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>). Additionally \( \nabla\phi \) represents the change in phase-field.
+where \(W(\phi) \) denotes the Helmholtz free energy density of mixing (<a href="#citeproc_bib_item_2">Wu 2022</a>) that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) shown in Fig. <a href="#org747ac03">1</a>.
 </p>
 
+<div id="org747ac03" class="figure">
+<p><img src="images/double-well.svg" alt="double-well.svg" class="org-svg" />
+</p>
+<p><span class="figure-number">Figure 1: </span>Double well potential \( W(\phi) \)</p>
+</div>
+
+
+
+
 <p>
-The chemical potential, \( \mu \), then follows as the variational derivation of the free energy \eqref{org6ebebb3}.
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy \eqref{org799fc59}.
 </p>
 \begin{align*}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
 \end{align*}
 </div>
 </div>
-<div id="outline-container-org1dc1323" class="outline-4">
-<h4 id="org1dc1323"><span class="section-number-4">1.1.2.</span> Derivation of the CH equation from mass balance</h4>
-<div class="outline-text-4" id="text-1-1-2">
+<div id="outline-container-orgb316b5f" class="outline-4">
+<h4 id="orgb316b5f"><span class="section-number-4">2.1.2.</span> Derivation of the CH equation from mass balance</h4>
+<div class="outline-text-4" id="text-2-1-2">
 <p>
 The paper (<a href="#citeproc_bib_item_2">Wu 2022</a>)  motivates us to derive the CH equation as follows:
 </p>
 \begin{equation}
-\label{orge8427d3}
+\label{org3c4f297}
     \partial_t \phi + \nabla \cdot J = 0
 \end{equation}
 <p>
-where \( J \) is mass flux. The equation \eqref{orge8427d3} then ensures continuity of mass
+where \( J \) is mass flux. The equation \eqref{org3c4f297} then ensures continuity of mass
 Using the no-flux boundary conditions:
 </p>
-\begin{align}
+\begin{equation}
+\label{org0192396}
+\begin{aligned}
 J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
 \partial_n\phi &= 0 & \partial\Omega &\times (0,T)
-\end{align}
+\end{aligned}
+\end{equation}
 <p>
+where \( n \) is the outward normal on \( \partial \Omega \).
 conservation of mass follows see(<a href="#citeproc_bib_item_2">Wu 2022</a>).
 </p>
 \begin{equation}
-\label{org4542574}
+\label{org167450f}
 \begin{aligned}
 \frac{d}{dt}\int_{\Omega}\phi&=\int_{\Omega}\frac{\partial \phi}{\partial t} dV \\
 &= - \int_{\Omega} \nabla \cdot J \ dV\\
@@ -340,17 +431,17 @@ conservation of mass follows see(<a href="#citeproc_bib_item_2">Wu 2022</a>).
 \end{aligned}
 \end{equation}
 <p>
-Therefore mass is conserved over time, as shown in \eqref{org4542574}.
+Therefore mass is conserved over time, as shown in \eqref{org167450f}.
 We define the mass flux, \( J \), as the gradient in chemical potential as follows
 </p>
 \begin{align}
 J &= - \nabla \mu
 \end{align}
 <p>
-This results in the CH equation as stated in \eqref{orge2de12c}.
+This results in the CH equation as stated in \eqref{org2195ee2}.
 </p>
 \begin{equation}
-\label{org483d0c6}
+\label{orga5170d0}
 \begin{aligned}
  - \nabla \mu &= 0 \\
 \partial_n \phi &= 0
@@ -358,7 +449,7 @@ This results in the CH equation as stated in \eqref{orge2de12c}.
 \end{equation}
 <p>
 i.e. no flow leaves and potential on the border doesn&rsquo;t change.
-In order to show the CH equation&rsquo;s consistency with thermodynamics we take the time derivation of the free energy \eqref{org6ebebb3} and we show that it decreases in time.
+In order to show the CH equation&rsquo;s consistency with thermodynamics we take the time derivation of the free energy \eqref{org799fc59} and we show that it decreases in time.
 </p>
 \begin{align*}
 \frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
@@ -372,22 +463,46 @@ In order to show the CH equation&rsquo;s consistency with thermodynamics we take
 </div>
 </div>
 </div>
-<div id="outline-container-org9b156e1" class="outline-2">
-<h2 id="org9b156e1"><span class="section-number-2">2.</span> Baseline multi-grid solver</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org0f5bd6b" class="outline-2">
+<h2 id="org0f5bd6b"><span class="section-number-2">3.</span> Baseline multi-grid solver</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org0dfc253" class="outline-3">
+<h3 id="org0dfc253"><span class="section-number-3">3.1.</span> The discretization of the CH equation:</h3>
+<div class="outline-text-3" id="text-3-1">
 <p>
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
+Our discretization follows the one taken by the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
+We discretize our domain \( \Omega \) to be a Cartesian-grid \( \Omega_d \) on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=64 \) . However for stability tests we change \( h \) and \( N \).
 </p>
-</div>
-<div id="outline-container-org064a6f7" class="outline-3">
-<h3 id="org064a6f7"><span class="section-number-3">2.1.</span> The discretization of the CH equation:</h3>
-<div class="outline-text-3" id="text-2-1">
+\begin{equation}
+\Omega_d = \left\{ i,j \mid i,j \in \mathbb{N} \,, i,j \in [2,N+1] \right\}
+\end{equation}
 <p>
-Our discretization closely resembles the one taken by the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
-We discretize our domain \( \Omega \) to be a Cartesian-grid on a square with side-length \( N\cdot h \), where N is the number of grid-points in one direction, and \( h \) is the distance between grid-points. In all our initial data \( h \) is \( 3\cdot10^{-3}\) and \( N=64 \) for all, but in the stability tests in space.
-We discretize the phase-field ,\( \phi \), and chemical potential ,\( \mu \), into grid-wise functions \(\phi_{ij}, \mu_{ij} \), where \( \phi_{ij} \) represents the evaluation of \( \phi \) at index \( ij \) , and at coordinates \( (i\cdot h -1 , j\cdot h - 1) \).
-The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) use the characteristic function \( G \) of the  domain \( \Omega \) to enforce no-flux boundary conditions.
+where \( \Omega_{d} \) is the discrete version or our domain as shown in <a href="#orgf25729b">2</a>.
 </p>
+
+<div id="orgf25729b" class="figure">
+<p><img src="images/domain.svg" alt="domain.svg" class="org-svg" />
+</p>
+<p><span class="figure-number">Figure 2: </span>Discrete Domain used for most of the experiments in this Thesis</p>
+</div>
+
+
+<p>
+We discretize the phase-field ,\( \phi \), and chemical potential ,\( \mu \), into grid-wise functions \(\phi_{ij}, \mu_{ij} \)
+</p>
+\begin{equation}
+\begin{aligned}
+\phi_{ij}^n: \Omega_d \times \left\{ 0, \dots  \right\} &\to \mathbb{R}\\
+\mu_{ij}^n: \Omega_d \times \left\{ 0, \dots \right\} &\to \mathbb{R}
+\end{aligned}
+\end{equation}
+<p>
+Here \( n \) denotes the nth time-step , and \( (i,j) \) are cartesian indicies on the discrete domain \( \Omega_d \).
+The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) then use the characteristic function \( G \) of the  domain \( \Omega \) to enforce no-flux boundary conditions \eqref{orga5170d0}.
+</p>
+
 \begin{align*}
 G(x,y) &=
 \begin{cases}
@@ -396,18 +511,16 @@ G(x,y) &=
 \end{cases}
 \end{align*}
 <p>
-We implement the discretized function on our square domain as follows.
+We implement the discrete version of \( G \) on \( \Omega_d \) as follows:
 </p>
 \begin{align*}
 G_{ij} &=
 \begin{cases}
-1, & (i,j) \in  [2,N+1]^2 \\
+1, & (i,j) \in  \Omega_{d} \\
 0, & \text{else}
 \end{cases}
 \end{align*}
-<p>
-the domain we calculate on is therefore a square starting at \( (2,2) \) and ending at \( (N+1,N+1) \). We use this shifted square to accommodate for zero padding in our numerical implementation.
-</p>
+
 <div class="org-src-container">
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">G</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #fb4934;">if</span> <span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">&lt;=</span> <span style="color: #83a598;">i</span> <span style="color: #fabd2f;">&lt;=</span> <span style="color: #83a598;">len</span> <span style="color: #fabd2f;">+</span> <span style="color: #d3869b;">1</span> <span style="color: #fabd2f;">&amp;&amp;</span> <span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">&lt;=</span> <span style="color: #83a598;">j</span> <span style="color: #fabd2f;">&lt;=</span> <span style="color: #83a598;">width</span> <span style="color: #fabd2f;">+</span> <span style="color: #d3869b;">1</span>
@@ -420,33 +533,38 @@ the domain we calculate on is therefore a square starting at \( (2,2) \) and end
 </div>
 
 <p>
-We then define the partial derivatives \( D_x\phi_{ij}, \ D_y\phi_{ij} \) using centred differences:
+We then define the discrete derivatives \( D_x\phi_{ij}, \ D_y\phi_{ij} \) using centred differences:
 </p>
 \begin{align}
 D_x\phi_{i+\frac{1}{2} j} &= \frac{\phi_{i+1j} - \phi_{ij}}{h} & D_y\phi_{ij+\frac{1}{2}} &= \frac{\phi_{ij+1} - \phi_{ij}}{h}
 \end{align}
 <p>
-For \( \nabla_d \phi_{ij}, \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) then follows:
+We define \( D_x\mu_{ij}^{n+\frac{1}{2}} , D_y\mu_{ij}^{n+\frac{1}{2}} \) in the same way.
+Next we define the discrete gradient \( \nabla_d \phi_{ij}\), as well as a modified Laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\):
 </p>
+
+
 \begin{align}
-\label{org2cc775a}
+\label{org2f89cbf}
 \nabla_d \phi_{ij} &= (D_x \phi_{i+1j} , \ D_y \phi_{ij+1}) \\
- \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij}) &= \frac{D_x \phi_{i+\frac{1}{2}j} -  D_x \phi_{i-\frac{1}{2}j} + D_y \phi_{ij+\frac{1}{2}} - D_y \phi_{ij-\frac{1}{2}}}{h},
+ \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi_{i+\frac{1}{2}j} -  G_{i-172}D_x \phi_{i-\frac{1}{2}j} + D_y \phi_{ij+\frac{1}{2}} - D_y \phi_{ij-\frac{1}{2}}}{h},
 \end{align}
 <p>
-where \( \nabla_d \phi_{ij} \) is a discrete gradient, and \( \nabla_d \cdot (G_{ij}\nabla_d\phi_{ij}) \) is a discrete version of the Laplace operator \( \Delta \) that takes no-flux boundary conditions into account. The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) show this to be the case by expanding \( \nabla_d \cdot (G_{ij} \nabla_d\phi_{ij}) \). In one dimension this expands to:
+ We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions \eqref{orga5170d0}.
+the discretizations for \(  \nabla_d\mu_{ij}^{n+\frac{1}{2}} ,  \nabla_d \cdot (G_{ij} \nabla_d \mu_{ij}) \) are done the same as for \( \phi_{ij}^{n+1} \)
 </p>
-\begin{equation}
- \nabla_d \cdot (G_{i} \nabla_d\phi_{i}) = \frac{G_{i+\frac{1}{2}}\phi_{i+1} + G_{i-\frac{1}{2}}\phi_{i-1} - G_{i+\frac{1}{2}}\phi_i - G_{i-\frac{1}{2}}\phi_i}{h^2}
-\end{equation}
+
 <p>
-notably, when one point lies outside the domain, then \( G_{i\frac{\pm1}{2}} = 0 \)  and therefore the corresponding discrete gradient \( \frac{\phi_{i\pm\frac{1}{2}} - \phi_i}{h}  \) is weighted by 0. This corresponds the discrete version of \( \partial_n\phi = 0 \).
+The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) show this to be the case by expanding \( \nabla_d \cdot (G_{ij} \nabla_d\phi_{ij}) \).
+</p>
+
+<p>
+notably, when one point lies outside the domain, then \( G_{i \pm \frac{1}{2}} = 0 \)  and therefore the corresponding discrete gradient \( \frac{\phi_{i\pm1} - \phi_i}{h}  \) is weighted by 0. This corresponds the discrete version of \( \partial_n\phi = 0 \).
 The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)
 </p>
 
 <p>
 To simplify the notation for discretized derivatives we use the following abbreviations:
-Math:
 </p>
 <ul class="org-ul">
 <li>\(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + \frac{1}{2},m}_{ij-1}  \)</li>
@@ -477,19 +595,19 @@ Code:
 </div>
 
 <p>
-We can then write the modified Laplacian \( \nabla_d (G \nabla_df_{ij}) \) as:
+We can then write the modified Laplacian \( \nabla_d (G \nabla_d\phi_{ij}) \) as:
 </p>
 \begin{align*}
-\nabla_{d} \cdot(G \nabla_df_{ij}) &= \frac{\Sigma_Gf_{ij} - \Sigma_G\cdot f_{ij}}{h^2}
+\nabla_{d} \cdot(G \nabla_d\phi_{ij}) &= \frac{\Sigma_G\phi_{ij} - \Sigma_G\cdot \phi_{ij}}{h^2}
 \end{align*}
 <p>
 We use this modified Laplacian to deal with boundary conditions. Our abbreviations simplify separating implicit and explicit terms in the discretization.
 </p>
 </div>
 </div>
-<div id="outline-container-org3475cd5" class="outline-3">
-<h3 id="org3475cd5"><span class="section-number-3">2.2.</span> Initial data</h3>
-<div class="outline-text-3" id="text-2-2">
+<div id="outline-container-org0cf3181" class="outline-3">
+<h3 id="org0cf3181"><span class="section-number-3">3.2.</span> Initial data</h3>
+<div class="outline-text-3" id="text-3-2">
 <p>
 For testing we use initial phase-fields defined by the following equations:
 </p>
@@ -530,20 +648,21 @@ where \( q_k \) are random points inside my domain. Those we generate those usin
 
 
 
-<div id="org5a9819f" class="figure">
+<div id="org1c351e6" class="figure">
 <p><img src="images/testdata.svg" alt="testdata.svg" class="org-svg" />
 </p>
+<p><span class="figure-number">Figure 3: </span>Examples of different phase-fields used as the initial condition in this work.</p>
 </div>
 </div>
 </div>
-<div id="outline-container-org55d56a6" class="outline-3">
-<h3 id="org55d56a6"><span class="section-number-3">2.3.</span> Numerical ansatz</h3>
-<div class="outline-text-3" id="text-2-3">
+<div id="outline-container-orga1864fc" class="outline-3">
+<h3 id="orga1864fc"><span class="section-number-3">3.3.</span> Numerical ansatz</h3>
+<div class="outline-text-3" id="text-3-3">
 <p>
 The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) then define the discrete CH equation adapted for the domain as:
 </p>
 \begin{equation}
-\label{org0070ba9}
+\label{org6491617}
 \begin{aligned}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
  \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
@@ -554,12 +673,11 @@ and derive a numerical scheme from this implicit equation.
 </p>
 </div>
 </div>
-<div id="outline-container-orgc8a6cbc" class="outline-3">
-<h3 id="orgc8a6cbc"><span class="section-number-3">2.4.</span> PDE as operator \( L \)</h3>
-<div class="outline-text-3" id="text-2-4">
+<div id="outline-container-org9188642" class="outline-3">
+<h3 id="org9188642"><span class="section-number-3">3.4.</span> The discrete scheme</h3>
+<div class="outline-text-3" id="text-3-4">
 <p>
-The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) derive their method by seperating \eqref{org0070ba9} into implicit and linear terms, and explicit non-linear terms. Linear terms are collected in an Operator \( L \), and the explicit terms in \( (\zeta^n_{ij} , \psi^n_{ij})^T \).
-We derive the iteration operator \( L(\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij}) = (\zeta^n_{ij} ,\psi^n_{ij}) \)as in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>).
+The authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) derive their method by separating \eqref{org6491617} into implicit and linear terms, and explicit non-linear terms. We write the implicit terms in form of a function \( L: \RR^2 \to \RR^2  \) and the explicit terms in \( (\zeta^n_{ij} , \psi^n_{ij})^T \).
 </p>
 \begin{align*}
 L
@@ -574,7 +692,7 @@ L
 \end{pmatrix}
 \end{align*}
 <p>
-This operator follows from \eqref{org0070ba9} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \), respectively.
+This operator follows from \eqref{org6491617} by separating implicit and explicit terms \( L \) and   \( (\zeta^n_{ij} , \psi^n_{ij})^T \), respectively.
 </p>
 \begin{align*}
 \begin{pmatrix}
@@ -593,7 +711,7 @@ Due to being explicit, we know everything needed to calculate \( (\zeta^n_{ij} ,
 </p>
 
 <p>
-Furthermore, as it enables a Newton iteration, we derive its Jacobian with respect to the current grid point \( (\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij})^{T} \):
+Furthermore, as it is needed later on, we derive its Jacobian with respect to the current grid point \( (\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij})^{T} \):
 </p>
 
 \begin{align*}
@@ -605,16 +723,19 @@ DL\begin{pmatrix}
 -\frac{\varepsilon^2}{h^2}\Sigma_{Gij} - 2 & 1
 \end{pmatrix}
 \end{align*}
+<p>
+Implementation details can be found in the Apendix under  <a href="#org8319cbf">baseline</a>.
+</p>
 </div>
 </div>
-<div id="outline-container-orgbd20f9a" class="outline-3">
-<h3 id="orgbd20f9a"><span class="section-number-3">2.5.</span> SMOOTH operator</h3>
-<div class="outline-text-3" id="text-2-5">
+<div id="outline-container-org2b8f678" class="outline-3">
+<h3 id="org2b8f678"><span class="section-number-3">3.5.</span> SMOOTH operator</h3>
+<div class="outline-text-3" id="text-3-5">
 <p>
 The authors (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>)derived Gauss-Seidel Smoothing from:
 </p>
 \begin{align}
-\label{orgfad9f42}
+\label{org6a306b1}
 L
 \begin{pmatrix}
 \phi^{n+1}_{ij} \\
@@ -627,10 +748,10 @@ L
 \end{pmatrix}
 \end{align}
 <p>
-SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving \eqref{orgfad9f42} for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write \eqref{orgfad9f42} as
+SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving \eqref{org6a306b1} for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write \eqref{org6a306b1} as
 </p>
  \begin{equation}
-\label{orgb7e2b88}
+\label{org8b24e64}
 \begin{aligned}
 \begin{pmatrix}
   \zeta_{ij}^n\\
@@ -681,12 +802,13 @@ where
 <li>\(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),</li>
 </ul>
 <p>
-since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown, the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) and we use initial approximations,  if \( k > i , l > j \) , and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) from the last smoothing iteration.
-The equation \eqref{orgb7e2b88} is of form \(b = Ax\)
-We then and solve \eqref{orgb7e2b88} for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij} \).
+In order to compute \( \left(   \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) \) we have to evaluate those grid-wise functions on at neighbouring indicies \( k,l \) eg. \( k=i+1 , l=j-1 \).
+since values for \( \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m} \) are unknown,if \( k > i , l > j \), the authors in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) and we use initial approximations,   and the values of the current smooth iteration else. As initial approximation we use the values of \(  \phi_{kl}^{n+1,m} , \mu_{kl}^{n+\frac{1}{2},m}  \) from the last smoothing iteration.
+The equation \eqref{org8b24e64} is of form \(b = Ax\)
+We then and solve \eqref{org8b24e64} for \( \left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right)  \).
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="org9a6ac75"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
+<pre class="src src-julia" id="org188d63c"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">iterations</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">adaptive</span>
@@ -707,23 +829,26 @@ We then and solve \eqref{orgb7e2b88} for \( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}
 </pre>
 </div>
 
-<p>
-<img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
-Notably the sharp interphase of the  initial phase-fields has been smoothed, and the values are between \( -1,1 \).
+
+<div id="orgbd0f025" class="figure">
+<p><img src="images/smooth.svg" alt="smooth.svg" class="org-svg" />
 </p>
+<p><span class="figure-number">Figure 4: </span>inputs from <a href="#org0cf3181">3.2</a> after SMOOTH.</p>
 </div>
 </div>
-<div id="outline-container-org78a735a" class="outline-3">
-<h3 id="org78a735a"><span class="section-number-3">2.6.</span> V-cycle approach</h3>
-<div class="outline-text-3" id="text-2-6">
+</div>
+<div id="outline-container-org54567a3" class="outline-3">
+<h3 id="org54567a3"><span class="section-number-3">3.6.</span> Multigrid method</h3>
+<div class="outline-text-3" id="text-3-6">
 <p>
+Notably the sharp interphase of the  initial phase-fields has been smoothed, and the values are between \( -1,1 \).
 The numerical method proposed in (<a href="#citeproc_bib_item_1">Shin, Jeong, and Kim 2011</a>) consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of.
 </p>
 <ol class="org-ol">
-<li>a Gauss-Seidel relaxation for smoothing <a href="#org7b950d3">4.3</a>.</li>
+<li>a Gauss-Seidel relaxation for smoothing Chapter <a href="#orgf4c833d">5.4</a>.</li>
 <li>restriction and prolongation methods between grids \(  h \leftrightarrow H  \).</li>
 <li>a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
-we solve using the same iteration as in <a href="#org7b950d3">4.3</a> however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.</li>
+we solve using the same iteration as in Chapter <a href="#orgf4c833d">5.4</a> however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.</li>
 </ol>
 
 <p>
@@ -768,16 +893,6 @@ The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 <span style="color: #fb4934;">end</span>
 </pre>
 </div>
-<p>
-So let&rsquo;s take a closer look at the internals, namely the phase field after pre-SMOOTHing \( \bar{\phi} \), the phase residuals of \( \left[ L(\bar{\phi_{ij}}, \bar{\mu_{ij}}) - (\zeta_{ij} , \psi_{ij}) \right]_{ij \in \Omega} \) and the result of the Newton iteration on coarsest level.
-</p>
-
-
-<div id="org2d67d39" class="figure">
-<p><img src="images/v_cycle.svg" alt="v_cycle.svg" class="org-svg" />
-</p>
-<p><span class="figure-number">Figure 1: </span>internal state during one V-cyclce</p>
-</div>
 
 
 <p>
@@ -799,44 +914,35 @@ The iteration of the solver is then done as follows
 After a few iterations, V-cycle exhibits the following behavior:
 </p>
 
-<div class="org-src-container">
-<pre class="src src-julia-vterm" id="org40f9bad"><span style="color: #fabd2f;">&lt;&lt;</span><span style="color: #83a598;">init</span><span style="color: #fabd2f;">&gt;&gt;</span>
-<span style="color: #fb4934;">using</span> <span style="color: #83a598;">JLD2</span>
-<span style="color: #fb4934;">using</span> <span style="color: #83a598;">DataFrames</span>
-<span style="color: #83a598;">results</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">jldopen</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #b8bb26;">"experiments/iteration.jld2"</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #b8bb26;">"result"</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
-<span style="color: #83a598;">anim</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">animate</span> <span style="color: #fb4934;">for</span> <span style="color: #83a598;">res</span> in <span style="color: #83a598; font-weight: bold;">eachrow</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">results</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">heatmap</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">xlims</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">ylim</span><span style="color: #fb4934;">=</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598; font-weight: bold;">size</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">res</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">aspectratio</span><span style="color: #fb4934;">=</span>:<span style="color: #83a598;">equal</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-<span style="color: #fb4934;">end</span>
-<span style="color: #83a598; font-weight: bold;">gif</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">anim</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #b8bb26;">"images/iteration.gif"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">fps</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">10</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-</pre>
-</div>
 
-
-<div id="orgbaf0244" class="figure">
+<div id="org35ebf76" class="figure">
 <p><img src="images/iteration.gif" alt="iteration.gif" />
 </p>
-<p><span class="figure-number">Figure 2: </span>a fex timesteps of the solver for different initial contitions as shown in <a href="#org3475cd5">2.2</a></p>
+<p><span class="figure-number">Figure 5: </span>a fex timesteps of the solver for different initial contitions as shown in <a href="#org0cf3181">3.2</a></p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-org8bc1428" class="outline-2">
-<h2 id="org8bc1428"><span class="section-number-2">3.</span> Numerical evaluation</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-orgcc9d11f" class="outline-2">
+<h2 id="orgcc9d11f"><span class="section-number-2">4.</span> Numerical experiments</h2>
+<div class="outline-text-2" id="text-4">
 <p>
-The analytical CH equation conserves mass \eqref{orge8427d3} and the free energy ,\( E_{bulk} \), \eqref{org6ebebb3}  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
+The analytical CH equation conserves mass \eqref{org3c4f297} and the free energy ,\( E_{bulk} \), \eqref{org799fc59}  decreases in time, i.e. consistence with the second law of thermodynamics. Therefore, we use discrete variants of those concepts as necessary conditions for a &ldquo;good&rdquo; solution. Furthermore, since \( E_{bulk} \) is closely correlated with chemical potential, \( \mu \), we evaluate this difference as quality of convergence.
 </p>
 </div>
-<div id="outline-container-org4ad3487" class="outline-3">
-<h3 id="org4ad3487"><span class="section-number-3">3.1.</span> Energy evaluations</h3>
-<div class="outline-text-3" id="text-3-1">
+<div id="outline-container-org79a99bf" class="outline-3">
+<h3 id="org79a99bf"><span class="section-number-3">4.1.</span> Energy evaluations</h3>
+<div class="outline-text-3" id="text-4-1">
 <p>
 As discrete energy measure we use:
 </p>
 \begin{align*}
-E^{\text{bulk}}_d &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi_{ij} |^2 + W\left(\phi_{ij}\right) \, dx \\
-&= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right) \, dx \\
+E^{\text{bulk}}_d(\phi_{ij}) &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla_d \phi_{ij} |^2 + W\left(\phi_{ij}\right)  \\
+&= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right)  \\
 \end{align*}
+<p>
+Since the continous Helmholtz energy \eqref{org799fc59}.
+</p>
 <div class="org-src-container">
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">bulk_energy</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span> <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
     <span style="color: #83a598;">energy</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">0</span>
@@ -854,10 +960,10 @@ E^{\text{bulk}}_d &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla \phi
 
 
 
-<div id="orgc9dcdb3" class="figure">
+<div id="orge8249f1" class="figure">
 <p><img src="images/energy_balance.svg" alt="energy_balance.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 3: </span>behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \).</p>
+<p><span class="figure-number">Figure 6: </span>behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \).</p>
 </div>
 
 <p>
@@ -865,19 +971,12 @@ here we observe the discrete Helmholtz energy going down with increasing number 
 </p>
 </div>
 </div>
-<div id="outline-container-org07caf32" class="outline-3">
-<h3 id="org07caf32"><span class="section-number-3">3.2.</span> Mass balance</h3>
-<div class="outline-text-3" id="text-3-2">
+<div id="outline-container-org9a23559" class="outline-3">
+<h3 id="org9a23559"><span class="section-number-3">4.2.</span> Numerical mass balance</h3>
+<div class="outline-text-3" id="text-4-2">
 <p>
-Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\) written as:
-</p>
-\begin{equation}
-\begin{aligned}
-\frac{1}{|\Omega|}\int_{\Omega}\phi \ dx
-\end{aligned}
-\end{equation}
-<p>
-We calculate this balance as:
+Instead of a physical mass we use the average of \(\phi\) over the domain \(\Omega\).
+We calculate this balance between <i>phase 1</i> and <i>phase 2</i> as follows:
 </p>
 \begin{align*}
 b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{N^2}
@@ -893,19 +992,21 @@ such that \( b = 1 \) means there is only phase 1, \( \phi \equiv 1 \), and \( b
 </pre>
 </div>
 
+
+<div id="org39caa52" class="figure">
+<p><img src="images/mass_balance.svg" alt="mass_balance.svg" class="org-svg" />
+</p>
+<p><span class="figure-number">Figure 7: </span>behaviour of phase change over time for one initial condition \( \phi_0 \).</p>
+</div>
+
 <p>
-<img src="images/mass_balance.svg" alt="mass_balance.svg" class="org-svg" />
 The baseline solver manages a massbalance close to machine precision for our test cases. Mass loss and phase change is therefore negligible.
 </p>
 </div>
 </div>
-<div id="outline-container-org08bfda2" class="outline-3">
-<h3 id="org08bfda2"><span class="section-number-3">3.3.</span> <span class="todo TODO">TODO</span> stability</h3>
-<div class="outline-text-3" id="text-3-3">
-</div>
-<div id="outline-container-org2883c55" class="outline-4">
-<h4 id="org2883c55"><span class="section-number-4">3.3.1.</span> stability of a sub iteration v-cycle</h4>
-<div class="outline-text-4" id="text-3-3-1">
+<div id="outline-container-org7ca558d" class="outline-3">
+<h3 id="org7ca558d"><span class="section-number-3">4.3.</span> stability of a multigrid sub iteration</h3>
+<div class="outline-text-3" id="text-4-3">
 <p>
 in order to evaluate convergence we observe the change in phase
 </p>
@@ -913,46 +1014,20 @@ in order to evaluate convergence we observe the change in phase
 \| \phi^n - \phi^{n+1,m} \|_{Fr}
 \end{equation}
 <p>
-where \( \|\cdot\|_{Fr} \) represents a Frobenious norm over the tensors representing \( \phi.^n,\phi^{n+1,m} \).
-In addition we track the change of bulk energy:
-</p>
-
-\begin{equation}
-\frac{d}{dt} E^{bulk} = - \int_{\Omega} |\nabla\mu|^2 \ dx
-\end{equation}
-<p>
-discetized as follows:
+where \( \|\cdot\|_{Fr} \) is the Frobenious norm defined by
 </p>
 \begin{equation}
-\Delta E^{bulk} = - \sum_{ij \in \Omega} |\nabla_d\mu|^2
+\| f \| = \sqrt{ \sum_{i,j \in \Omega_d} f_{ij}^2}
 \end{equation}
-
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">bulk_energy_potential</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span> <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">solver</span>
-    <span style="color: #83a598;">energy</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">0</span>
-    <span style="color: #83a598;">dx</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">CartesianIndex</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">0</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598;">dy</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">CartesianIndex</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">0</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #83a598; font-weight: bold;">W</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1</span><span style="color: #fabd2f;">/</span><span style="color: #d3869b;">4</span> <span style="color: #fabd2f;">*</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1</span><span style="color: #fabd2f;">-</span><span style="color: #83a598;">x</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">I</span> in <span style="color: #83a598; font-weight: bold;">CartesianIndices</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">)[</span><span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">end</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">end</span><span style="color: #fabd2f;">-</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
-        <span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">I</span>
-        <span style="color: #83a598;">energy</span> <span style="color: #fabd2f;">+=</span>  <span style="color: #83a598; font-weight: bold;">G</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #fabd2f;">+</span> <span style="color: #d3869b;">0.5</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">*</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #fabd2f;">+</span><span style="color: #83a598;">dx</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">])</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span> <span style="color: #fabd2f;">+</span> <span style="color: #83a598; font-weight: bold;">G</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span><span style="color: #fabd2f;">+</span><span style="color: #d3869b;">0.5</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span> <span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fabd2f;">*</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #fabd2f;">+</span><span style="color: #83a598;">dy</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">-</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">potential</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">I</span><span style="color: #ebdbb2; background-color: #282828;">])</span><span style="color: #fabd2f;">^</span><span style="color: #d3869b;">2</span>
-        <span style="color: #fb4934;">end</span>
-   <span style="color: #fb4934;">return</span> <span style="color: #83a598;">energy</span>
-<span style="color: #fb4934;">end</span>
-</pre>
-</div>
-
-
-
-
 <p>
+over the tensors representing \( \phi.^n,\phi^{n+1,m} \).
 we expect our solver to converge if we do more sub-iterations. To test this we compare the phase-field \( \phi_{ij}^{n+1,m-1} \) after \( m-1 \) sub-iterations with the phase-field \( \phi_{ij}^{n+1,m} \) after m sub-iterations. As sub-iterations increase , \( m\to\infty \) we expect the difference between both phase-fields to go to zero \( \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} \to 0 \)
 </p>
 
-<div id="org465bf54" class="figure">
+<div id="org63ae78c" class="figure">
 <p><img src="images/convergence.svg" alt="convergence.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 4: </span>stability of the original CH solver for increasing sub-iterations</p>
+<p><span class="figure-number">Figure 8: </span>stability of the original CH solver for increasing sub-iterations</p>
 </div>
 
 <p>
@@ -960,58 +1035,58 @@ in practise we observe the behaviour we expect, where an increasing number of su
 </p>
 </div>
 </div>
-<div id="outline-container-orgeee6482" class="outline-4">
-<h4 id="orgeee6482"><span class="section-number-4">3.3.2.</span> stability under refinment in time</h4>
-<div class="outline-text-4" id="text-3-3-2">
+<div id="outline-container-org2720636" class="outline-3">
+<h3 id="org2720636"><span class="section-number-3">4.4.</span> stability under refinment in time</h3>
+<div class="outline-text-3" id="text-4-4">
 <p>
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 </p>
 
 
 
-<div id="orgafd3357" class="figure">
+<div id="org84e3c3f" class="figure">
 <p><img src="images/time-stability.svg" alt="time-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 5: </span>behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.</p>
+<p><span class="figure-number">Figure 9: </span>behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.</p>
 </div>
+
 
 <p>
 In this experiment we ran our solver on a fixed length time intervall ie. we ran our solver for one time.step with \( \Delta t = 10^{-2}  \) , for two time-steps with \( \Delta t = \frac{10^{-2}}{2}  \) and so on until 64 time-steps with \( \Delta t = \frac{10^{-2}}{64}  \).
 </p>
 </div>
 </div>
-<div id="outline-container-org6962f70" class="outline-4">
-<h4 id="org6962f70"><span class="section-number-4">3.3.3.</span> stability under refinement in space</h4>
-<div class="outline-text-4" id="text-3-3-3">
+<div id="outline-container-org4b740b4" class="outline-3">
+<h3 id="org4b740b4"><span class="section-number-3">4.5.</span> stability under refinement in space</h3>
+<div class="outline-text-3" id="text-4-5">
 <p>
-We expect our methods to be stable in space. Therefore we expect
+We expect our methods to be stable under different grid-sizes \( h \) and gridpoints \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
 </p>
 
-<div id="orgd33a11d" class="figure">
+<div id="org7a5ebd8" class="figure">
 <p><img src="images/space-stability.svg" alt="space-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 6: </span>behavior of the baseline solver while solving on successively finer grids</p>
+<p><span class="figure-number">Figure 10: </span>behavior of the baseline solver while solving on successively finer grids</p>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div id="outline-container-org62093b2" class="outline-2">
-<h2 id="org62093b2"><span class="section-number-2">4.</span> Relaxed problem</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org36e6dc2" class="outline-2">
+<h2 id="org36e6dc2"><span class="section-number-2">5.</span> Relaxed problem</h2>
+<div class="outline-text-2" id="text-5">
 <p>
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 </p>
 \begin{align}
-\label{org67e447c}
+\label{orgd7f0f0c}
 - \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha,
 \end{align}
 <p>
-where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation \eqref{orge2de12c} as  \( \alpha \to \infty \).
-This results in the following relaxation for the classical CH equation \eqref{orge2de12c}:
+where \( \alpha \) is a relaxation parameter. We expect to approach the original solution of the CH equation \eqref{org2195ee2} as  \( \alpha \to \infty \).
+This results in the following relaxation for the classical CH equation \eqref{org2195ee2}:
 </p>
 \begin{equation}
-\label{org76ec748}
+\label{org97e4438}
 \begin{aligned}
 \partial_t \phi^\alpha  &= \Delta \mu \\
 \mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
@@ -1025,21 +1100,21 @@ It requires solving the elliptical PDE each time-step to calculate \(c\).
 As ansatz for the numerical solver we propose:
 </p>
 \begin{equation}
-\label{org159a4c7}
+\label{org11389a7}
 \begin{aligned}
 \frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \\
  \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
 \end{aligned}
 \end{equation}
 <p>
-This approach is inspired by \eqref{org0070ba9} adapted to the relaxed CH equation \eqref{org159a4c7}.
-We then adapt the multi-grid solver proposed in <a href="#org9b156e1">2</a> to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org2cc775a},
+This approach is inspired by \eqref{org6491617} adapted to the relaxed CH equation \eqref{org11389a7}.
+We then adapt the multi-grid solver proposed in <a href="#org0f5bd6b">3</a> to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in \eqref{org2f89cbf},
 and expand them.
 </p>
 </div>
-<div id="outline-container-org4b89127" class="outline-3">
-<h3 id="org4b89127"><span class="section-number-3">4.1.</span> Elliptical PDE:</h3>
-<div class="outline-text-3" id="text-4-1">
+<div id="outline-container-orgd34dd6f" class="outline-3">
+<h3 id="orgd34dd6f"><span class="section-number-3">5.1.</span> Elliptical PDE:</h3>
+<div class="outline-text-3" id="text-5-1">
 <p>
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
 </p>
@@ -1051,11 +1126,11 @@ In order to solve the relaxed CH equation we solve the following PDE in each  ti
 Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
 </p>
 </div>
-<div id="outline-container-org87dd52a" class="outline-4">
-<h4 id="org87dd52a"><span class="section-number-4">4.1.1.</span> Discretization</h4>
-<div class="outline-text-4" id="text-4-1-1">
+<div id="outline-container-orge75ed93" class="outline-4">
+<h4 id="orge75ed93"><span class="section-number-4">5.1.1.</span> Discretization</h4>
+<div class="outline-text-4" id="text-5-1-1">
 <p>
-The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation \eqref{org67e447c}.
+The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation \eqref{orgd7f0f0c}.
 </p>
 \begin{align*}
 - \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
@@ -1082,12 +1157,12 @@ The discretization of the PDE expands the differential operators in the same way
 As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 </p>
 \begin{align}
-\label{orgd4c1952}
+\label{orge68a534}
 -\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
 \end{align}
 
 <p>
-solving \eqref{orgd4c1952} for \(c_{ij}^\alpha \) then results in.
+solving \eqref{orge68a534} for \(c_{ij}^\alpha \) then results in.
 </p>
 \begin{align*}
 \left( \frac{\Sigma_{Gij}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}\\
@@ -1098,7 +1173,7 @@ c_{ij}^{\alpha} = \frac{\alpha h^2 \phi^{\alpha}_{ij}}{\Sigma_{Gij} + \alpha h^2
 and can be translated to code as follows
 </p>
 <div class="org-src-container">
-<pre class="src src-julia" id="orge703bac"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">n</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span>  <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">relaxed_multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">adapted_relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
+<pre class="src src-julia" id="orgf63fa27"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">n</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span>  <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">relaxed_multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">adapted_relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
     <span style="color: #fb4934;">for</span> <span style="color: #83a598;">k</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">n</span>
         <span style="color: #fb4934;">for</span> <span style="color: #83a598;">i</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">len</span><span style="color: #fabd2f;">+</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
             <span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">2</span><span style="color: #fb4934;">:</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">width</span><span style="color: #fabd2f;">+</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
@@ -1118,11 +1193,11 @@ and can be translated to code as follows
 </div>
 </div>
 </div>
-<div id="outline-container-orgcb3106c" class="outline-3">
-<h3 id="orgcb3106c"><span class="section-number-3">4.2.</span> Relaxed PDE as operator L</h3>
-<div class="outline-text-3" id="text-4-2">
+<div id="outline-container-orgba61ae7" class="outline-3">
+<h3 id="orgba61ae7"><span class="section-number-3">5.2.</span> Relaxed PDE as operator L</h3>
+<div class="outline-text-3" id="text-5-2">
 <p>
-We reformulate the discretization \eqref{org159a4c7} in terms of the relaxed operator \(L\) as follows:
+We reformulate the discretization \eqref{org11389a7} in terms of the relaxed operator \(L\) as follows:
 </p>
 \begin{align*}
 L_r
@@ -1151,9 +1226,37 @@ DL_r\begin{pmatrix}
 \end{align*}
 </div>
 </div>
-<div id="outline-container-org7b950d3" class="outline-3">
-<h3 id="org7b950d3"><span class="section-number-3">4.3.</span> SMOOTH operator</h3>
-<div class="outline-text-3" id="text-4-3">
+<div id="outline-container-org5e215a4" class="outline-3">
+<h3 id="org5e215a4"><span class="section-number-3">5.3.</span> The relaxed multigrid method</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the <a href="#org54567a3">3.6</a>.
+In the executions for each time step, we add the elliptic solver in the subiteration.
+</p>
+<div class="org-src-container">
+<pre class="src src-julia"><span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">timesteps</span>
+
+    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
+
+    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">i</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">subiterations</span>
+
+        <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+    <span style="color: #fb4934;">end</span>
+<span style="color: #fb4934;">end</span>
+</pre>
+</div>
+
+
+<div id="org3e6deb0" class="figure">
+<p><img src="images/relaxed-anim.gif" alt="relaxed-anim.gif" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgf4c833d" class="outline-3">
+<h3 id="orgf4c833d"><span class="section-number-3">5.4.</span> SMOOTH operator</h3>
+<div class="outline-text-3" id="text-5-4">
 <p>
 The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing, evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the previous SMOOTH iteration.
 </p>
@@ -1162,7 +1265,7 @@ The relaxed solver uses the same approach as the original solver, where we solve
 Correspondingly the SMOOTH operation expands to:
 </p>
 \begin{equation}
-\label{orgdbb2590}
+\label{org0e38c12}
 \begin{aligned}
   -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
  \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha}
@@ -1199,7 +1302,7 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
  \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
 \end{align*}
 <div class="org-src-container">
-<pre class="src src-julia" id="org9b94b77"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
+<pre class="src src-julia" id="orgb1648f0"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">SMOOTH!</span><span style="color: #ebdbb2; background-color: #282828;">(</span>
     <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">iterations</span><span style="color: #ebdbb2; background-color: #282828;">,</span>
     <span style="color: #83a598;">adaptive</span>
@@ -1222,10 +1325,10 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
 </div>
 
 
-<div id="orga202a6e" class="figure">
+<div id="orgca68cec" class="figure">
 <p><img src="images/smooth_relaxed.svg" alt="smooth_relaxed.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 7: </span>effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha</p>
+<p><span class="figure-number">Figure 11: </span>effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha</p>
 </div>
 
 <p>
@@ -1248,11 +1351,14 @@ Monte Carlo Optimizer For \( \varepsilon , \alpha \).
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">LinearAlgebra</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">Printf</span>
 <span style="color: #fb4934;">using</span> <span style="color: #83a598;">ProgressBars</span>
-<span style="color: #83a598; font-weight: bold;">default</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">fontfamily</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"computer modern"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">titlefontsize</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">23</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">default</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">fontfamily</span><span style="color: #fb4934;">=</span><span style="color: #b8bb26;">"computer modern"</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">titlefontsize</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">32</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">guidefontsize</span><span style="color: #fb4934;">=</span><span style="color: #d3869b;">32</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">tickfontsize</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">22</span> <span style="color: #ebdbb2; background-color: #282828;">)</span>
+<span style="color: #83a598; font-weight: bold;">pgfplotsx</span><span style="color: #ebdbb2; background-color: #282828;">()</span>
 <span style="color: #83a598;">layout2x2</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">grid</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #83a598;">layout3x1</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; font-weight: bold;">@</span><span style="color: #83a598; font-weight: bold;">layout</span> <span style="color: #ebdbb2; background-color: #282828;">[</span> <span style="color: #83a598;">b</span>  <span style="color: #83a598;">c</span> <span style="color: #ebdbb2; background-color: #282828;">;</span> <span style="color: #83a598;">a</span><span style="color: #ebdbb2; background-color: #282828;">]</span>
+<span style="color: #83a598;">size3x1</span> <span style="color: #fb4934;">=</span> <span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #d3869b;">1600</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #d3869b;">1600</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
 <span style="color: #83a598;">SIZE</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">64</span>
 <span style="color: #83a598;">M</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">testdata</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">SIZE</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">SIZE</span> &#247; <span style="color: #d3869b;">5</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">SIZE</span> <span style="color: #fabd2f;">/</span><span style="color: #d3869b;">5</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">2</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
+
 
 <span style="color: #fb4934;">function</span> <span style="color: #83a598;">test_values</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha_distribution</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">epsilon_distribution</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">Distribution</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">M</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598;">alpha</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598; font-weight: bold;">rand</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">alpha_distribution</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
@@ -1304,108 +1410,85 @@ sadly the MCMC didn&rsquo;t yield results consistent with the original solver af
 </p>
 </div>
 </div>
-<div id="outline-container-org8a93cef" class="outline-3">
-<h3 id="org8a93cef"><span class="section-number-3">4.4.</span> The relaxed V-cycle approach</h3>
-<div class="outline-text-3" id="text-4-4">
+</div>
+<div id="outline-container-orgd01ed8e" class="outline-2">
+<h2 id="orgd01ed8e"><span class="section-number-2">6.</span> Relaxed Experiments</h2>
+<div class="outline-text-2" id="text-6">
 <p>
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the <a href="#org78a735a">2.6</a>.
-In the executions for each time step, we add the elliptic solver in the subiteration.
-</p>
-<div class="org-src-container">
-<pre class="src src-julia"><span style="color: #fb4934;">for</span> <span style="color: #83a598;">j</span> in <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">timesteps</span>
-
-    <span style="color: #83a598; font-weight: bold;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">])</span>
-
-    <span style="color: #fb4934;">for</span> <span style="color: #83a598;">i</span> <span style="color: #fb4934;">=</span> <span style="color: #d3869b;">1</span><span style="color: #fb4934;">:</span><span style="color: #83a598;">subiterations</span>
-
-        <span style="color: #83a598; font-weight: bold;">elyps_solver!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1000</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-        <span style="color: #83a598; font-weight: bold;">v_cycle!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solvers</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #d3869b;">1</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
-    <span style="color: #fb4934;">end</span>
-<span style="color: #fb4934;">end</span>
-</pre>
-</div>
-
-
-<div id="org96195ec" class="figure">
-<p><img src="images/relaxed-anim.gif" alt="relaxed-anim.gif" />
+We expect the relaxed solver to behave the same as the baseline method. Therefor we expect
 </p>
 </div>
-</div>
-</div>
-<div id="outline-container-orga8bc16f" class="outline-3">
-<h3 id="orga8bc16f"><span class="section-number-3">4.5.</span> rate of stability</h3>
-<div class="outline-text-3" id="text-4-5">
-</div>
-<div id="outline-container-org838be5a" class="outline-4">
-<h4 id="org838be5a"><span class="section-number-4">4.5.1.</span> massbal</h4>
-<div class="outline-text-4" id="text-4-5-1">
+<div id="outline-container-org2b9e7d0" class="outline-3">
+<h3 id="org2b9e7d0"><span class="section-number-3">6.1.</span> Relaxed energy evaluations</h3>
+<div class="outline-text-3" id="text-6-1">
 
-<div id="orgdfc26c2" class="figure">
-<p><img src="images/relaxed-mass-balance.svg" alt="relaxed-mass-balance.svg" class="org-svg" />
-</p>
-</div>
-</div>
-</div>
-<div id="outline-container-orga2d8262" class="outline-4">
-<h4 id="orga2d8262"><span class="section-number-4">4.5.2.</span> energy</h4>
-<div class="outline-text-4" id="text-4-5-2">
-
-<div id="org68593a9" class="figure">
+<div id="org36f6ea0" class="figure">
 <p><img src="images/relaxed-energy-balance.svg" alt="relaxed-energy-balance.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 8: </span>energy decay of the relaxed solver compared to the original solver.</p>
+<p><span class="figure-number">Figure 12: </span>energy decay of the relaxed solver compared to the original solver.</p>
 </div>
+
 
 <p>
 We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
 </p>
 </div>
 </div>
-<div id="outline-container-org7cad2e7" class="outline-4">
-<h4 id="org7cad2e7"><span class="section-number-4">4.5.3.</span> convergence of a sub iteration v-cycle</h4>
-<div class="outline-text-4" id="text-4-5-3">
+<div id="outline-container-org1d29008" class="outline-3">
+<h3 id="org1d29008"><span class="section-number-3">6.2.</span> Relaxed numerical mass balance</h3>
+<div class="outline-text-3" id="text-6-2">
 
-<div id="orgd678c6b" class="figure">
+<div id="orgc486084" class="figure">
+<p><img src="images/relaxed-mass-balance.svg" alt="relaxed-mass-balance.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org06f872b" class="outline-3">
+<h3 id="org06f872b"><span class="section-number-3">6.3.</span> Stability of a relaxed multigrid sub-iteration</h3>
+<div class="outline-text-3" id="text-6-3">
+
+<div id="org48494d8" class="figure">
 <p><img src="images/relaxed-convergence.svg" alt="relaxed-convergence.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
-<div id="outline-container-org82932fd" class="outline-4">
-<h4 id="org82932fd"><span class="section-number-4">4.5.4.</span> convergence unter refinment in time</h4>
-<div class="outline-text-4" id="text-4-5-4">
+<div id="outline-container-orgfce2c28" class="outline-3">
+<h3 id="orgfce2c28"><span class="section-number-3">6.4.</span> Stability under refinment in time</h3>
+<div class="outline-text-3" id="text-6-4">
 <p>
 we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
 </p>
 
 
 
-<div id="org33a9e27" class="figure">
+<div id="orgaa97158" class="figure">
 <p><img src="images/relaxed-time-stability.svg" alt="relaxed-time-stability.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 9: </span>behavior of both  solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps</p>
+<p><span class="figure-number">Figure 13: </span>behavior of both  solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps</p>
 </div>
 </div>
 </div>
-<div id="outline-container-orgc616097" class="outline-4">
-<h4 id="orgc616097"><span class="section-number-4">4.5.5.</span> convergence under refinement in space</h4>
-<div class="outline-text-4" id="text-4-5-5">
+<div id="outline-container-org08c7d7b" class="outline-3">
+<h3 id="org08c7d7b"><span class="section-number-3">6.5.</span> Stability under refinement in space</h3>
+<div class="outline-text-3" id="text-6-5">
 <p>
 we test convergence in space by succesivly subdividing our grid into finer meshes
 </p>
 
 
 
-<div id="org358c490" class="figure">
+<div id="org913cb12" class="figure">
 <p><img src="images/relaxed-space-stability.svg" alt="relaxed-space-stability.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
 </div>
-<div id="outline-container-org684d5b1" class="outline-3">
-<h3 id="org684d5b1"><span class="section-number-3">4.6.</span> Comparison</h3>
-<div class="outline-text-3" id="text-4-6">
+<div id="outline-container-org28c1348" class="outline-2">
+<h2 id="org28c1348"><span class="section-number-2">7.</span> Comparison</h2>
+<div class="outline-text-2" id="text-7">
 <p>
 Furthermore we expect the approximation for \( \phi_{ij}^{n+1} \) to converge.
 </p>
@@ -1454,7 +1537,7 @@ In practice we observe the following behaviour:
 
 
 
-<div id="org24e7908" class="figure">
+<div id="orgce719c4" class="figure">
 <p><img src="images/alpha-error.svg" alt="alpha-error.svg" class="org-svg" />
 </p>
 </div>
@@ -1463,11 +1546,17 @@ In practice we observe the following behaviour:
 in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
 </p>
 
+
+<div id="orgb56c40d" class="figure">
+<p><img src="images/relaxed-comp.gif" alt="relaxed-comp.gif" />
+</p>
+</div>
+
 <p>
 although we can observe slight diffrences between the original solver and the relaxed approach they are barely noticalble by eye. Therefore we also show the numerical difference between both.
 </p>
 
-<div id="org3ec42aa" class="figure">
+<div id="orgb55d1dd" class="figure">
 <p><img src="images/relaxed-comparison.gif" alt="relaxed-comparison.gif" />
 </p>
 </div>
@@ -1475,10 +1564,10 @@ although we can observe slight diffrences between the original solver and the re
 
 
 
-<div id="org301382f" class="figure">
+<div id="orgc9de7f6" class="figure">
 <p><img src="images/relaxed-comparison.svg" alt="relaxed-comparison.svg" class="org-svg" />
 </p>
-<p><span class="figure-number">Figure 10: </span>comparison between the original and the relaxed CH solvers.</p>
+<p><span class="figure-number">Figure 14: </span>comparison between the original and the relaxed CH solvers.</p>
 </div>
 
 <p>
@@ -1486,14 +1575,13 @@ Comparing both solvers visually yields little to no difference. Numerically we o
 </p>
 </div>
 </div>
+<div id="outline-container-orge9a6d34" class="outline-2">
+<h2 id="orge9a6d34"><span class="section-number-2">8.</span> Apendix</h2>
+<div class="outline-text-2" id="text-8">
 </div>
-<div id="outline-container-org9a8fc92" class="outline-2">
-<h2 id="org9a8fc92"><span class="section-number-2">5.</span> Apendix</h2>
-<div class="outline-text-2" id="text-5">
-</div>
-<div id="outline-container-org0d81849" class="outline-3">
-<h3 id="org0d81849"><span class="section-number-3">5.1.</span> Operator implementation</h3>
-<div class="outline-text-3" id="text-5-1">
+<div id="outline-container-org16ed1b8" class="outline-3">
+<h3 id="org16ed1b8"><span class="section-number-3">8.1.</span> Operator implementation</h3>
+<div class="outline-text-3" id="text-8-1">
 <div class="org-src-container">
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">set_xi_and_psi!</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">T</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #83a598;">where</span> <span style="color: #83a598;">T</span> <span style="color: #fabd2f;">&lt;:</span> <span style="color: #83a598;">Union</span><span style="color: #ebdbb2; background-color: #282828;">{</span><span style="color: #83a598;">multi_solver</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">}</span>
     <span style="color: #83a598; font-weight: bold;">xi_init</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">x</span><span style="color: #ebdbb2; background-color: #282828;">)</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">x</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">dt</span>
@@ -1505,9 +1593,9 @@ Comparing both solvers visually yields little to no difference. Numerically we o
 </pre>
 </div>
 </div>
-<div id="outline-container-orgb66fec8" class="outline-4">
-<h4 id="orgb66fec8"><span class="section-number-4">5.1.1.</span> baseline</h4>
-<div class="outline-text-4" id="text-5-1-1">
+<div id="outline-container-org8319cbf" class="outline-4">
+<h4 id="org8319cbf"><span class="section-number-4">8.1.1.</span> baseline</h4>
+<div class="outline-text-4" id="text-8-1-1">
 <div class="org-src-container">
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">L</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">phi</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">mu</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598;">xi</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">dt</span> <span style="color: #fabd2f;">-</span>
@@ -1531,9 +1619,9 @@ Comparing both solvers visually yields little to no difference. Numerically we o
 </div>
 </div>
 </div>
-<div id="outline-container-org651f680" class="outline-4">
-<h4 id="org651f680"><span class="section-number-4">5.1.2.</span> relaxed</h4>
-<div class="outline-text-4" id="text-5-1-2">
+<div id="outline-container-org7d5f12d" class="outline-4">
+<h4 id="org7d5f12d"><span class="section-number-4">8.1.2.</span> relaxed</h4>
+<div class="outline-text-4" id="text-8-1-2">
 <div class="org-src-container">
 <pre class="src src-julia"><span style="color: #fb4934;">function</span> <span style="color: #83a598;">L</span><span style="color: #ebdbb2; background-color: #282828;">(</span><span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">::</span><span style="color: #83a598;">relaxed_multi_solver</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span><span style="color: #83a598;">j</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">phi</span> <span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">mu</span><span style="color: #ebdbb2; background-color: #282828;">)</span>
     <span style="color: #83a598;">xi</span> <span style="color: #fb4934;">=</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">phase</span><span style="color: #ebdbb2; background-color: #282828;">[</span><span style="color: #83a598;">i</span><span style="color: #ebdbb2; background-color: #282828;">,</span> <span style="color: #83a598;">j</span><span style="color: #ebdbb2; background-color: #282828;">]</span> <span style="color: #fabd2f;">/</span> <span style="color: #83a598;">solver</span><span style="color: #ebdbb2; background-color: #282828;">.</span><span style="color: #83a598;">dt</span> <span style="color: #fabd2f;">-</span>
@@ -1555,9 +1643,9 @@ Comparing both solvers visually yields little to no difference. Numerically we o
 </div>
 </div>
 </div>
-<div id="outline-container-orge30c13c" class="outline-3">
-<h3 id="orge30c13c"><span class="section-number-3">5.2.</span> rng generation</h3>
-<div class="outline-text-3" id="text-5-2">
+<div id="outline-container-org6536148" class="outline-3">
+<h3 id="org6536148"><span class="section-number-3">8.2.</span> rng generation</h3>
+<div class="outline-text-3" id="text-8-2">
 <p>
 for random point generation we use the folowing Function and seed.
 </p>
@@ -1571,12 +1659,18 @@ for random point generation we use the folowing Function and seed.
 </pre>
 </div>
 
-<pre class="example">
-2×12 Matrix{Int64}:
- 48  40  20   1  63  49   8  60  26  58  26  11
- 17  13  56  52  15   9  30  14  40   9  40  25
-</pre>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
+
+<colgroup>
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">Executing&#x2026; 40732aee</td>
+</tr>
+</tbody>
+</table>
 
 
 <p>
@@ -1585,19 +1679,14 @@ the random testdata is then generated as follows
 </div>
 </div>
 </div>
-<div id="outline-container-org695487a" class="outline-2">
-<h2 id="org695487a"><span class="section-number-2">6.</span> References</h2>
-<div class="outline-text-2" id="text-6">
 <style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Shin, Jaemin, Darae Jeong, and Junseok Kim. 2011. “A Conservative Numerical Method for the Cahn–Hilliard Equation in Complex Domains.” <i>Journal of Computational Physics</i> 230 (19): 7441–55. <a href="https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009">https://doi.org/https://doi.org/10.1016/j.jcp.2011.06.009</a>.</div>
   <div class="csl-entry"><a id="citeproc_bib_item_2"></a>Wu, Hao. 2022. “A Review on the Cahnhilliard Equation: Classical Results and Recent Advances in Dynamic Boundary Conditions.” <i>Electronic Research Archive</i> 30 (8): 2788–2832. <a href="https://doi.org/10.3934/era.2022143">https://doi.org/10.3934/era.2022143</a>.</div>
 </div>
 </div>
-</div>
-</div>
 <div id="postamble" class="status">
 <p class="author">Author: Jonathan Ulmer</p>
-<p class="date">Created: 2024-06-05 Wed 11:45</p>
+<p class="date">Created: 2024-06-07 Fri 20:14</p>
 </div>
 </body>
 </html>
