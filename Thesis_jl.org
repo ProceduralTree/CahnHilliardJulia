@@ -7,7 +7,7 @@
  #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results  :noweb no-export :session jl :eval yes :cache yes
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :cache yes
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
@@ -915,7 +915,7 @@ As ansatz for the numerical solver we propose:
 This approach is inspired by Eq.[[eq:discrete-cahn-hilliard]] adapted to the relaxed CH equation Eq.[[eq:discrete-relaxed-cahn-hilliard]].
 We then adapt the multi-grid solver proposed in [[Baseline multi-grid solver]] to the relaxed problem by replacing the differential operators by their discrete counterparts as defined in Eq.[[eq:discretization]],
 and expand them.
-** Elliptical PDE:
+** Elliptical PDE
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
 \begin{align*}
 - \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha
@@ -1219,6 +1219,7 @@ savefig(p , "images/relaxed-energy-balance.svg")
 
 We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
 ** Relaxed numerical mass balance
+since both the CH equation Eq.[[eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach.
 #+name: fig:relaxed-mass-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg
 <<init>>
@@ -1320,8 +1321,8 @@ Should the relaxed solver approach the original, we would expect
 \begin{equation}
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}||_{Fr} \to 0
 \end{equation}
-In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver does not converge.
-#+begin_src julia :noweb no-export :eval never :tangle experiments/src/alpha.jl
+In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver from chapter [[Elliptical PDE]] does not converge.
+#+begin_src julia :noweb no-export :eval never :tangle experiments/src/alpha.jl :exports results
 <<init>>
 using JLD2
 using Distributed
@@ -1358,16 +1359,19 @@ jldsave("experiments/alpha.jld2"; result)
 #+end_src
 #+name: fig:alpha-error
 #+begin_src julia-vterm :results graphics file :file alpha-error.svg
-<<init>>
 using JLD2
 using DataFrames
 using Measures
+<<init>>
+
+pgfplotsx()
 results = jldopen("experiments/alpha.jld2")["result"]
-p=plot(results.alpha  , results.error ./64^2, label=false)
+p=plot(results.alpha  , results.error ./64^2, label=false , xlabel=L"alpha $\alpha$" , ylabel="difference" )
 savefig(p, "images/alpha-error.svg")
 #+end_src
 
-#+RESULTS[121043d8f9c4f2b2fa892b5fb230c2ee34fad429]: fig:alpha-error
+#+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \)
+#+RESULTS[cd5058dea24342ec78fa89393da40207fc1a5fab]: fig:alpha-error
 [[file:images/alpha-error.svg]]
 
 
