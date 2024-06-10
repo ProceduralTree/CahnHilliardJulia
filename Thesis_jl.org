@@ -7,12 +7,12 @@
  #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :cache yes
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :cache yes :session jl
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
 
-* Titlepage :ignore:
+* Title-page :ignore:
 #+begin_export latex
 \makeatletter
 \begin{titlepage}
@@ -52,6 +52,25 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 #+TOC: headlines 3
 
 * Introduction
+The Cahn Hilliard equation is a well known fourth order PDE used in multiphase flow, to couple fifferent phases. It is used in a diffused interace approach. A diffuse interphase, as compared to a sharp interface has a smooth transition between phases, as shown in Fig.[[fig:sharp-diffuse]]
+#+name: fig:sharp-diffuse
+#+begin_src julia-vterm :results file output :file diffuse-sharp.svg
+<<init>>
+<<setup-diverse-testgrids>>
+sharp = testgrid(multi_solver,M, 2)
+diffuse = testgrid(multi_solver,M, 2)
+set_xi_and_psi!(diffuse[1])
+SMOOTH!(diffuse[1] , 100, true)
+p1 = heatmap(sharp[1].phase , title="sharp" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
+p2 = heatmap( diffuse[1].phase , title="diffuse" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
+p=plot(p1,p2)
+savefig(p,"images/diffuse-sharp.svg")
+#+end_src
+
+#+caption: Exmaple of a diffuse and a sharp interphase
+#+RESULTS[a503b120965966f072aded2fe7f565eaa686891e]: fig:diffuse-sharp
+[[file:images/diffuse-sharp.svg]]
+
  This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain  \( \Omega \times [0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
@@ -237,19 +256,21 @@ end
 
 We then define the discrete derivatives \( D_x\phi_{ij}, \ D_y\phi_{ij} \) using centred differences:
 \begin{align}
-D_x\phi_{i+\frac{1}{2} j} &= \frac{\phi_{i+1j} - \phi_{ij}}{h} & D_y\phi_{ij+\frac{1}{2}} &= \frac{\phi_{ij+1} - \phi_{ij}}{h}
+D_x\phi^{n+1,m}_{i+\frac{1}{2} j} &= \frac{\phi^{n+1,m}_{i+1j} - \phi^{n+1,m}_{ij}}{h} & D_y\phi^{n+1,m}_{ij+\frac{1}{2}} &= \frac{\phi^{n+1,m}_{ij+1} - \phi^{n+1,m}_{ij}}{h}
 \end{align}
-We define \( D_x\mu_{ij}^{n+\frac{1}{2}} , D_y\mu_{ij}^{n+\frac{1}{2}} \) in the same way.
-Next we define the discrete gradient \( \nabla_d \phi_{ij}\), as well as a modified Laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\):
+We define \( D_x\mu_{ij}^{n+\frac{1}{2},m} , D_y\mu_{ij}^{n+\frac{1}{2},m} \) in the same way.
+Next we define the discrete gradient \( \nabla_d \phi^{n+1,m}_{ij}\), as well as a modified Laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij} )\):
 
 
 #+name: eq:discretization
 \begin{align}
-\nabla_d \phi_{ij} &= (D_x \phi_{i+1j} , \ D_y \phi_{ij+1}) \\
- \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi_{i+\frac{1}{2}j} -  G_{i-172}D_x \phi_{i-\frac{1}{2}j} + D_y \phi_{ij+\frac{1}{2}} - D_y \phi_{ij-\frac{1}{2}}}{h},
+\nabla_d \phi^{n+1,m}_{ij} &= \left(D_x \phi^{n+1,m}_{i+1j} , \ D_y \phi^{n+1,m}_{ij+1}\right) \\
+ \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi^{n+1,m}_{i+\frac{1}{2}j} -  G_{i-172}D_x \phi^{n+1,m}_{i-\frac{1}{2}j} + D_y \phi^{n+1,m}_{ij+\frac{1}{2}} - D_y \phi^{n+1,m}_{ij-\frac{1}{2}}}{h} \\
+  &= \frac{ G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n +,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n +,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n +,m}_{ij-1}    }{h^2}\\
+& \, - \frac{\left(   G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \cdot \phi_{ij} \right)}{h^2}
 \end{align}
  We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions [[eq:boundary-conditions]].
-the discretizations for \(  \nabla_d\mu_{ij}^{n+\frac{1}{2}} ,  \nabla_d \cdot (G_{ij} \nabla_d \mu_{ij}) \) are done the same as for \( \phi_{ij}^{n+1} \)
+the discretizations for \(  \nabla_d\mu_{ij}^{n+\frac{1}{2},m} ,  \nabla_d \cdot (G_{ij} \nabla_d \mu^{n+\frac{1}{2},m}_{ij}) \) are done the same as for \( \phi_{ij}^{n+1} \)
 
  The authors in [cite:@SHIN20117441] show this to be the case by expanding \( \nabla_d \cdot (G_{ij} \nabla_d\phi_{ij}) \).
 
@@ -257,7 +278,7 @@ notably, when one point lies outside the domain, then \( G_{i \pm \frac{1}{2}} =
 The authors in [cite:@SHIN20117441]
 
 To simplify the notation for discretized derivatives we use the following abbreviations:
-- \(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + \frac{1}{2},m}_{ij-1}  \)
+- \(  \Sigma_G \phi_{ij} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n +1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n +1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n +1,m}_{ij-1}  \)
 - \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \)
 Code:
 #+begin_src julia :tangle src/utils.jl :eval never
@@ -481,7 +502,7 @@ function SMOOTH!(
     adaptive
 ) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
     for k = 1:iterations
-        old_phase = copy(solver.phase)
+        # old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
 
@@ -494,7 +515,7 @@ function SMOOTH!(
     end
 end
 #+end_src
-
+In Fig.[[fig:smoothing-examples]] we show 4 of the 7 initial data after one 200 iterations of smoothing. It is apparent that the sharp interface from the initial Data has diffused.
 #+name: fig:smoothing-examples
 #+begin_src julia-vterm :results file graphics  :file smooth.svg
 <<input>>
@@ -502,7 +523,7 @@ end
 plots= []
 for t in tests
 set_xi_and_psi!(t[1])
-SMOOTH!(t[1], 2, true);
+SMOOTH!(t[1], 200, true);
 end
 plots =[  heatmap(t[1].phase ,  legend=:none , aspectratio=:equal , grid=false , showaxis=false , size=(600,600))
           for t in tests[1:2:end]]
@@ -512,16 +533,17 @@ savefig(p,"images/smooth.svg")
 #+end_src
 
 #+caption: inputs from [[Initial data]] after SMOOTH.
-#+RESULTS: fig:smoothing-examples
+#+RESULTS[fdb9207550b6615253fa672f5417f153b861be3b]: fig:smoothing-examples
 [[file:images/smooth.svg]]
 
 ** Multigrid method
-Notably the sharp interphase of the  initial phase-fields has been smoothed, and the values are between \( -1,1 \).
 The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of.
 1. a Gauss-Seidel relaxation for smoothing Chapter [[SMOOTH operator]].
-2. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
-3. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+2. calculate the residual error in phase and potential \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \).
+3. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
+4. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
    we solve using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
+5. post smoothing
 
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
@@ -537,7 +559,6 @@ u_large = zeros(size(d_large))
 v_large = zeros(size(d_large))
 
 #+end_src
-
 #+name: prolong-to-fine-grid
 #+begin_src julia :eval never :exports none
 u_large = solver.phase .- solution.phase
@@ -549,7 +570,6 @@ solver.phase .+= prolong(u_large , G)
 solver.potential .+= prolong(v_large, G)
 
 #+end_src
-
 The V-cycle of a two-grid method using pre and post smoothing is then stated by:
 #+begin_src julia :tangle src/multisolver.jl :eval never :noweb no-export
 function v_cycle!(grid::Array{T}, level) where T <: solver
@@ -727,7 +747,7 @@ savefig(p , "images/mass_balance.svg")
 #+RESULTS: fig:mass-balance
 [[file:images/mass_balance.svg]]
 
-** stability of a multigrid sub iteration
+** Stability of a multigrid sub iteration
 We expect our solver to stay stable when increasing the number of multigrid sub-iterations. To validate this assumption we compare the phase-field of the current sub-iteration \( \phi^{n+1,m}_{ij} \) with the phse-field of the previous sub-iteration \( \phi_{ij}^{n+1,m-1} \).
 \begin{equation}
 \| \phi^{n+1,m-1} - \phi^{n+1,m} \|_{Fr}= \sqrt{ \sum_{i,j \in \Omega_d} \left|   \phi^{n+1,m-1}_{ij} - \phi^{n+1,m}_{ij} \right| }
@@ -795,7 +815,7 @@ savefig(p , "images/subiteration.svg")
 #+RESULTS:
 [[file:images/subiteration.svg]]
 
-** stability under refinment in time
+** Stability in time
 We expect our numerical error to decrease when calculating with smaller time steps. To test this, we  succesivly subdivide the original time interval \( [0,T] \) in finer parts. We fix \( \Delta t \cdot n = T \) for \( T=10^{-2} \) and test different values of \( n \). In Figure [[fig:stability-in-time]] we compare the phase-field \( \phi^{n}_{ij} \) and \( \phi^{n-1}_{ij}  \) at \( T=10^{-2} \). and observe the decrease we expect.
 #+name: fig:stability-in-time
 #+begin_src julia-vterm :results file graphics :file time-stability.svg
@@ -840,7 +860,7 @@ savefig(p , "images/time-stability.svg")
 #+RESULTS[c9dd717190350aef1329f2cbdb26859677756133]: fig:stability-in-time
 [[file:images/time-stability.svg]]
 
-** stability under refinement in space
+** Stability in space
 We expect our methods to be stable under different grid-sizes \( h \) and gridpoints \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
 #+name: fig:stability-in-space
 #+begin_src julia-vterm :results file graphics :file space-stability.svg
@@ -1096,7 +1116,7 @@ function SMOOTH!(
     adaptive
 ) where T <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
     for k = 1:iterations
-        old_phase = copy(solver.phase)
+        # old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
             <<solve-for-phi>>
@@ -1139,57 +1159,6 @@ savefig(p,"images/smooth_relaxed.svg")
 
 Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since alpha had an effect similar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen independently. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can.
 Monte Carlo Optimizer For \( \varepsilon , \alpha \).
-#+begin_src julia :tangle src/optim.jl :noweb yes
-using Distributions
-using DataFrames
-using JLD2
-<<init>>
-
-function test_values(alpha_distribution::Distribution , epsilon_distribution::Distribution , M)
-    alpha = rand(alpha_distribution)
-    eps = max(rand(epsilon_distribution)  ,1e-10)
-    relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
-    set_xi_and_psi!(relaxed_solver[1])
-    #SMOOTH!(relaxed_solver[1], 100, false)
-    for j=1:64
-    elyps_solver!(relaxed_solver[1], 2000)
-    v_cycle!(relaxed_solver , 1)
-    end
-    error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
-    return (;alpha=alpha , epsilon=eps , error=error)
-end
-
-original_solver = testgrid(multi_solver, M, 2)
-set_xi_and_psi!(original_solver[1])
-for j=1:64
-v_cycle!(original_solver , 1)
-end
-#SMOOTH!(original_solver[1], 100, false);
-eps = 3e-3
-#M = testdata(64, div(64,3), 64/5 , 2)
-alpha0 = 10000
-epsilon0 = 1e-2
-best_alpha = alpha0 / 10
-best_epsilon = epsilon0 / 10
-best_error  = Inf
-results = DataFrame()
-for n=1:1000
-    searchradius = 1
-    alpha_distribution = Normal(best_alpha , searchradius * alpha0)
-    epsilon_distribution = Normal(best_epsilon , searchradius * epsilon0)
-    result = test_values(alpha_distribution , epsilon_distribution , M)
-    if result.error < best_error
-        global best_error = result.error
-        global best_alpha = result.alpha
-        global best_epsilon = result.epsilon
-        println(result)
-    end
-push!(results , result)
-end
-jldsave("experiments/alpha-epsilon.jld2"; result=results)
-println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
-#+end_src
-sadly the MCMC didn't yield results consistent with the original solver after a few Iterations
 * Relaxed Experiments
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
 ** Relaxed energy evaluations
@@ -1219,14 +1188,14 @@ savefig(p , "images/relaxed-energy-balance.svg")
 
 We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
 ** Relaxed numerical mass balance
-since both the CH equation Eq.[[eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach.
+since both the CH equation Eq.[[eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach. Our relaxed solver shows  mass loss around 2% as seen in Fig.[[fig:relaxed-mass-balance]]. This is nowhere near the machine precision, we reached in Fig.[[fig:mass-balance]]. However it is still tolerable.
 #+name: fig:relaxed-mass-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
 using Measures
-i0 = 64 * 3+1
+i0 = 64 * 0+1
 results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
@@ -1236,10 +1205,12 @@ p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
 savefig(p , "images/relaxed-mass-balance.svg")
 #+end_src
 
-#+RESULTS: fig:relaxed-mass-balance
+#+caption: Mass los in the relaxed solver
+#+RESULTS[178f08c5de1dc17908fc5f5b85bbb77b27d17b9f]: fig:relaxed-mass-balance
 [[file:images/relaxed-mass-balance.svg]]
-** Stability of a relaxed multigrid sub-iteration
 
+** Stability of a relaxed multigrid sub-iteration
+We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). Here we observe instablility at about 60 sub-iterations in Fig.[[fig:relaxed-convergence]]. We are uncertain, as to why.
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
 <<init>>
@@ -1270,10 +1241,8 @@ savefig(p , "images/relaxed-convergence.svg")
 #+RESULTS: fig:relaxed-convergence
 [[file:images/relaxed-convergence.svg]]
 
-** Stability under refinment in time
-we test the bahaviour unter refinement in time by succesivly subdeviding the original time interval \( [0,T] \) in finer parts
-
-
+** Relaxed stability in time
+we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time. However since the sub-iteration showed problematic behaviour, this micht also be a side-effect of this.
 #+name: fig:relaxed-stability-in-time
 #+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg
 <<init>>
@@ -1291,11 +1260,11 @@ p = plot(p , change0 , ylabel = "difference" , xlabel = "number of timesteps" , 
 savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
-#+Caption: behavior of both  solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of timesteps
+#+Caption: behavior of the relaxed and baseline solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
 #+RESULTS: fig:relaxed-stability-in-time
 [[file:images/relaxed-time-stability.svg]]
 
-** Stability under refinement in space
+** Relaxed stability in space
 we test convergence in space by succesivly subdividing our grid into finer meshes
 
 
@@ -1373,9 +1342,6 @@ savefig(p, "images/alpha-error.svg")
 #+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \)
 #+RESULTS[cd5058dea24342ec78fa89393da40207fc1a5fab]: fig:alpha-error
 [[file:images/alpha-error.svg]]
-
-
-
 #+begin_src julia-vterm :results file graphics :file relaxed-comp.gif
 <<init>>
 using JLD2
@@ -1400,8 +1366,8 @@ anim = @animate for iter in zip(results.solver,results1.solver ,results2.solver 
     end
 gif(anim , "images/relaxed-comp.gif", fps=10)
 #+end_src
-
-although we can observe slight diffrences between the original solver and the relaxed approach they are barely noticalble by eye. Therefore we also show the numerical difference between both.
+although we can observe slight differences between the original solver and the relaxed approach they are barely noticeable by eye. Therefore we run our solver for a fixed value of \( \alpha=7700 \) , as this was one of the best values from Fig.[[fig:alpha-error]], We then  show the numerical difference between \( \phi_{ij}^n \) and \( \phi_{ij}^{n,\alpha} \) in Fig.[[fig:relaxed-original-comparison]]. We observe a a small difference between both methods, especially in areas with high curvature and inclusions of small segments of one phase in the other.
+#+name: relaxed-comparison
 #+begin_src julia-vterm :results file graphics :file relaxed-comparison.gif
 <<init>>
 using JLD2
@@ -1428,9 +1394,6 @@ gif(anim , "images/relaxed-comparison.gif", fps=10)
 
 #+RESULTS:
 [[file:images/relaxed-comparison.gif]]
-
-
-
 #+name: fig:relaxed-original-comparison
 #+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg
 <<init>>
@@ -1440,27 +1403,96 @@ using Measures
 using LaTeXStrings
 
 i = 0*64 +1
-gr()
-
+pgfplotsx()
 original_results = jldopen("experiments/iteration.jld2")["result"]
 relaxed_results = jldopen("experiments/relaxed-iteration.jld2")["result"]
 
 difference = [norm(original.phase .- relaxed.phase) /64^2 for (original, relaxed) in zip(original_results.solver[i:i+63],relaxed_results.solver[i:i+63])
 ]
 original, relaxed =   original_results.solver[i+63],relaxed_results.solver[i+63]
-p1 = plot(1:size(difference,1) , difference , xlabel= "time-steps" , ylabel = "error"  , title="diffrence" , label=false)
-p2 = heatmap(original.phase , title=L"original at $n=64$" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
-p3 = heatmap(relaxed.phase , title=L"relaxed at $n=64$" , aspectratio=:equal , grid=false , showaxis=false , legend=:none)
-p=plot(p1,p2,p3 , layout=(1,3) , size=(2000 ,700) , bottom_margin=20Plots.mm , left_margin=20Plots.mm)
+
+p1 = plot(1:size(difference,
+                 1) ,
+          difference ,
+          xlabel= "time-steps" ,
+          ylabel = "error"  ,
+          title="diffrence" ,
+          label=false)
+
+p2 = heatmap(original.phase ,
+             title=L"original at $n=64$" ,
+             legend=:none ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false)
+p3 = heatmap(relaxed.phase ,
+             title=L"relaxed at $n=64$" ,
+             aspectratio=:equal ,
+             grid=false ,
+             showaxis=false ,
+             legend=:none)
+p=plot(p1,
+       p2,
+       p3 ,
+       layout=Layout3x1 ,
+       size=size3x1 )
 savefig(p , "images/relaxed-comparison.svg")
 #+end_src
 
 #+caption: comparison between the original and the relaxed CH solvers.
-#+RESULTS: fig:relaxed-original-comparison
-[[file:images/relaxed-comparison.svg]]
 
-Comparing both solvers visually yields little to no difference. Numerically we observe small discrepancies. However with values around \( 10^{-3} \) after 64 time-steps we are still far from the maximum error of 4, which would correspond to the inverse of the original phase.
+In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to opmimize \( \alpha \) in conjuvtion with \( \varepsilon \) to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3).
 
+#+begin_src julia :tangle src/optim.jl :noweb yes
+using Distributions
+using DataFrames
+using JLD2
+<<init>>
+
+function test_values(alpha_distribution::Distribution , epsilon_distribution::Distribution , M)
+    alpha = rand(alpha_distribution)
+    eps = max(rand(epsilon_distribution)  ,1e-10)
+    relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
+    set_xi_and_psi!(relaxed_solver[1])
+    #SMOOTH!(relaxed_solver[1], 100, false)
+    for j=1:64
+    elyps_solver!(relaxed_solver[1], 2000)
+    v_cycle!(relaxed_solver , 1)
+    end
+    error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
+    return (;alpha=alpha , epsilon=eps , error=error)
+end
+
+original_solver = testgrid(multi_solver, M, 2)
+set_xi_and_psi!(original_solver[1])
+for j=1:64
+v_cycle!(original_solver , 1)
+end
+#SMOOTH!(original_solver[1], 100, false);
+eps = 3e-3
+#M = testdata(64, div(64,3), 64/5 , 2)
+alpha0 = 10000
+epsilon0 = 1e-2
+best_alpha = alpha0 / 10
+best_epsilon = epsilon0 / 10
+best_error  = Inf
+results = DataFrame()
+for n=1:1000
+    searchradius = 1
+    alpha_distribution = Normal(best_alpha , searchradius * alpha0)
+    epsilon_distribution = Normal(best_epsilon , searchradius * epsilon0)
+    result = test_values(alpha_distribution , epsilon_distribution , M)
+    if result.error < best_error
+        global best_error = result.error
+        global best_alpha = result.alpha
+        global best_epsilon = result.epsilon
+        println(result)
+    end
+push!(results , result)
+end
+jldsave("experiments/alpha-epsilon.jld2"; result=results)
+println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
+#+end_src
 * Apendix
 ** Operator implementation
 #+begin_src julia :tangle src/utils.jl :eval never
@@ -2074,6 +2106,7 @@ testgrd = testgrid(multi_solver,M, 2)
 test_solver = testgrd[1]
 #+end_src
 
+
 #+name: setup-relaxed-grid
 #+begin_src julia :eval never :noweb yes
 <<init>>
@@ -2128,6 +2161,59 @@ tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 
 
+* Conclusion
+In this thesis we have presented a simple introduction to the CH equation and have shown 2 numerical solvers for it. We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach. We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441]. We have introduced messures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour. We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures. We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and massloss. We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations. It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other. As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters. The baseline solver was able to run with 10x less smoothing iterations than the relaxed one. A fair comparison would hence require to find the optimal number of smoothing for each solver.
+
+
+For the sake of compleetness we include runtime benchmarks Of both methods. Those should be taken with a pinch of salt because of the reasons above. Both examples are run with the same parameters.
+#+begin_src julia-vterm :results value :sync
+using BenchmarkTools
+<<init>>
+<<setup-diverse-testgrids>>
+
+relaxed_grid= testgrid(relaxed_multi_solver, M , 2)
+baseline_grid = testgrid(multi_solver, M , 2)
+function test(s::Array{multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        v_cycle!(s , 1)
+    end
+    end
+
+function test(s::Array{relaxed_multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        elyps_solver!(s[1] , 1000)
+        v_cycle!(s , 1)
+    end
+    end
+# b1 = @benchmark test(baseline_grid)
+#b2 = @benchmark test(relaxed_grid)
+#b2
+#+end_src
+
+#+RESULTS[8eeb500671b68950e0d0d2ce8c4d70a92b0b2b9b]:
+: Executing... 1a392143
+
+
+#+begin_example
+BenchmarkTools.Trial: 1 sample with 1 evaluation.
+ Single result which took 8.938 s (3.95% GC) to evaluate,
+ with a memory estimate of 3.36 GiB, over 63995963 allocations.
+#+end_example
+
+#+begin_example
+BenchmarkTools.Trial: 5 samples with 1 evaluation.
+ Range (min … max):  1.030 s …    1.304 s  ┊ GC (min … max): 3.26% … 2.74%
+ Time  (median):     1.068 s               ┊ GC (median):    3.14%
+ Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
+
+  █      ██                    █                           █
+  █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  1.03 s         Histogram: frequency by time          1.3 s <
+
+ Memory estimate: 293.88 MiB, allocs estimate: 5013565.
+#+end_example
 * References :ignore:
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization

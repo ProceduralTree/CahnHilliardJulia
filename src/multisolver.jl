@@ -4,7 +4,7 @@ function SMOOTH!(
     adaptive
 ) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
     for k = 1:iterations
-        old_phase = copy(solver.phase)
+        # old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
 
