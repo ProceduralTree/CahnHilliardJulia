@@ -52,43 +52,19 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 #+TOC: headlines 3
 
 * Introduction
-The Cahn Hilliard equation is a well known fourth order PDE used in multiphase flow.It is used to couple different phases with a diffuse interface approach, as compared to a sharp interface approach. Therefore it has a smooth transition between phases, as shown in Fig.[[fig:sharp-diffuse]].
-#+name: fig:sharp-diffuse
-#+begin_src julia-vterm :results file output :file diffuse-sharp.svg 
-<<init>>
-<<setup-diverse-testgrids>>
-sharp = testgrid(multi_solver,M, 2)
-diffuse = testgrid(multi_solver,M, 2)
-set_xi_and_psi!(diffuse[1])
-SMOOTH!(diffuse[1] , 100, true)
-p1 = heatmap(sharp[1].phase , title="sharp" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
-p2 = heatmap( diffuse[1].phase , title="diffuse" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
-p=plot(p1,p2)
-
-savefig(p,"images/diffuse-sharp.svg")
-#+end_src
-
-#+caption: Example of a diffuse and a sharp interphase
-#+RESULTS[53a1b7e19c601ba9a060a1b5516e11b021bbb8ab]: fig:sharp-diffuse
-[[file:images/diffuse-sharp.svg]]
+The Cahn Hilliard equation is a well known fourth order PDE used in multiphase flow.It is used to couple different phases with a diffuse interface approach, as compared to a sharp interface approach. Therefore it has a smooth transition between phases.
 The CH equation serves the same purpose, as the second order Allen Cahn equation. However the Allen Cahn equation is not mass conservative. Hence the cahn hilliard equation is used if mass conservation is required. In this thesis we implement numerical solvers for the cahn hilliard equation in the julia programming language. We initially have tried to implement them in python, however the switch to julia has quickly proofed to be valuable since it provided faster runtime , better and easier plots as well as support for matrix algorithms[fn:1]. We did experiment with additional tools such as [[https:orgmode.org][org-mode]] that allow for scientific note taking and literate programming. We began writing this thesis with a reproducible research philosophy in mind. Hence we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently.
 This file is available on our [[github:ProceduralTree/CahnHilliardJulia.git][github repository]] as ~Thesis_jl.org~.
 * The Cahn-Hilliard equation
-The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain  \( \Omega \times [0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
+The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain  \( \Omega \times (0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
-\partial_{t}\phi(x,t) &=  \nabla \cdot(M(\phi)\nabla\mu) \\
-\mu &= - \varepsilon^2 \Delta\phi  + W'(\phi)
+\partial_{t}\phi(x,t) &=  \nabla \cdot(M(\phi)\nabla\mu), \\
+\mu &= - \varepsilon^2 \Delta\phi  + W'(\phi),
 \end{aligned}
 \end{equation}
-where the variables \( \phi , \mu \) are phase-field variable and chemical potential,
-\begin{equation}
-\begin{aligned}
-\phi: \Omega \times [0, T) &\to \mathbb{R}^d \\
-\mu: \Omega \times [0, T) &\to \mathbb{R}^d
-\end{aligned}
-\end{equation}
+where the variables \( \phi , \mu : \Omega \times (0,T) \to \mathbb{R}^d \) are phase-field variable and chemical potential,
 \(\varepsilon\) is a positive constant correlated with interface thickness, \( W(\phi) \) is a double well potential and \(M(\phi) > 0\) is a mobility coefficient [cite:@Wu_2022].
  \( \phi\) is defined in an interval \(I=[-1,1] \) and  represent the different phases.
 \begin{align*}
@@ -129,50 +105,45 @@ savefig(p, "images/double-well.svg")
 
 
 The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eq:energy]].
-\begin{align*}
+#+name:eq:chemical-potential
+\begin{align}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
-\end{align*}
+\end{align}
 
 *** Derivation of the CH equation from mass balance
-The paper [cite:@Wu_2022]  motivates us to derive the CH equation as follows:
+The paper [cite:@Wu_2022] states that the observable phase seperation is driven by a diffusion resulting from the gradient in chemical potential \( \mu \). The emergent conservative dynamics motivate the following diffusion equation
 #+name: eq:massbal
 \begin{equation}
-    \partial_t \phi + \nabla \cdot J = 0
+    \partial_t \phi + \nabla \cdot \mathbf{J} = 0,
 \end{equation}
-where \( J \) is mass flux. The equation [[eq:massbal]] then ensures continuity of mass
-Using the no-flux boundary conditions:
+where \( \mathbf{J} = -\nabla \mu \) represents mass-flux .
+We follow the authors [cite:@Wu_2022] in deriving the CH equation by combining Eq.[[eq:chemical-potential]] and Eq.[[eq:massbal]].
+\begin{equation}
+\begin{aligned}
+\implies \partial_t \phi   &=- \nabla \cdot \mathbf{J} = \Delta\mu , \\
+\mu &=  -\varepsilon^2 \Delta \phi + W'(\phi) \\
+\end{aligned}
+\end{equation}
+Furthermore the CH equation is mass conservative under homogeneous Neumann boundary conditions, defined as:
 #+name: eq:boundary-conditions
 \begin{equation}
 \begin{aligned}
-J \cdot n &= 0 & \partial\Omega &\times (0,T)\\
-\partial_n\phi &= 0 & \partial\Omega &\times (0,T)
+\mathbf{J} \cdot n &= 0 & \text{on} \, \partial\Omega &\times (0,T),\\
+\partial_n\phi &= 0 & \text{on} \, \partial\Omega &\times (0,T),
 \end{aligned}
 \end{equation}
-where \( n \) is the outward normal on \( \partial \Omega \).
-conservation of mass follows see[cite:@Wu_2022].
+where \( n  \) is the outward normal on \( \partial \Omega \).
+To show the conservation of mass we analy se the change in total mass in the domain \( \Omega \) over time.
 #+name: eq:mass-conservation
 \begin{equation}
 \begin{aligned}
-\frac{d}{dt}\int_{\Omega}\phi&=\int_{\Omega}\frac{\partial \phi}{\partial t} dV \\
-&= - \int_{\Omega} \nabla \cdot J \ dV\\
-&=  \int_{\partial\Omega}  J \cdot n  \ dA \\
-&= 0
+\frac{d}{dt}\int_{\Omega}\phi \ d \mathbf{x} &=\int_{\Omega}\frac{\partial \phi}{\partial t} \ d\mathbf{x} \\
+&= - \int_{\Omega} \nabla \cdot \mathbf{J} \ d\mathbf{x}\\
+&=  \int_{\partial\Omega}  \mathbf{J} \cdot n  \ d\mathbf{s} \\
+&= 0 & \forall t\in(0,T)
 \end{aligned}
 \end{equation}
-Therefore mass is conserved over time, as shown in [[eq:mass-conservation]].
-We define the mass flux, \( J \), as the gradient in chemical potential as follows
-\begin{align}
-J &= - \nabla \mu
-\end{align}
-This results in the CH equation as stated in [[eq:CH]].
-#+name: eq:boundary-conditions
-\begin{equation}
-\begin{aligned}
- - \nabla \mu &= 0 \\
-\partial_n \phi &= 0
-\end{aligned}
-\end{equation}
-i.e. no flow leaves and potential on the border doesn't change.
+
 In order to show the CH equation's consistency with thermodynamics we take the time derivation of the free energy [[eq:energy]] and we show that it decreases in time.
 \begin{align*}
 \frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
@@ -539,6 +510,18 @@ savefig(p,"images/smooth.svg")
 
 ** Multigrid method
 The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specificly we use a two-grid implementation consisting of.
+#+begin_src julia :eval never :exports code
+for j in 1:timesteps
+
+    set_xi_and_psi!(solvers[1])
+
+    for i = 1:subiterations
+
+        v_cycle!(solvers, 1)
+    end
+end
+#+end_src
+The V-cycle is a
 1. a Gauss-Seidel relaxation for smoothing Chapter [[SMOOTH operator]].
 2. calculate the residual error in phase and potential \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \).
 3. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
@@ -612,18 +595,6 @@ end
 #+end_src
 
 
-The iteration of the solver is then done as follows
-#+begin_src julia :eval never :exports code
-for j in 1:timesteps
-
-    set_xi_and_psi!(solvers[1])
-
-    for i = 1:subiterations
-
-        v_cycle!(solvers, 1)
-    end
-end
-#+end_src
 After a few iterations, V-cycle exhibits the following behavior:
 
 #+name: fig:solver-iteration
@@ -1291,42 +1262,7 @@ Should the relaxed solver approach the original, we would expect
 \begin{equation}
 ||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}||_{Fr} \to 0
 \end{equation}
-In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver from chapter [[Elliptical PDE]] does not converge.
-#+begin_src julia :noweb no-export :eval never :tangle experiments/src/alpha.jl :exports results
-<<init>>
-using JLD2
-using Distributed
-using ProgressBars
-using DataFrames
-
-original_grid = testgrid(multi_solver, M, 2)
-alphas = 0:1e4:2e6
-
-function alpha_error(alpha::Number , solution::Array )
-    test_solver  = testgrid(relaxed_multi_solver, M, 2, alpha=alpha)
-    set_xi_and_psi!(test_solver[1])
-    for j in 1:64
-        elyps_solver!(test_solver[1], 1000)
-        v_cycle!(test_solver , 1)
-    end
-return [(;alpha=alpha , error=norm(test_solver[1].phase - solution))]
-end
-set_xi_and_psi!(original_grid[1])
-for j in 1:64
-    v_cycle!(original_grid, 1)
-end
-print("finished original v_cycle")
-tasks = []
-for alpha in alphas
-    t = Threads.@spawn alpha_error(alpha , original_grid[1].phase)
-    push!(tasks , (alpha=alpha , task = t))
-end
-result = DataFrame()
-for task in ProgressBar(tasks)
-    append!(result , fetch(task.task) )
-    end
-jldsave("experiments/alpha.jld2"; result)
-#+end_src
+In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver from chapter [[Elliptical PDE]] does not converge. 
 #+name: fig:alpha-error
 #+begin_src julia-vterm :results graphics file :file alpha-error.svg
 using JLD2
@@ -1541,7 +1477,7 @@ BenchmarkTools.Trial: 5 samples with 1 evaluation.
  Time  (median):     1.068 s               ┊ GC (median):    3.14%
  Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
 
-  █      ██                    █                           █
+  █             ██                                            █                                                           █
   █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
   1.03 s         Histogram: frequency by time          1.3 s <
 
@@ -1961,6 +1897,43 @@ for task in tasks
     end
 jldsave("experiments/relaxed_space_refinement.jld2"; result)
 #+end_src
+*** alpha
+
+#+begin_src julia :noweb no-export :eval never :tangle experiments/src/alpha.jl :exports results
+<<init>>
+using JLD2
+using Distributed
+using ProgressBars
+using DataFrames
+
+original_grid = testgrid(multi_solver, M, 2)
+alphas = 0:1e4:2e6
+
+function alpha_error(alpha::Number , solution::Array )
+    test_solver  = testgrid(relaxed_multi_solver, M, 2, alpha=alpha)
+    set_xi_and_psi!(test_solver[1])
+    for j in 1:64
+        elyps_solver!(test_solver[1], 1000)
+        v_cycle!(test_solver , 1)
+    end
+return [(;alpha=alpha , error=norm(test_solver[1].phase - solution))]
+end
+set_xi_and_psi!(original_grid[1])
+for j in 1:64
+    v_cycle!(original_grid, 1)
+end
+print("finished original v_cycle")
+tasks = []
+for alpha in alphas
+    t = Threads.@spawn alpha_error(alpha , original_grid[1].phase)
+    push!(tasks , (alpha=alpha , task = t))
+end
+result = DataFrame()
+for task in ProgressBar(tasks)
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/alpha.jld2"; result)
+#+end_src
 * Utility functions :noexport:
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
@@ -2205,7 +2178,6 @@ initial_data = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
-
 
 
 
