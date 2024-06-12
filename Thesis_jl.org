@@ -52,9 +52,9 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 #+TOC: headlines 3
 
 * Introduction
-The Cahn Hilliard equation is a well known fourth order PDE used in multiphase flow, to couple fifferent phases. It is used in a diffused interace approach. A diffuse interphase, as compared to a sharp interface has a smooth transition between phases, as shown in Fig.[[fig:sharp-diffuse]]
+The Cahn Hilliard equation is a well known fourth order PDE used in multiphase flow.It is used to couple different phases with a diffuse interface approach, as compared to a sharp interface approach. Therefore it has a smooth transition between phases, as shown in Fig.[[fig:sharp-diffuse]].
 #+name: fig:sharp-diffuse
-#+begin_src julia-vterm :results file output :file diffuse-sharp.svg
+#+begin_src julia-vterm :results file output :file diffuse-sharp.svg 
 <<init>>
 <<setup-diverse-testgrids>>
 sharp = testgrid(multi_solver,M, 2)
@@ -64,14 +64,15 @@ SMOOTH!(diffuse[1] , 100, true)
 p1 = heatmap(sharp[1].phase , title="sharp" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
 p2 = heatmap( diffuse[1].phase , title="diffuse" , legend=:none , aspectratio=:equal , showaxis=false , grid=false)
 p=plot(p1,p2)
+
 savefig(p,"images/diffuse-sharp.svg")
 #+end_src
 
-#+caption: Exmaple of a diffuse and a sharp interphase
-#+RESULTS[a503b120965966f072aded2fe7f565eaa686891e]: fig:diffuse-sharp
+#+caption: Example of a diffuse and a sharp interphase
+#+RESULTS[53a1b7e19c601ba9a060a1b5516e11b021bbb8ab]: fig:sharp-diffuse
 [[file:images/diffuse-sharp.svg]]
-
- This thesis follows reproducible research philosophy, in that we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently. Further details on execution and reading of the original source provided in org-mode format,
+The CH equation serves the same purpose, as the second order Allen Cahn equation. However the Allen Cahn equation is not mass conservative. Hence the cahn hilliard equation is used if mass conservation is required. In this thesis we implement numerical solvers for the cahn hilliard equation in the julia programming language. We initially have tried to implement them in python, however the switch to julia has quickly proofed to be valuable since it provided faster runtime , better and easier plots as well as support for matrix algorithms[fn:1]. We did experiment with additional tools such as [[https:orgmode.org][org-mode]] that allow for scientific note taking and literate programming. We began writing this thesis with a reproducible research philosophy in mind. Hence we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to html and PDF, as well as extract the code to be used independently.
+This file is available on our [[github:ProceduralTree/CahnHilliardJulia.git][github repository]] as ~Thesis_jl.org~.
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain  \( \Omega \times [0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
 #+name: eq:CH
@@ -1493,6 +1494,60 @@ end
 jldsave("experiments/alpha-epsilon.jld2"; result=results)
 println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
+* Conclusion
+In this thesis we have presented a simple introduction to the CH equation and have shown 2 numerical solvers for it. We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach. We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441]. We have introduced messures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour. We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures. We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and massloss. We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations. It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other. As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters. The baseline solver was able to run with 10x less smoothing iterations than the relaxed one. A fair comparison would hence require to find the optimal number of smoothing for each solver.
+
+
+For the sake of compleetness we include runtime benchmarks Of both methods. Those should be taken with a pinch of salt because of the reasons above. Both examples are run with the same parameters.
+#+begin_src julia-vterm :results value :sync
+using BenchmarkTools
+<<init>>
+<<setup-diverse-testgrids>>
+
+relaxed_grid= testgrid(relaxed_multi_solver, M , 2)
+baseline_grid = testgrid(multi_solver, M , 2)
+function test(s::Array{multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        v_cycle!(s , 1)
+    end
+    end
+
+function test(s::Array{relaxed_multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        elyps_solver!(s[1] , 1000)
+        v_cycle!(s , 1)
+    end
+    end
+# b1 = @benchmark test(baseline_grid)
+#b2 = @benchmark test(relaxed_grid)
+#b2
+#+end_src
+
+#+RESULTS[8eeb500671b68950e0d0d2ce8c4d70a92b0b2b9b]:
+: Executing... 1a392143
+
+
+#+begin_center
+BenchmarkTools.Trial: 1 sample with 1 evaluation.
+ Single result which took 8.938 s (3.95% GC) to evaluate,
+ with a memory estimate of 3.36 GiB, over 63995963 allocations.
+#+end_center
+
+#+begin_center
+BenchmarkTools.Trial: 5 samples with 1 evaluation.
+ Range (min … max):  1.030 s …    1.304 s  ┊ GC (min … max): 3.26% … 2.74%
+ Time  (median):     1.068 s               ┊ GC (median):    3.14%
+ Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
+
+  █      ██                    █                           █
+  █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  1.03 s         Histogram: frequency by time          1.3 s <
+
+ Memory estimate: 293.88 MiB, allocs estimate: 5013565.
+#+end_center
+
 * Apendix
 ** Operator implementation
 #+begin_src julia :tangle src/utils.jl :eval never
@@ -2161,62 +2216,13 @@ tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 
 
-* Conclusion
-In this thesis we have presented a simple introduction to the CH equation and have shown 2 numerical solvers for it. We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach. We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441]. We have introduced messures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour. We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures. We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and massloss. We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations. It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other. As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters. The baseline solver was able to run with 10x less smoothing iterations than the relaxed one. A fair comparison would hence require to find the optimal number of smoothing for each solver.
-
-
-For the sake of compleetness we include runtime benchmarks Of both methods. Those should be taken with a pinch of salt because of the reasons above. Both examples are run with the same parameters.
-#+begin_src julia-vterm :results value :sync
-using BenchmarkTools
-<<init>>
-<<setup-diverse-testgrids>>
-
-relaxed_grid= testgrid(relaxed_multi_solver, M , 2)
-baseline_grid = testgrid(multi_solver, M , 2)
-function test(s::Array{multi_solver})
-    set_xi_and_psi!(s[1])
-    for i=1:1
-        v_cycle!(s , 1)
-    end
-    end
-
-function test(s::Array{relaxed_multi_solver})
-    set_xi_and_psi!(s[1])
-    for i=1:1
-        elyps_solver!(s[1] , 1000)
-        v_cycle!(s , 1)
-    end
-    end
-# b1 = @benchmark test(baseline_grid)
-#b2 = @benchmark test(relaxed_grid)
-#b2
-#+end_src
-
-#+RESULTS[8eeb500671b68950e0d0d2ce8c4d70a92b0b2b9b]:
-: Executing... 1a392143
-
-
-#+begin_example
-BenchmarkTools.Trial: 1 sample with 1 evaluation.
- Single result which took 8.938 s (3.95% GC) to evaluate,
- with a memory estimate of 3.36 GiB, over 63995963 allocations.
-#+end_example
-
-#+begin_example
-BenchmarkTools.Trial: 5 samples with 1 evaluation.
- Range (min … max):  1.030 s …    1.304 s  ┊ GC (min … max): 3.26% … 2.74%
- Time  (median):     1.068 s               ┊ GC (median):    3.14%
- Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
-
-  █      ██                    █                           █
-  █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  1.03 s         Histogram: frequency by time          1.3 s <
-
- Memory estimate: 293.88 MiB, allocs estimate: 5013565.
-#+end_example
 * References :ignore:
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization
+
+* Footnotes
+
+[fn:1] Julia provides iteration utilities over n dimensional matricies. Therefore it would technically be possible to write dimension agnostic algorithms. While we used some of this functionality, we did not implement a full n-dimensional algorithm, and only provide a 2D implementation
 # Local Variables:
 # mode: org
 # org-export-allow-bind-keywords: t
