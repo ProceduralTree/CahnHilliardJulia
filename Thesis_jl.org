@@ -3,6 +3,7 @@
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
 #+options: toc:nil
 #+BIND: org-latex-title-command ""
+#+BIND: org-latex-default-figure-position "H"
 #+latex_class: mimosis
  #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
@@ -133,7 +134,7 @@ Furthermore the CH equation is mass conservative under homogeneous Neumann bound
 \end{aligned}
 \end{equation}
 where \( n  \) is the outward normal on \( \partial \Omega \).
-To show the conservation of mass we analy se the change in total mass in the domain \( \Omega \) over time.
+To show the conservation of mass we analyse the change in total mass in the domain \( \Omega \) over time.
 #+name: eq:mass-conservation
 \begin{equation}
 \begin{aligned}
@@ -144,15 +145,16 @@ To show the conservation of mass we analy se the change in total mass in the dom
 \end{aligned}
 \end{equation}
 
-In order to show the CH equation's consistency with thermodynamics we take the time derivation of the free energy [[eq:energy]] and we show that it decreases in time.
+In order to show  thermodynamic consistency of the CH equation, we take the time derivation of the free energy functional Eq.[[eq:energy]].
 \begin{align*}
-\frac{d}{dt}E^{bulk}(\phi(t)) &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
+\frac{d}{dt}E^{bulk}[\phi(t)] &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
 &=\int_{\Omega} (\varepsilon^2\nabla\phi + W'(\phi))\partial_t\phi \ dx\\
 &=\int_{\Omega} \mu \partial_t \phi \ dx\\
 &= \int_{\Omega} \mu \cdot \Delta\mu \ dx \\
 &= -\int_{\Omega} \nabla\mu \cdot \nabla\mu \ dx + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
-&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in [0,T)
+&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
 \end{align*}
+
 * Baseline multi-grid solver
 ** The discretization of the CH equation:
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in [cite:@SHIN20117441].
@@ -202,11 +204,11 @@ We implement the discrete version of \( G \) on \( \Omega_d \) as follows:
 \begin{align*}
 G_{ij} &=
 \begin{cases}
-1, & (i,j) \in  \Omega_{d} \\
+1, & i,j \in [2,N+1]  \\
 0, & \text{else}
 \end{cases}
 \end{align*}
-
+The definition of \( G_{ij} \) with \( i,j \in [2,N+1] \) enables us to evaluate \( G_{ij} \) of-grid.
 #+begin_src julia :tangle src/utils.jl :eval never :exports none
 """
 Boundry indicator function
@@ -234,13 +236,16 @@ We define \( D_x\mu_{ij}^{n+\frac{1}{2},m} , D_y\mu_{ij}^{n+\frac{1}{2},m} \) in
 Next we define the discrete gradient \( \nabla_d \phi^{n+1,m}_{ij}\), as well as a modified Laplacian \( \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij} )\):
 
 
+
 #+name: eq:discretization
-\begin{align}
+\begin{equation}
+\begin{aligned}
 \nabla_d \phi^{n+1,m}_{ij} &= \left(D_x \phi^{n+1,m}_{i+1j} , \ D_y \phi^{n+1,m}_{ij+1}\right) \\
- \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi^{n+1,m}_{i+\frac{1}{2}j} -  G_{i-172}D_x \phi^{n+1,m}_{i-\frac{1}{2}j} + D_y \phi^{n+1,m}_{ij+\frac{1}{2}} - D_y \phi^{n+1,m}_{ij-\frac{1}{2}}}{h} \\
+ \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi^{n+1,m}_{i+\frac{1}{2}j} -  G_{i-\frac{1}{2}}D_x \phi^{n+1,m}_{i-\frac{1}{2}j} + D_y \phi^{n+1,m}_{ij+\frac{1}{2}} - D_y \phi^{n+1,m}_{ij-\frac{1}{2}}}{h} \\
   &= \frac{ G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n +,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n +,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n +,m}_{ij-1}    }{h^2}\\
 & \, - \frac{\left(   G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \cdot \phi_{ij} \right)}{h^2}
-\end{align}
+\end{aligned}
+\end{equation}
  We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions [[eq:boundary-conditions]].
 the discretizations for \(  \nabla_d\mu_{ij}^{n+\frac{1}{2},m} ,  \nabla_d \cdot (G_{ij} \nabla_d \mu^{n+\frac{1}{2},m}_{ij}) \) are done the same as for \( \phi_{ij}^{n+1} \)
 
@@ -487,6 +492,7 @@ function SMOOTH!(
     end
 end
 #+end_src
+We denote the approximations for \( \left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right)  \) after smoothing, as  \( \left( \bar{\phi}_{ij}^{n+1} , \bar{\mu}^{n+\frac{1}{2}}_{ij}  \right)  \)
 In Fig.[[fig:smoothing-examples]] we show 4 of the 7 initial data after one 200 iterations of smoothing. It is apparent that the sharp interface from the initial Data has diffused.
 #+name: fig:smoothing-examples
 #+begin_src julia-vterm :results file graphics  :file smooth.svg
@@ -522,12 +528,13 @@ for j in 1:timesteps
 end
 #+end_src
 The V-cycle is a
-1. a Gauss-Seidel relaxation for smoothing Chapter [[SMOOTH operator]].
-2. calculate the residual error in phase and potential \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \).
-3. restriction and prolongation methods between grids \(  h \leftrightarrow H  \).
-4. a Newton iteration to solve \( L(\phi_{ij,H}^{n+1,m}, \mu_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
-   we solve using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
-5. post smoothing
+1. a Gauss-Seidel relaxation for smoothing, as  described in Chapter [[SMOOTH operator]].
+2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \).
+3. restriction and between grids \(  h \to H  \).
+4. a Newton iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+   we solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  in the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
+5. prolongation from \( H\to h \)
+6. post smoothing
 
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
