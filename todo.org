@@ -1,4 +1,13 @@
 * Inbox
+** TODO commas in equations
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
+** TODO move label to axis
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
+** TODO capitalize captions
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
 ** TODO rerun space calculations.
 N = 1024 , h = 1e-3 is nonsensical on smaller grids
 [[file:~/Projects/julia_tst/Thesis_jl.org::*stability under refinement in space][stability under refinement in space]]
