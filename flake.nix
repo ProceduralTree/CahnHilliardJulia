@@ -60,6 +60,7 @@
             cudaPackages.cudnn
             git
             gitRepo
+            pdf2svg
             gnupg
             autoconf
             curl
