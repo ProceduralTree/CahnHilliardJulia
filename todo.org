@@ -1,7 +1,13 @@
 * Inbox
-** TODO experiments Baseline
+** DONE commas in equations
 
-[[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
+** TODO move label to axis
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
+** DONE capitalize captions
+
+[[file:~/Projects/julia_tst/Thesis_jl.org::fig:convergence][fig:convergence]]
 ** TODO rerun space calculations.
 N = 1024 , h = 1e-3 is nonsensical on smaller grids
 [[file:~/Projects/julia_tst/Thesis_jl.org::*stability under refinement in space][stability under refinement in space]]
@@ -9,7 +15,7 @@ N = 1024 , h = 1e-3 is nonsensical on smaller grids
 expensive etc
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*The Cahn-Hilliard equation][The Cahn-Hilliard equation]]
-** TODO Fully expanded \( \Delta_d \)
+** DONE Fully expanded \( \Delta_d \)
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*The discretization of the CH equation:][The discretization of the CH equation:]]
 *** TODO write time steps for \( \phi_{ij}^{n+1} \) in all cases
@@ -46,7 +52,7 @@ from gif to svg with \( n=1 , n=64 \)
 * DONE rename tests to initial conditions [1/1]
 - [X] Add explicit definition of data generation
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
-* TODO Discretization [4/4]
+* DONE Discretization [1/1]
  - [X] remove \( f \) and replace with \( \phi \)
   - [X] state definition of \( \Omega  ,\phi_{ij}  , \mu_{ij} \)
   - [X] make abbreviations more apparent
@@ -67,7 +73,7 @@ and Write Matrix representation for 1D
 * DONE state approach more understandable
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*AI][AI]]
-* TODO Capitalize
+* DONE Capitalize
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*Test data][Test data]]
 * DONE plot divergence from original solver  for optimal alpha 7.5e4
@@ -76,7 +82,7 @@ and Write Matrix representation for 1D
 * DONE add \( \Delta t \) to plot label
 
 [[file:~/Projects/julia_tst/Thesis_jl.org::*rate of convergence][rate of convergence]]
-* TODO write something on impact of alpha
+* DONE write something on impact of alpha
 
 [[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
 * DONE Comparison
