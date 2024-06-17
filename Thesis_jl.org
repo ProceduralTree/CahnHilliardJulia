@@ -4,11 +4,11 @@
 #+options: toc:nil
 #+BIND: org-latex-title-command ""
 #+BIND: org-latex-default-figure-position "H"
-#+latex_class: mimosis
+#+latex_class: article
  #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
  #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :cache yes :session jl
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :session jl :cache yes
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
@@ -52,21 +52,19 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 #+end_abstract
 #+TOC: headlines 3
 
-
 * Introduction
-The Cahn-Hilliard equation is a well known fourth order PDE used in multiphase flow. It is used to couple different phases with a diffuse interface approach, as compared to a sharp interface approach. Therefore, it has a smooth transition between phases.
-The CH equation serves the same purpose, as the second order Allen-Cahn equation. However, the Allen
--Cahn equation is not mass conservative. Hence, the Cahn-Hilliard equation is used if mass conservation  is required.
+The Cahn-Hilliard equation is a well known fourth order PDE used in multiphase flow. It is used to couple different phases with a diffuse interface, as compared to a sharp interface, approach. Therefore, it has a smooth transition between phases.
+The CH equation serves the same purpose, as the second order Allen-Cahn equation. However, the Allen-Cahn equation is not mass conservative. Hence, the Cahn-Hilliard equation is used if mass conservation  is required.
 In this thesis we implement numerical solvers for the Cahn-Hilliard equation in the Julia programming language.
-In the first Chapter [[The Cahn-Hilliard equation]] we give an overview and a derivation for the analytical CH equation. We then show mass conservation and a decrease in total energy for the analytical CH equation.
-The second Chapter [[Baseline multi-grid solver]] introduces our discretization and a fitting numerical method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally, in the second Chapter [[Baseline multi-grid solver]] we introduce the initial conditions we used in this thesis.
-After introducing a numerical method, in chapter [[Numerical experiments]], we evaluate this method in respect to stability, and in respect to the mass conservation and energy decrease we have shown for the analytical CH equation.
-Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE , or rather a 2 dimensional system of second order PDEs, we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed problem]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Baseline multi-grid solver]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
-Subsequently in chapter [[Relaxed experiments]] we evaluate our relaxed method against the baseline with the same meassures, as introduced in chapter [[Numerical experiments]]
+We begin by giving an overview and a derivation for the analytical CH equation in chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease in total energy for it.
+The chapter [[Baseline multi-grid solver]] introduces our discretization and a fitting numerical method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally, in chapter [[Baseline multi-grid solver]] we introduce the initial conditions we used in this thesis.
+After introducing a numerical method, in chapter [[Numerical experiments]], we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continously for the analytical CH equation.
+Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additonal elliptical PDE. In the chapter [[Relaxed problem]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Baseline multi-grid solver]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
+Subsequently, in chapter [[Relaxed experiments]], we evaluate our relaxed method against the baseline with the same measures, as introduced in chapter [[Numerical experiments]].
 
-# We initial have tried to implement them in python, however the switch to Julia has quickly proved to be valuable since it provided faster runtime, better and easier plots as well as support for matrix algorithms[fn:1]. We did experiment with additional tools such as [[https:orgmode.org][org-mode]] that allow for scientific note-taking and literate programming. We began writing this thesis with a reproducible research philosophy in mind. Hence, we provide all relevant code in the same file as the writing itself. We then use this file to generate exports to HTML and PDF, as well as extract the code to be used independently.
-This file is available on our
-# [[GitHub:ProceduralTree/CahnHilliardJulia.git][GitHub repository]]
+We began writing this thesis with a reproducible research philosophy in mind. Hence, we provide the explanation you  are reading, and the implementation in the same file. The original aim was to have the mathematical formulas and their implementation interleaved in a way, that leaves no room for interpretation. While we fall short of this goal, we still provide all relevant code in the relevant sections and the appendix. All shown code is therefore the code that is run on our machine. Since not all parts of the code are relevant for understanding, unimportant sections are implemented elsewhere. Didacticly they aer replaced with a comment of form =<<unumportant-code-section>>=. Their implementation can be found in ~Thesis_jl.org~ in a code block of the same name.
+We did experiment with additional tools such as [[https:orgmode.org][org-mode]] that allow for scientific note-taking and literate programming.
+This file is available on our github repository at [[https://github.com/ProceduralTree/CahnHilliardJulia.git]]
 as ~Thesis_jl.org~.
 * The Cahn-Hilliard equation
 The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain \( \Omega \times (0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
@@ -92,7 +90,7 @@ where the variables \( \phi , \mu : \Omega \times (0,T) \to \mathbb{R}^d \) are 
 
 The advantages of the CH approach, as compared to traditional boundary coupling, are for example: "explicit tracking of the interface" [cite:@Wu_2022], as well as "evolution of complex geometries and topological changes [...] in a natural way" [cite:@Wu_2022].
 In practice, it enables linear interpolation between different formulas on different phases.
-** Physical derivation of the CH equation [[eq:CH]]
+** Physical derivation of the CH equation [[eqref:eq:CH]]
 *** The free energy
 The authors in [cite:@Wu_2022] define the CH equation using the *Ginzburg-Landau* free energy equation:
 #+name: eq:energy
@@ -101,7 +99,7 @@ E^{\text{bulk}}[\phi] &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 
 \end{align}
 where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441] shown in Fig. [[fig:double-well]].
 #+name: fig:double-well
-#+begin_src julia :results file graphics :file double-well.svg
+#+begin_src julia-vterm :results file graphics :file double-well.svg
 using Plots
 using LaTeXStrings
 W(x) = 1/4 * (1- x^ 2)^2
@@ -116,7 +114,7 @@ savefig(p, "images/double-well.svg")
 
 
 
-The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eq:energy]].
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eqref:eq:energy]].
 #+name:eq:chemical-potential
 \begin{align}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
@@ -129,11 +127,11 @@ The paper [cite:@Wu_2022] states that the observable phase separation is driven 
     \partial_t \phi + \nabla \cdot \mathbf{J} = 0,
 \end{equation}
 where \( \mathbf{J} = -\nabla \mu \) represents mass-flux.
-We follow the authors [cite:@Wu_2022] in deriving the CH equation by combining Eq.[[eq:chemical-potential]] and Eq.[[eq:massbal]].
+We follow the authors [cite:@Wu_2022] in deriving the CH equation by combining Eq.eqref:eq:chemical-potential and Eq.[[eqref:eq:massbal]].
 \begin{equation}
 \begin{aligned}
 \implies \partial_t \phi   &=- \nabla \cdot \mathbf{J} = \Delta\mu , \\
-\mu &=  -\varepsilon^2 \Delta \phi + W'(\phi) \\
+\mu &=  -\varepsilon^2 \Delta \phi + W'(\phi) \,,
 \end{aligned}
 \end{equation}
 Furthermore the CH equation is mass conservative under homogeneous Neumann boundary conditions, defined as:
@@ -152,7 +150,7 @@ To show the conservation of mass we analyze the change in total mass in the doma
 \frac{d}{dt}\int_{\Omega}\phi \ d \mathbf{x} &=\int_{\Omega}\frac{\partial \phi}{\partial t} \ d\mathbf{x} \\
 &= - \int_{\Omega} \nabla \cdot \mathbf{J} \ d\mathbf{x}\\
 &=  \int_{\partial\Omega}  \mathbf{J} \cdot n  \ d\mathbf{s} \\
-&= 0 & \forall t\in(0,T)
+&= 0 & \forall t\in(0,T)\,,
 \end{aligned}
 \end{equation}
 
@@ -251,10 +249,10 @@ Next we define the discrete gradient \( \nabla_d \phi^{n+1,m}_{ij}\), as well as
 #+name: eq:discretization
 \begin{equation}
 \begin{aligned}
-\nabla_d \phi^{n+1,m}_{ij} &= \left(D_x \phi^{n+1,m}_{i+1j} , \ D_y \phi^{n+1,m}_{ij+1}\right) \\
+\nabla_d \phi^{n+1,m}_{ij} &= \left(D_x \phi^{n+1,m}_{i+1j} , \ D_y \phi^{n+1,m}_{ij+1}\right) \,,\\
  \nabla_d \cdot (G_{ij} \nabla_d \phi^{n+1,m}_{ij}) &= \frac{G_{i+\frac{1}{2}j}D_x \phi^{n+1,m}_{i+\frac{1}{2}j} -  G_{i-\frac{1}{2}}D_x \phi^{n+1,m}_{i-\frac{1}{2}j} + D_y \phi^{n+1,m}_{ij+\frac{1}{2}} - D_y \phi^{n+1,m}_{ij-\frac{1}{2}}}{h} \\
   &= \frac{ G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n +,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n +,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n +,m}_{ij-1}    }{h^2}\\
-& \, - \frac{\left(   G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \cdot \phi_{ij} \right)}{h^2}
+& \, - \frac{\left(   G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \cdot \phi_{ij} \right)}{h^2} \,,
 \end{aligned}
 \end{equation}
  We define \(   \nabla_d \cdot (G_{ij} \nabla_d \phi_{ij} )\) instead of a discrete Laplacian \( \Delta_d \) to ensure a discrete version of boundary conditions [[eq:boundary-conditions]].
@@ -350,8 +348,8 @@ The authors in [cite:@SHIN20117441] then define the discrete CH equation adapted
 #+name: eq:discrete-cahn-hilliard
 \begin{equation}
 \begin{aligned}
-\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \\
- \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n
+\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}} )  \,, \\
+ \mu_{ij}^{n+\frac{1}{2}} &= 2\phi_{ij}^{n+1} - \varepsilon^2  \nabla_d \cdot  (G_{ij} \nabla _d \phi_{ij}^{n+1} ) + W'(\phi_{ij}^n) - 2\phi _{ij}^n \,,
 \end{aligned}
 \end{equation}
 and derive a numerical scheme from this implicit equation.
@@ -410,6 +408,7 @@ L
 \zeta^n_{ij} \\
 \psi^n_{ij}
 \end{pmatrix}
+.
 \end{align}
  SMOOTH consists of point-wise Gauss-Seidel relaxation, by solving Eq.[[eq:smooth]] for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \). Since \( L \) is linear we can write Eq.[[eq:smooth]] as
  #+name: eq:explicit-smooth
@@ -434,7 +433,7 @@ DL\begin{pmatrix}
  - \frac{1}{h^2} \Sigma_{Gij}\mu_{ij}^{n+\frac{1}{2}} \\
 + \frac{\varepsilon^2}{h^2} \Sigma_{Gij}\phi_{ij}^{n+1} \\
 \end{pmatrix}
-\\
+,\\
 \begin{pmatrix}
   \zeta_{ij}^n\\
 \psi_{ij}^n
@@ -454,6 +453,7 @@ DL\begin{pmatrix}
 \phi^{n+1}_{ij} \\
 \mu^{n+\frac{1}{2}}_{ij}
 \end{pmatrix}
+\,,
 \end{aligned}
 \end{equation}
 where
@@ -521,7 +521,7 @@ savefig(p,"images/smooth.svg")
 
 #+end_src
 
-#+caption: inputs from [[Initial data]] after SMOOTH.
+#+caption: Inputs from [[Initial data]] after SMOOTH.
 #+RESULTS[fdb9207550b6615253fa672f5417f153b861be3b]: fig:smoothing-examples
 [[file:images/smooth.svg]]
 
@@ -640,7 +640,7 @@ As discrete energy measure we use:
 \begin{equation}
 \begin{aligned}
 E^{\text{bulk}}_d(\phi_{ij}) &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G\nabla_d \phi_{ij} |^2 + W\left(\phi_{ij}\right)  \\
-&= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right)  \\
+&= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right)  .\\
 \end{aligned}
 \end{equation}
 Since the continous total energy Eq.[[eq:energy]] decreases over time, we expect it's discrete couterpart to exhibit the same behaviour. Them numerical implementation for the bulk energy can be found in the Appendix [[bulk energy and mass balance]].
@@ -661,7 +661,7 @@ p = plot(p2,p3,p1 , layout=layout3x1 , size=size3x1  )
 savefig(p , "images/energy_balance.svg")
 #+end_src
 
-#+caption: behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \).
+#+caption: Behaviour of energy \( E_{bulk} \) over time for one initial condition \( \phi_0 \).
 #+RESULTS: fig:energy-balance
 [[file:images/energy_balance.svg]]
 
@@ -714,7 +714,7 @@ p = plot(p2,
 savefig(p , "images/mass_balance.svg")
 #+end_src
 
-        #+caption: behaviour of phase change over time for one initial condition \( \phi_0 \).
+        #+caption: Behaviour of phase change over time for one initial condition \( \phi_0 \).
 #+RESULTS: fig:mass-balance
 [[file:images/mass_balance.svg]]
 
@@ -764,7 +764,7 @@ p = plot(p2,
 savefig(p , "images/convergence.svg")
 #+end_src
 
-#+caption: stability of the original CH solver for increasing sub-iterations
+#+caption: Stability of the original CH solver for increasing sub-iterations
 #+RESULTS: fig:convergence
 [[file:images/convergence.svg]]
 
@@ -827,7 +827,7 @@ p = plot(p2,
 savefig(p , "images/time-stability.svg")
 #+end_src
 
-#+Caption: behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
+#+Caption: Behavior of the baseline solver while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
 #+RESULTS[c9dd717190350aef1329f2cbdb26859677756133]: fig:stability-in-time
 [[file:images/time-stability.svg]]
 
@@ -874,7 +874,7 @@ p = plot(p2,
 savefig(p , "images/space-stability.svg")
 #+end_src
 
-#+Caption: behavior of the baseline solver while solving on successively finer grids
+#+Caption: Behavior of the baseline solver while solving on successively finer grids
 #+RESULTS[d65d9dfebf929c604fd273a9c1ffcfd955bb13e0]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
@@ -889,8 +889,8 @@ This results in the following relaxation for the classical CH equation Eq.[[eq:C
 #+name: eq:relaxed-cahn-hilliard
 \begin{equation}
 \begin{aligned}
-\partial_t \phi^\alpha  &= \Delta \mu \\
-\mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi)
+\partial_t \phi^\alpha  &= \Delta \mu \,,\\
+\mu &= \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi) .
 \end{aligned}
 \end{equation}
 It requires solving the elliptical PDE each time-step to calculate \(c\).
@@ -899,8 +899,8 @@ As ansatz for the numerical solver we propose:
 #+name: eq:discrete-relaxed-cahn-hilliard
 \begin{equation}
 \begin{aligned}
-\frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \\
- \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha}
+\frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \,,\\
+ \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha} \,.
 \end{aligned}
 \end{equation}
 This approach is inspired by Eq.[[eq:discrete-cahn-hilliard]] and adapted to the relaxed CH equation in Eq.[[eq:discrete-relaxed-cahn-hilliard]].
@@ -909,9 +909,8 @@ and expand them.
 ** Elliptical PDE
 In order to solve the relaxed CH equation we solve the following PDE in each  time step:
 \begin{align*}
-- \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha
+- \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha \,.
 \end{align*}
-
 Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
 *** Discretization
 The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation Eq.[[eq:elliptical-equation]].
@@ -935,10 +934,9 @@ The discretization of the PDE expands the differential operators in the same way
 As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 #+name: eq:discrete_elyps
 \begin{align}
--\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij}
+-\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij} \,.
 \end{align}
-
-solving Eq.[[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
+Solving Eq.[[eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
 \begin{align*}
 \left( \frac{\Sigma_{Gij}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}\\
 c_{ij}^{\alpha} = \frac{\alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}}{\frac{\Sigma_{G}}{h^2} + \alpha}\\
@@ -1047,8 +1045,8 @@ Correspondingly the SMOOTH operation expands to:
 #+name: eq:discrete-relaxed-smooth
 \begin{equation}
 \begin{aligned}
-  -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \\
- \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha}
+  -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \,,\\
+ \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha} \,,
 \end{aligned}
 \end{equation}
 where
@@ -1124,7 +1122,7 @@ p = plot(plots...)
 savefig(p,"images/smooth_relaxed.svg")
 #+end_src
 
-#+caption: effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
+#+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
 #+RESULTS: fig:relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
 
@@ -1152,7 +1150,7 @@ p = plot(p2,p3,p1 , layout=layout3x1 , size=(1600 ,1600))
 savefig(p , "images/relaxed-energy-balance.svg")
 #+end_src
 
-#+caption: energy decay of the relaxed solver compared to the original solver.
+#+caption: Energy decay of the relaxed solver compared to the original solver.
 #+RESULTS[06f7ce276ee26e0f3adfda9d2fb591ad7786b44f]: fig:relaxed-energy-balance
 [[file:images/relaxed-energy-balance.svg]]
 
@@ -1231,7 +1229,7 @@ p = plot(p , change0 , ylabel = "difference" , xlabel = "number of timesteps" , 
 savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
-#+Caption: behavior of the relaxed and baseline solvers while solving the time interval \( T = \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
+#+Caption: Behavior of the relaxed and baseline solvers while solving the time interval \( t \in \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
 #+RESULTS: fig:relaxed-stability-in-time
 [[file:images/relaxed-time-stability.svg]]
 
@@ -1375,9 +1373,9 @@ p=plot(p1,
 savefig(p , "images/relaxed-comparison.svg")
 #+end_src
 
-#+caption: comparison between the original and the relaxed CH solvers.
+#+caption: Comparison between the original and the relaxed CH solvers.
 
-In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to opmimize \( \alpha \) in conjuvtion with \( \varepsilon \) to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3).
+In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to optimize \( \alpha \) in conjunction with \( \varepsilon \), to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3). This gives us confidence that the relaxed method solves the same problem, as the baseline. Optimal values for \( \alpha \) varied , however stayed fairly large around \( 10^5 \to 10^{6} \).
 
 #+begin_src julia :tangle src/optim.jl :noweb yes
 using Distributions
@@ -1430,59 +1428,24 @@ jldsave("experiments/alpha-epsilon.jld2"; result=results)
 println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
 * Conclusion
-In this thesis we have presented a simple introduction to the CH equation and have shown 2 numerical solvers for it. We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach. We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441]. We have introduced messures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour. We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures. We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and massloss. We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations. It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other. As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters. The baseline solver was able to run with 10x less smoothing iterations than the relaxed one. A fair comparison would hence require to find the optimal number of smoothing for each solver.
+In this thesis we have presented a simple introduction to the CH equation and have shown two numerical solvers for it.
+We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach.
+We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441].
+We have introduced measures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour.
+We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures.
+We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and mass-loss.
+We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations.
+It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other.
+As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters.
+The baseline solver was able to run with 10x less smoothing iterations than the relaxed one.
+A fair comparison would hence require to find the optimal number of smoothing for each solver.
 
 
-For the sake of compleetness we include runtime benchmarks Of both methods. Those should be taken with a pinch of salt because of the reasons above. Both examples are run with the same parameters.
-#+begin_src julia-vterm :results value :sync
-using BenchmarkTools
-<<init>>
-<<setup-diverse-testgrids>>
+For the sake of completeness we include runtime benchmarks Of both methods. Those should be taken with a pinch of salt because of the reasons above. Both examples are run with the same parameters and  the results are in the Appendix.
 
-relaxed_grid= testgrid(relaxed_multi_solver, M , 2)
-baseline_grid = testgrid(multi_solver, M , 2)
-function test(s::Array{multi_solver})
-    set_xi_and_psi!(s[1])
-    for i=1:1
-        v_cycle!(s , 1)
-    end
-    end
-
-function test(s::Array{relaxed_multi_solver})
-    set_xi_and_psi!(s[1])
-    for i=1:1
-        elyps_solver!(s[1] , 1000)
-        v_cycle!(s , 1)
-    end
-    end
-# b1 = @benchmark test(baseline_grid)
-#b2 = @benchmark test(relaxed_grid)
-#b2
-#+end_src
-
-#+RESULTS[8eeb500671b68950e0d0d2ce8c4d70a92b0b2b9b]:
-: Executing... 1a392143
-
-
-#+begin_center
-BenchmarkTools.Trial: 1 sample with 1 evaluation.
- Single result which took 8.938 s (3.95% GC) to evaluate,
- with a memory estimate of 3.36 GiB, over 63995963 allocations.
-#+end_center
-
-#+begin_center
-BenchmarkTools.Trial: 5 samples with 1 evaluation.
- Range (min … max):  1.030 s …    1.304 s  ┊ GC (min … max): 3.26% … 2.74%
- Time  (median):     1.068 s               ┊ GC (median):    3.14%
- Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
-
-  █             ██                                            █                                                           █
-  █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  1.03 s         Histogram: frequency by time          1.3 s <
-
- Memory estimate: 293.88 MiB, allocs estimate: 5013565.
-#+end_center
-
+** Outlook
+This thesis leaves a lot of room for further research. We have already mentioned runtime evaluations, which require more optimizations, and additional experiments to test the number of smoothing iterations. Here it would be beneficial if both solvers are made adaptive, to ensure fair evaluations.
+Furthermore, we initially considered a machine learning approach to replace the elliptical system. We didn't follow this idea mostly due to time constraints, as we had already collected trainings data during our numerical experiments. Our choice of programming language would have been of benefit here, as it would enable more advanced technices, such as integrating the numerical solver in the trainings loop since julia offers automatic diccerentiation of arbitrary functions, and therefore enables back-propagation (gradient descent) through the entire solver. Interessting would alo have been different discretizations of the relaxed CH equation, and different method for solving it, such as a finite volume or finite element method. Those bring the chalange of beeing harder to compare to our baseline.
 * Appendix
 ** Operator implementation
 #+begin_src julia :tangle src/utils.jl :eval never
@@ -1628,7 +1591,7 @@ end
 gif(anim , "images/behaviour.gif" , fps = 10)
 #+end_src
 
-#+caption: behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
+#+caption: Behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
 #+RESULTS: fig:behaviour
 [[file:images/behaviour.gif]]
 
@@ -1955,6 +1918,55 @@ function massbal(arr)
     end
 #+end_src
 
+** runtime
+#+begin_src julia-vterm :results value :eval never
+using BenchmarkTools
+<<init>>
+<<setup-diverse-testgrids>>
+
+relaxed_grid= testgrid(relaxed_multi_solver, M , 2)
+baseline_grid = testgrid(multi_solver, M , 2)
+function test(s::Array{multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        v_cycle!(s , 1)
+    end
+    end
+
+function test(s::Array{relaxed_multi_solver})
+    set_xi_and_psi!(s[1])
+    for i=1:1
+        elyps_solver!(s[1] , 1000)
+        v_cycle!(s , 1)
+    end
+    end
+# b1 = @benchmark test(baseline_grid)
+#b2 = @benchmark test(relaxed_grid)
+#b2
+#+end_src
+
+#+RESULTS[8eeb500671b68950e0d0d2ce8c4d70a92b0b2b9b]:
+: Executing... 1a392143
+
+
+#+begin_center
+BenchmarkTools.Trial: 1 sample with 1 evaluation.
+ Single result which took 8.938 s (3.95% GC) to evaluate,
+ with a memory estimate of 3.36 GiB, over 63995963 allocations.
+#+end_center
+
+#+begin_center
+BenchmarkTools.Trial: 5 samples with 1 evaluation.
+ Range (min … max):  1.030 s …    1.304 s  ┊ GC (min … max): 3.26% … 2.74%
+ Time  (median):     1.068 s               ┊ GC (median):    3.14%
+ Time  (mean ± σ):   1.128 s ± 111.612 ms  ┊ GC (mean ± σ):  2.87% ± 0.34%
+
+  █             ██                                            █                                                           █
+  █▁▁▁▁▁▁██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  1.03 s         Histogram: frequency by time          1.3 s <
+
+ Memory estimate: 293.88 MiB, allocs estimate: 5013565.
+#+end_center
 * Utility functions :noexport:
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
@@ -2207,14 +2219,14 @@ tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 
 
-
 * References :ignore:
 #+PRINT_BIBLIOGRAPHY:
 #  LocalWords:  Discretization
 
 * Footnotes
+[fn:1] This solver uses a two dimensional version with 2 second order terms instead of the full fourth order  equation.
 
-[fn:1] Julia provides iteration utilities over n dimensional matricies. Therefore it would technically be possible to write dimension agnostic algorithms. While we used some of this functionality, we did not implement a full n-dimensional algorithm, and only provide a 2D implementation
+[fn:2] Julia provides iteration utilities over n dimensional matricies. Therefore it would technically be possible to write dimension agnostic algorithms. While we used some of this functionality, we did not implement a full n-dimensional algorithm, and only provide a 2D implementation
 # Local Variables:
 # mode: org
 # org-export-allow-bind-keywords: t
