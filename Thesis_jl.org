@@ -1387,56 +1387,6 @@ savefig(p , "images/relaxed-comparison.svg")
 
 In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to opmimize \( \alpha \) in conjuvtion with \( \varepsilon \) to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3).
 
-#+begin_src julia :tangle src/optim.jl :noweb yes
-using Distributions
-using DataFrames
-using JLD2
-<<init>>
-
-function test_values(alpha_distribution::Distribution , epsilon_distribution::Distribution , M)
-    alpha = rand(alpha_distribution)
-    eps = max(rand(epsilon_distribution)  ,1e-10)
-    relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
-    set_xi_and_psi!(relaxed_solver[1])
-    #SMOOTH!(relaxed_solver[1], 100, false)
-    for j=1:64
-    elyps_solver!(relaxed_solver[1], 2000)
-    v_cycle!(relaxed_solver , 1)
-    end
-    error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
-    return (;alpha=alpha , epsilon=eps , error=error)
-end
-
-original_solver = testgrid(multi_solver, M, 2)
-set_xi_and_psi!(original_solver[1])
-for j=1:64
-v_cycle!(original_solver , 1)
-end
-#SMOOTH!(original_solver[1], 100, false);
-eps = 3e-3
-#M = testdata(64, div(64,3), 64/5 , 2)
-alpha0 = 10000
-epsilon0 = 1e-2
-best_alpha = alpha0 / 10
-best_epsilon = epsilon0 / 10
-best_error  = Inf
-results = DataFrame()
-for n=1:1000
-    searchradius = 1
-    alpha_distribution = Normal(best_alpha , searchradius * alpha0)
-    epsilon_distribution = Normal(best_epsilon , searchradius * epsilon0)
-    result = test_values(alpha_distribution , epsilon_distribution , M)
-    if result.error < best_error
-        global best_error = result.error
-        global best_alpha = result.alpha
-        global best_epsilon = result.epsilon
-        println(result)
-    end
-push!(results , result)
-end
-jldsave("experiments/alpha-epsilon.jld2"; result=results)
-println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
-#+end_src
 * Conclusion
 In this thesis we have presented a simple introduction to the CH equation and have shown 2 numerical solvers for it. We have presented a baseline method implemented from the authors [cite:@SHIN20117441], and have Shown how to derive it from their initial approach. We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441]. We have introduced messures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour. We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures. We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and massloss. We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations. It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other. As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters. The baseline solver was able to run with 10x less smoothing iterations than the relaxed one. A fair comparison would hence require to find the optimal number of smoothing for each solver.
 
@@ -1865,7 +1815,7 @@ for task in tasks
 jldsave("experiments/relaxed-time.jld2"; result)
 #+end_src
 *** Space
-#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
+#+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/relaxed-space.jl
 using DataFrames
 using JLD2
 <<init>>
@@ -1883,7 +1833,7 @@ function iter(g::Vector{T} , n) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
-    elyps_solver!(solver , 1000)
+    elyps_solver!(g[1] , 1000)
     for i = 1:64
         v_cycle!(g, 1)
     end
@@ -1895,7 +1845,7 @@ end
 
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 16)
+    t = Threads.@spawn iter(tests[i], 4)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -1940,6 +1890,57 @@ for task in ProgressBar(tasks)
     append!(result , fetch(task.task) )
     end
 jldsave("experiments/alpha.jld2"; result)
+#+end_src
+** Monte Carlo optimizer
+#+begin_src julia :tangle src/optim.jl :noweb yes
+using Distributions
+using DataFrames
+using JLD2
+<<init>>
+
+function test_values(alpha_distribution::Distribution , epsilon_distribution::Distribution , M)
+    alpha = rand(alpha_distribution)
+    eps = max(rand(epsilon_distribution)  ,1e-10)
+    relaxed_solver = testgrid(relaxed_multi_solver, M, 2; alpha=alpha, epsilon=eps)
+    set_xi_and_psi!(relaxed_solver[1])
+    #SMOOTH!(relaxed_solver[1], 100, false)
+    for j=1:64
+    elyps_solver!(relaxed_solver[1], 2000)
+    v_cycle!(relaxed_solver , 1)
+    end
+    error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
+    return (;alpha=alpha , epsilon=eps , error=error)
+end
+
+original_solver = testgrid(multi_solver, M, 2)
+set_xi_and_psi!(original_solver[1])
+for j=1:64
+v_cycle!(original_solver , 1)
+end
+#SMOOTH!(original_solver[1], 100, false);
+eps = 3e-3
+#M = testdata(64, div(64,3), 64/5 , 2)
+alpha0 = 10000
+epsilon0 = 1e-2
+best_alpha = alpha0 / 10
+best_epsilon = epsilon0 / 10
+best_error  = Inf
+results = DataFrame()
+for n=1:1000
+    searchradius = 1
+    alpha_distribution = Normal(best_alpha , searchradius * alpha0)
+    epsilon_distribution = Normal(best_epsilon , searchradius * epsilon0)
+    result = test_values(alpha_distribution , epsilon_distribution , M)
+    if result.error < best_error
+        global best_error = result.error
+        global best_alpha = result.alpha
+        global best_epsilon = result.epsilon
+        println(result)
+    end
+push!(results , result)
+end
+jldsave("experiments/alpha-epsilon.jld2"; result=results)
+println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
 * Utility functions :noexport:
 #+name: imports

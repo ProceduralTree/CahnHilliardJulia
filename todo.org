@@ -1,4 +1,7 @@
 * Inbox
+** TODO experiments Baseline
+
+[[file:~/Projects/CahnHilliardJulia/Thesis_jl.org::*Comparison][Comparison]]
 ** TODO rerun space calculations.
 N = 1024 , h = 1e-3 is nonsensical on smaller grids
 [[file:~/Projects/julia_tst/Thesis_jl.org::*stability under refinement in space][stability under refinement in space]]
