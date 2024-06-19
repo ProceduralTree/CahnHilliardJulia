@@ -5,14 +5,13 @@
 #+BIND: org-latex-title-command ""
 #+BIND: org-latex-default-figure-position "H"
 #+latex_class: mimosis
-# #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
+#+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
 #+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :session jl :cache yes
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
-
 * Title-page :ignore:
 #+begin_export latex
 \makeatletter
@@ -52,12 +51,12 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 #+TOC: headlines 3
 
 * Introduction
-The Cahn-Hilliard equation is a well known fourth order PDE used in multiphase flow. It is used to couple different phases with a diffuse interface, as compared to a sharp interface, approach. Therefore, it has a smooth transition between phases.
+The Cahn-Hilliard (CH) equation is a well known fourth order PDE used in multi-phase flow. It is used to couple different phases with a diffuse-interface, as compared to a sharp interface, approach. Therefore, it has a smooth transition between phases.
 The CH equation serves the same purpose, as the second order Allen-Cahn equation. However, the Allen-Cahn equation is not mass conservative. Hence, the Cahn-Hilliard equation is used if mass conservation  is required.
 In this thesis we implement numerical solvers for the Cahn-Hilliard equation in the Julia programming language.
-We begin by giving an overview and a derivation for the analytical CH equation in chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease in total energy for it.
-The chapter [[Baseline multi-grid solver]] introduces our discretization and a fitting numerical method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally, in chapter [[Baseline multi-grid solver]] we introduce the initial conditions we used in this thesis.
-After introducing a numerical method, in chapter [[Numerical experiments]], we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continuously for the analytical CH equation.
+We begin by giving an overview and a derivation for the analytical CH equation in Chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease in total energy for it.
+The Chapter [[Baseline multi-grid solver]] introduces our discretization and a finite difference based two grid method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally we introduce the initial conditions we used in this thesis.
+In Chapter [[Numerical experiments]] we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continuously for the analytical CH equation.
 Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed problem]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Baseline multi-grid solver]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
 Subsequently, in chapter [[Relaxed experiments]], we evaluate our relaxed method against the baseline with the same measures, as introduced in chapter [[Numerical experiments]].
 
@@ -66,7 +65,7 @@ We did experiment with additional tools such as [[https:orgmode.org][org-mode]] 
 This file is available on our github repository at [[https://github.com/ProceduralTree/CahnHilliardJulia.git]]
 as ~Thesis_jl.org~.
 * The Cahn-Hilliard equation
-The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid[cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain \( \Omega \times (0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \).
+The Cahn-Hilliard(CH) equation is a partial differential equation (PDE) that governs the dynamics of a two-phase fluid [cite:@Wu_2022]. The form of the CH equation used in this thesis in the domain \( \Omega \times (0, T) \,, \Omega \subset \mathbb{R}^d \,, d \in \mathbb{N}  \,, T>0 \),
 #+name: eq:CH
 \begin{equation}
 \begin{aligned}
@@ -113,7 +112,7 @@ savefig(p, "images/double-well.svg")
 
 
 
-The chemical potential, \( \mu \), then follows as the variational derivation of the free energy [[eqref:eq:energy]].
+The chemical potential, \( \mu \), then follows as the variational derivation of the free energy in Eq.[[eqref:eq:energy]].
 #+name: eq:chemical-potential
 \begin{align}
  \mu &= \frac{\delta E_{bulk}(\phi)}{\delta \phi} = -\varepsilon^2 \Delta \phi + W'(\phi)
@@ -137,30 +136,30 @@ Furthermore the CH equation is mass conservative under homogeneous Neumann bound
 #+name: eq:boundary-conditions
 \begin{equation}
 \begin{aligned}
-\mathbf{J} \cdot n &= 0 & \text{on} \, \partial\Omega &\times (0,T),\\
+\mathbf{J} \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T),\\
 \partial_n\phi &= 0 & \text{on} \, \partial\Omega &\times (0,T),
 \end{aligned}
 \end{equation}
-where \( n  \) is the outward normal on \( \partial \Omega \).
+where \( \mathbf{n}  \) is the outward normal on \( \partial \Omega \).
 To show the conservation of mass we analyze the change in total mass in the domain \( \Omega \) over time.
 #+name: eq:mass-conservation
 \begin{equation}
 \begin{aligned}
 \frac{d}{dt}\int_{\Omega}\phi \ d \mathbf{x} &=\int_{\Omega}\frac{\partial \phi}{\partial t} \ d\mathbf{x} \\
 &= - \int_{\Omega} \nabla \cdot \mathbf{J} \ d\mathbf{x}\\
-&=  \int_{\partial\Omega}  \mathbf{J} \cdot n  \ d\mathbf{s} \\
+&=  \int_{\partial\Omega}  \mathbf{J} \cdot \mathbf{n}  \ d\mathbf{s} \\
 &= 0 & \forall t\in(0,T)\,,
 \end{aligned}
 \end{equation}
 
 In order to show thermodynamic consistency of the CH equation, we take the time derivation of the free energy functional Eq.[[eqref:eq:energy]].
 \begin{align*}
-\frac{d}{dt}E^{bulk}[\phi(t)] &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d x \\
-&=\int_{\Omega} (\varepsilon^2\nabla\phi + W'(\phi))\partial_t\phi \ dx\\
-&=\int_{\Omega} \mu \partial_t \phi \ dx\\
-&= \int_{\Omega} \mu \cdot \Delta\mu \ dx \\
-&= -\int_{\Omega} \nabla\mu \cdot \nabla\mu \ dx + \int_{\partial\Omega} \mu \nabla\phi_t \cdot n \ dS \\
-&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d x, & \forall t \in (0,T)
+\frac{d}{dt}E^{bulk}[\phi(t)] &= \int_{\Omega} ( \varepsilon^2 \nabla \phi \cdot \nabla \partial_t \phi + W'(\phi) \partial_t \phi) \ d \mathbf{x} \\
+&=\int_{\Omega} (\varepsilon^2\nabla\phi + W'(\phi))\partial_t\phi \ d\mathbf{x}\\
+&=\int_{\Omega} \mu \partial_t \phi \ d\mathbf{x}\\
+&= \int_{\Omega} \mu \cdot \Delta\mu \ d\mathbf{x} \\
+&= -\int_{\Omega} \nabla\mu \cdot \nabla\mu \ dx + \int_{\partial\Omega} \mu \nabla\phi_t \cdot \mathbf{n} \ dS \\
+&\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d \mathbf{x}, & \forall t \in (0,T)
 \end{align*}
 
 * Baseline multi-grid solver
