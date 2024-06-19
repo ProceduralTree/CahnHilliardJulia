@@ -1937,6 +1937,28 @@ end
 jldsave("experiments/alpha-epsilon.jld2"; result=results)
 println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
+** bulk energy and mass balance
+#+begin_src julia :tangle src/utils.jl :eval never
+function bulk_energy(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    energy = 0
+    dx = CartesianIndex(1,0)
+    dy = CartesianIndex(0,1)
+    W(x) = 1/4 * (1-x^2)^2
+    for I in CartesianIndices(solver.phase)[2:end-1,2:end-1]
+        i,j = I.I
+        energy += solver.epsilon^2 / 2 * G(i+ 0.5,j ,solver.len, solver.width) * (solver.phase[I+dx] - solver.phase[I])^2 + G(i,j+0.5,solver.len ,solver.width) * (solver.phase[I+dy] - solver.phase[I])^2 + W(solver.phase[I])
+        end
+   return energy
+end
+#+end_src
+
+#+begin_src julia :tangle src/utils.jl
+function massbal(arr)
+    num_cells= *((size(arr).-2)...)
+    return sum(arr[2:end-1, 2:end-1])/num_cells
+    end
+#+end_src
+
 * Utility functions :noexport:
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
