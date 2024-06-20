@@ -613,7 +613,7 @@ end
 After a few iterations, V-cycle exhibits the following behavior:
 
 #+name: fig:solver-iteration
-#+begin_src julia-vterm :results file graphics html :file iteration.gif :noweb no-export :async t :exports results :output-dir images  :tangle src/plot.jl :session jl :eval never-export
+#+begin_src julia-vterm :results file graphics html :file iteration.gif :noweb no-export :async t :exports results html :output-dir images  :tangle src/plot.jl :session jl :eval never-export
 <<init>>
 using JLD2
 using DataFrames
@@ -1287,6 +1287,7 @@ savefig(p , "images/relaxed-space-stability.svg")
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
+** effect of alpha
 In the previous chapter we have shown stability compared to the original solver. However we have not yet show a direct comparison between both methods. Since the relaxed solver is dependant on the relaxation variable \( \alpha \) We are interested in finding an optimal value for it.
 Furthemore to see the effect \( \alpha \) has on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
 Should the relaxed solver approach the original, we would expect
@@ -1310,8 +1311,8 @@ savefig(p, "images/alpha-error.svg")
 #+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \)
 #+RESULTS[e0431a1d9eb6a4b02dd44d40e4d028df8332f5e5]: fig:alpha-error
 [[file:images/alpha-error.svg]]
-
-#+begin_src julia-vterm :results file graphics :file relaxed-comp.gif
+** direct comparison
+#+begin_src julia-vterm :results file graphics html :file relaxed-comp.gif
 <<init>>
 using JLD2
 using DataFrames
@@ -1414,7 +1415,7 @@ savefig(p , "images/relaxed-comparison.svg")
 #+RESULTS[418e509988cacf9917579966bc071c525945ce5b]: fig:relaxed-original-comparison
 [[file:images/relaxed-comparison.svg]]
 
-
+** optimizer for alpha
 In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to optimize \( \alpha \) in conjunction with \( \varepsilon \), to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3). This gives us confidence that the relaxed method solves the same problem, as the baseline. Optimal values for \( \alpha \) varied , however stayed fairly large around \( 10^5 \to 10^{6} \).
 
 * Conclusion
