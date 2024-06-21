@@ -653,7 +653,7 @@ energy = bulk_energy.(results[i0:i0+63,:].solver)
 
 p1 = plot(1:64 ,
           energy ,
-          title=L"Discrete Helmholtz Energy $E_d^{bulk}$",
+          title=L"Discrete Energy $E_d^{bulk}$",
           xlabel="timesteps" ,
           ylabel="energy"  ,
           label=false)
@@ -1144,7 +1144,7 @@ Furthermore, experimentation shows that alpha alone is insufficient to get a rel
 * Relaxed experiments
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
 ** Relaxed energy evaluations
-we do evaluate our relaxed method using the discrete Helmoltz energy defined in Eq.[[eqref:eq:discrete-energy]]. On the same initial data, and with the same values for \( \varepsilon , h , dt \) as in the Chapter.[[Energy evaluations]]. In Figure.[[fig:relaxed-energy-balance]] we then observe the energy decay we expected. Our relaxed approach closely follows the baseline, although it consistently decayed slightly faster. This is within our expectations.
+we do evaluate our relaxed method using the discrete energy defined in Eq.[[eqref:eq:discrete-energy]]. On the same initial data, and with the same values for \( \varepsilon , h , dt \) as in the Chapter.[[Energy evaluations]]. In Figure.[[fig:relaxed-energy-balance]] we then observe the energy decay we expected. Our relaxed approach closely follows the baseline, although it consistently decayed slightly faster. This is within our expectations.
 #+name: fig:relaxed-energy-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-energy-balance.svg
 <<init>>
@@ -1157,14 +1157,14 @@ original_energy = bulk_energy.(original_results[i0:i0+63,:].solver)
 relaxed_energy = bulk_energy.(relaxed_results[i0:i0+63,:].solver)
 p1 = plot(1:64 ,
           original_energy ,
-          title=L"Discrete Helmholtz Energy $E_d^{bulk}$",
+          title=L"Discrete Energy $E_d^{bulk}$",
           xlabel="timesteps" ,
           ylabel="energy"  ,
           label="original")
 p1 = plot!(p1,
            1:64 ,
            relaxed_energy ,
-           title=L"Discrete Helmholtz Energy $E_d^{bulk}$",
+           title=L"Discrete Energy $E_d^{bulk}$",
            xlabel="timesteps" ,
            ylabel="energy"  ,
            label="relaxed")
@@ -1189,7 +1189,7 @@ savefig(p , "images/relaxed-energy-balance.svg")
 [[file:images/relaxed-energy-balance.svg]]
 
 
-We observe the discrete Helmoltz energy decrease is the same manner as with the original solver.
+We observe the discrete energy decrease is the same manner as with the original solver.
 ** Relaxed numerical mass balance
 since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach. Our relaxed solver shows  mass loss around 2% as seen in Fig.[[fig:relaxed-mass-balance]]. This is nowhere near the machine precision, we reached in Fig.[[fig:mass-balance]]. However it is still tolerable.
 #+name: fig:relaxed-mass-balance
@@ -2240,7 +2240,6 @@ initial_data = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
-
 
 
 
