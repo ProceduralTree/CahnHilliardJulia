@@ -535,14 +535,14 @@ for j in 1:timesteps
     end
 end
 #+end_src
-where the V-cycle is a
-1. A Gauss-Seidel relaxation for smoothing, as described in Chapter [[SMOOTH operator]].
-2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \).
-3. restriction and between grids \(  h \to H  \).
-4. a Newton iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+where the V-cycle consists of the following steps
+1. a Gauss-Seidel relaxation for smoothing on the fine grid \( h \), as described in Chapter [[SMOOTH operator]].
+2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
+3. restriction from the fine grid to the course grid \(  h \to H  \).
+4. a Gauss-Seidel iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
 We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
-5. prolongation from \( H\to h \)
-6. post smoothing
+5. prolongation from the course grid to the fine grid \( H\to h \)
+6. post smoothing on the fine grid
 
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
@@ -1961,6 +1961,42 @@ function massbal(arr)
 #+end_src
 
 * Utility functions :noexport:
+alternative V-cycle:
+#+begin_src julia :eval never :tangle src/utils.jl
+function alt_v_cycle!(grid::Array{T}, level) where T <: solver
+    solver = grid[level]
+    #pre SMOOTHing:
+    SMOOTH!(solver, 400, false)
+
+    d = zeros(size(solver.phase))
+    r = zeros(size(solver.phase))
+
+    # calculate error between L and expected values
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
+    end
+
+    restrict_solver!(grid[level], grid[level+1])
+    solver = grid[level+1]
+    solution = deepcopy(solver)
+
+    #Newton Iteration for solving smallgrid
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+    solver.xi[I]  , solver.psi[I] = L(solver , I.I... , solver.phase[I] , solver.potential[I] ) + [d,r]
+    end
+    SMOOTH!(solver 400 , false)
+    u_large = solver.phase .- solution.phase
+    v_large = solver.potential .- solution.potential
+
+    solver = grid[level]
+
+    solver.phase .+= prolong(u_large , G)
+    solver.potential .+= prolong(v_large, G)
+
+
+    SMOOTH!(solver, 800, false)
+end
+#+end_src
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
 using Plots
