@@ -1210,8 +1210,6 @@ savefig(p , "images/relaxed-mass-balance.svg")
 #+end_src
 
 #+caption: Mass los in the relaxed solver
-#+RESULTS[8052161fc22f63797c3deef59ec7b3d21d0c5a80]: fig:relaxed-mass-balance
-[[file:images/relaxed-mass-balance.svg]]
 
 ** Stability of a relaxed multigrid sub-iteration
 We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). Here we observe instablility at about 60 sub-iterations in Fig.[[fig:relaxed-convergence]]. We are uncertain, as to why.
@@ -1279,12 +1277,20 @@ using DataFrames
 using JLD2
 using LaTeXStrings
 df = jldopen("experiments/relaxed_space_refinement.jld2")["result"]
-change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-16] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
-p = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],change , ylabel = "difference" , yscale=:log10, xlabel = "change in number of gridpoints" , label=L"\Delta \phi" , xscale=:log2 , seriestype=:scatter , xaxis=:flip , legend=:topright)
+
+change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-4] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
+p = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],
+change ,
+ylabel = "difference" ,
+xlabel = "change in number of gridpoints" ,
+label=L"\Delta \phi" ,
+seriestype=:scatter ,
+xaxis=:flip ,
+legend=:topright)
 savefig(p , "images/relaxed-space-stability.svg")
 #+end_src
 
-#+RESULTS: fig:relaxed-stability-in-space
+#+RESULTS[8c06c1becc5715efed9a81b6c9359d8fdf4146c9]: fig:relaxed-stability-in-space
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
