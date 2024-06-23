@@ -1589,8 +1589,6 @@ gif(anim , "images/behaviour.gif" , fps = 10)
 #+end_src
 
 #+caption: Behaviour of bulk energy \( E_{bulk} \) and amount of fluid changing phase, for different initial conditions
-#+RESULTS: fig:behaviour
-[[file:images/behaviour.gif]]
 
 *** subiteration
 #+begin_src julia :results output :noweb yes :tangle experiments/src/subiteration.jl
@@ -1893,6 +1891,247 @@ for task in ProgressBar(tasks)
     end
 jldsave("experiments/alpha.jld2"; result)
 #+end_src
+
+** alternative experiments
+*** iteration
+#+begin_src julia :results output  :noweb yes :eval never :tangle experiments/src/alt-iteration.jl
+using JLD2
+using DataFrames
+using Random
+using ProgressMeter
+<<init>>
+<<setup-diverse-testgrids>>
+n = 64
+m = 16
+function iter(g::Vector{T} , experiment , prg::Progress) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        alt_v_cycle!(g, 1)
+        next!(prg)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=experiment))
+    end
+    return out
+end
+
+
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/alt-iteration.jld2"; result)
+#+end_src
+#+begin_src julia    :noweb no-export :tangle experiments/src/alt-relaxed-iteration.jl :async
+using JLD2
+using DataFrames
+using ProgressMeter
+using Random
+<<init>>
+<<setup-diverse-testgrids>>
+
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+
+n = 64
+m = 512
+
+
+function iter(g::Vector{relaxed_multi_solver} , experiment , prg::Progress)
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        elyps_solver!(g[1] , 1000)
+        alt_v_cycle!(g, 1)
+        next!(prg)
+    end
+    push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=experiment))
+    end
+    return out
+end
+
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+tasks = []
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i], i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/alt-relaxed-iteration-less-smooth.jld2"; result)
+#+end_src
+
+*** subiteration
+
+#+begin_src julia :tangle experiments/src/alt-relaxed-subiteration.jl :noweb yes
+using DataFrames
+using JLD2
+using ProgressMeter
+<<init>>
+<<setup-diverse-testgrids>>
+#tests = [testgrid(relaxed_multi_solver, M , 2;alpha=32428.2 , epsilon=0.163398) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+n = 4
+m = 1024
+
+function iter(g::Vector{T} , n ,experiment , prg::Progress) where T<: solver
+    out = []
+    for j in 1:n
+    set_xi_and_psi!(g[1])
+    for i = 1:m
+        elyps_solver!(g[1] , 1000)
+        alt_v_cycle!(g, 1)
+        push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=experiment))
+        next!(prg)
+    end
+    end
+    return out
+end
+
+
+tasks = []
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
+for i in eachindex(tests)
+    t = Threads.@spawn iter(tests[i] , n , i , prg)
+    push!(tasks , (iteration = 1 , task = t))
+    end
+result = DataFrame()
+for task in tasks
+    append!(result , fetch(task.task) )
+    end
+jldsave("experiments/alt-relaxed-subiteration.jld2"; result)
+#+end_src
+** alternative results
+*** iteration
+#+begin_src julia-vterm :results graphics file html :file alt-behaviour.gif :session jl :noweb no-export :output-dir images :exports none :noweb no-export :cache no
+<<init>>
+using JLD2
+using DataFrames
+gr()
+results = jldopen("experiments/alt-iteration.jld2")["result"]
+n  = size(results.solver , 1)
+pbar = ProgressBar(total = 10 * n)
+energy = zeros(0)
+massbalance = zeros(0)
+
+anim = @animate for res in eachrow(results)
+    heatmap(res.solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1, size(res.solver.phase , 1)) , aspect_ratio=:equal, title  = "phasefield" )
+
+end
+
+gif(anim , "images/alt-behaviour.gif" , fps = 10)
+#+end_src
+
+#+RESULTS[5be40c097a9ead7bf13cef459456889ddedb2fd2]:
+#+begin_export html
+[[file:images/alt-behaviour.gif]]
+#+end_export
+
+
+#+begin_src julia-vterm :results graphics file html :file alt-relaxed-behaviour.gif :session jl :noweb no-export :output-dir images :exports none :noweb no-export :cache no
+<<init>>
+using JLD2
+using DataFrames
+gr()
+results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
+n  = size(results.solver , 1)
+pbar = ProgressBar(total = 10 * n)
+energy = zeros(0)
+massbalance = zeros(0)
+
+anim = @animate for res in eachrow(results)
+    heatmap(res.solver.phase , clim =(-1,1) , framestyle=:none , legend=true, lims=(1, size(res.solver.phase , 1)) , aspect_ratio=:equal, title  = "phasefield" )
+
+end
+
+gif(anim , "images/alt-relaxed-behaviour.gif" , fps = 10)
+#+end_src
+
+#+RESULTS:
+#+begin_export html
+[[file:images/alt-relaxed-behaviour.gif]]
+#+end_export
+
+*** subiteration
+#+begin_src julia-vterm :results file graphics :file alt-relaxed-convergence.svg
+<<init>>
+using DataFrames
+using JLD2
+using LaTeXStrings
+gr()
+n=1024
+
+i0 = 1
+df = jldopen("experiments/subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
+gd = groupby(df , :iteration)
+original_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+original_res =  groupby(original_res , :iteration)[1].cycle_function
+
+
+df = jldopen("experiments/alt-relaxed-subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
+gd = groupby(df , :iteration)
+relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
+p=plot([original_res, relaxed_res],label= ["original"  "alternative relaxed"] , ylabel="difference" , xlabel="sub-iteration" )
+savefig(p , "images/alt-relaxed-convergence.svg")
+#+end_src
+
+#+RESULTS[f6f4ee058d52005f0de0c501ab03bc21e22f21df]:
+[[file:images/alt-relaxed-convergence.svg]]
+
+*** mass
+#+begin_src julia-vterm :results file graphics :file alt-relaxed-mass-balance.svg
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+i0 = 64 * 1+1
+results = jldopen("experiments/alt-relaxed-iteration-less-smooth.jld2")["result"]
+energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
+p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
+p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
+savefig(p , "images/alt-relaxed-mass-balance.svg")
+#+end_src
+
+#+RESULTS[0c2d32d827d6b633e5934778ba800d45d35c5d45]:
+[[file:images/alt-relaxed-mass-balance.svg]]
+
+#+begin_src julia-vterm :results file graphics :file alt-mass-balance.svg
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+i0 = 64 * 0+1
+results = jldopen("experiments/alt-iteration.jld2")["result"]
+energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
+p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
+p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
+savefig(p , "images/alt-mass-balance.svg")
+#+end_src
+
+#+RESULTS[ae674c0585cf06a81f1a5f3ff0f6f1881ee869ee]:
+[[file:images/alt-mass-balance.svg]]
+
 ** Monte Carlo optimizer
 #+begin_src julia :tangle src/optim.jl :noweb yes
 using Distributions
@@ -1971,8 +2210,8 @@ alternative V-cycle:
 #+begin_src julia :eval never :tangle src/utils.jl
 function alt_v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
-    #pre SMOOTHing:
-    SMOOTH!(solver, 400, false)
+    #pre SMOOTHingj
+    SMOOTH!(solver, 40, false)
 
     d = zeros(size(solver.phase))
     r = zeros(size(solver.phase))
@@ -1982,15 +2221,23 @@ function alt_v_cycle!(grid::Array{T}, level) where T <: solver
         d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
     end
 
-    restrict_solver!(grid[level], grid[level+1])
-    solver = grid[level+1]
-    solution = deepcopy(solver)
+restrict_solver!(grid[level], grid[level+1])
+solver = grid[level+1]
+solution = deepcopy(solver)
+
+d_large = restrict(d, G)
+r_large = restrict(r, G)
+
+
+u_large = zeros(size(d_large))
+v_large = zeros(size(d_large))
 
     #Newton Iteration for solving smallgrid
     for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-    solver.xi[I]  , solver.psi[I] = L(solver , I.I... , solver.phase[I] , solver.potential[I] ) + [d,r]
+    solver.xi[I]  , solver.psi[I] = L(solver , I.I... , solver.phase[I] , solver.potential[I] ) .+ [d_large[I],r_large[I]]
     end
-    SMOOTH!(solver 400 , false)
+
+    SMOOTH!(solver, 40 , false)
     u_large = solver.phase .- solution.phase
     v_large = solver.potential .- solution.potential
 
@@ -2000,7 +2247,7 @@ function alt_v_cycle!(grid::Array{T}, level) where T <: solver
     solver.potential .+= prolong(v_large, G)
 
 
-    SMOOTH!(solver, 800, false)
+    SMOOTH!(solver, 80, false)
 end
 #+end_src
 #+name: imports

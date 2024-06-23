@@ -10,7 +10,7 @@ using LaTeXStrings
 using LinearAlgebra
 using Printf
 using ProgressBars
-default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=32 , tickfontsize = 22 )
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=22 , tickfontsize = 22 , legendfontsize=22)
 pgfplotsx()
 layout2x2 = grid(2,2)
 layout3x1 = @layout [ b  c ; a]

@@ -61,6 +61,7 @@
             git
             gitRepo
             pdf2svg
+            poppler_utils
             gnupg
             autoconf
             curl
