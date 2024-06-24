@@ -546,17 +546,17 @@ where the V-cycle consists of the following steps
 
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
-restrict_solver!(grid[level], grid[level+1])
-solver = grid[level+1]
-solution = deepcopy(solver)
 
-d_large = restrict(d, G)
-r_large = restrict(r, G)
+    restrict_solver!(grid[level], grid[level+1])
+    coursegrid_solver = grid[level+1]
+    solution = deepcopy(coursegrid_solver)
+
+    d_large = restrict(d, G)
+    r_large = restrict(r, G)
 
 
-u_large = zeros(size(d_large))
-v_large = zeros(size(d_large))
-
+    u_large = zeros(size(d_large))
+    v_large = zeros(size(d_large))
 #+end_src
 #+name: prolong-to-fine-grid
 #+begin_src julia :eval never :exports none
@@ -933,7 +933,7 @@ savefig(p , "images/space-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the baseline solver while solving on successively finer grids
-#+RESULTS[d65d9dfebf929c604fd273a9c1ffcfd955bb13e0]: fig:stability-in-space
+#+RESULTS[67b472ddafeb65ec4005a1bbc9c3220b10030ad8]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
 * Relaxed problem
@@ -1316,9 +1316,12 @@ we test convergence in space by succesivly subdividing our grid into finer meshe
 using DataFrames
 using JLD2
 using LaTeXStrings
+default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=18 , tickfontsize = 12 , legendfontsize=18)
+gr()
 df = jldopen("experiments/relaxed_space_refinement.jld2")["result"]
-
-change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-4] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
+gd = groupby(df , :iteration)
+n = 4
+change = [norm(gd[n].phase[i] - restrict(gd[n].phase[i-1] , G))/ *(size(gd[n].phase[i])...) for i= 2:size(gd[n].phase , 1) ]
 p = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],
 change ,
 ylabel = "difference" ,
@@ -1327,10 +1330,11 @@ label=L"\Delta \phi" ,
 seriestype=:scatter ,
 xaxis=:flip ,
 legend=:topright)
+
 savefig(p , "images/relaxed-space-stability.svg")
 #+end_src
 
-#+RESULTS[8c06c1becc5715efed9a81b6c9359d8fdf4146c9]: fig:relaxed-stability-in-space
+#+RESULTS[2d1d59898b534f074ded1c9b41ae4828abeeea80]: fig:relaxed-stability-in-space
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
@@ -1351,12 +1355,13 @@ using Measures
 
 pgfplotsx()
 results = jldopen("experiments/alpha.jld2")["result"]
-p=plot(results.alpha  , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
+p=plot(results.alpha , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
+
 savefig(p, "images/alpha-error.svg")
 #+end_src
 
 #+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \) for different values of  \( \alpha \)
-#+RESULTS[20827d9a0de8055b906a95ca1fbaa96f9d92a771]: fig:alpha-error
+#+RESULTS[f474fd86cf30b6b4f9d6b13a527d99b42b609d04]: fig:alpha-error
 [[file:images/alpha-error.svg]]
 
 ** direct comparison
@@ -1393,11 +1398,11 @@ using DataFrames
 using Measures
 using LaTeXStrings
 
-i = 1*64 +1
+i = 0*64 +1
 gr()
 
-original_results = jldopen("experiments/iteration.jld2")["result"]
-relaxed_results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+original_results = jldopen("experiments/alt-iteration.jld2")["result"]
+relaxed_results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
 
 difference = [norm(original.phase./2 .- relaxed.phase./2) /64^2 for (original, relaxed) in zip(original_results.solver[i:i+63],relaxed_results.solver[i:i+63])
 ]
@@ -1410,8 +1415,10 @@ anim = @animate for (original, relaxed) in zip(original_results.solver[i:i+63],r
 gif(anim , "images/relaxed-comparison.gif", fps=10)
 #+end_src
 
-#+RESULTS[967977e693a087a426aab4c56ab07f68b4e123cd]: relaxed-comparison
+#+RESULTS[76efe71ab5265c6ad1da811a6f84242b09d84c91]: relaxed-comparison
+#+begin_export html
 [[file:images/relaxed-comparison.gif]]
+#+end_export
 
 
 #+name: fig:relaxed-original-comparison
@@ -1424,8 +1431,8 @@ using LaTeXStrings
 
 i = 0*64 +1
 pgfplotsx()
-original_results = jldopen("experiments/iteration.jld2")["result"]
-relaxed_results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+original_results = jldopen("experiments/alt-iteration.jld2")["result"]
+relaxed_results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
 
 difference = [norm(original.phase .- relaxed.phase) /64^2 for (original, relaxed) in zip(original_results.solver[i:i+63],relaxed_results.solver[i:i+63])
 ]
@@ -1460,7 +1467,7 @@ savefig(p , "images/relaxed-comparison.svg")
 #+end_src
 
 #+caption: Comparison between the original and the relaxed CH solvers.
-#+RESULTS[418e509988cacf9917579966bc071c525945ce5b]: fig:relaxed-original-comparison
+#+RESULTS[cca6cd5858468e58cbdf037ea297f65a5a9bf61b]: fig:relaxed-original-comparison
 [[file:images/relaxed-comparison.svg]]
 
 ** optimizer for alpha
@@ -1708,7 +1715,7 @@ using JLD2
 <<init>>
 
 M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(multi_solver  , M , 7)
+grids = testgrid(multi_solver  , M , 7 , h0 = 3e-3*64 / 1024)
 # inits
 for i=2:size(grids,1)
     restrict_solver!(grids[i-1] , grids[i])
@@ -1837,7 +1844,7 @@ function iter(g::Vector{T} , n) where T<: solver
     set_xi_and_psi!(g[1])
     for i = 1:64
         elyps_solver!(g[1] , 1000)
-        v_cycle!(g, 1)
+        alt_v_cycle!(g, 1)
     end
     end
     push!(out, (phase=copy(g[1].phase), iteration=n))
@@ -1860,24 +1867,28 @@ jldsave("experiments/relaxed-time.jld2"; result)
 #+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/relaxed-space.jl
 using DataFrames
 using JLD2
+using ProgressMeter
 <<init>>
 
 M = testdata(2^10 , 2^5 , 2^7 , 2 )
-grids = testgrid(relaxed_multi_solver  , M , 7)
+grids = testgrid(relaxed_multi_solver  , M , 7 , h0=3e-3 * 64 /1024)
 # inits
 for i=2:size(grids,1)
     restrict_solver!(grids[i-1] , grids[i])
 end
 tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
 
+n = 4
+m = 1024
 
-function iter(g::Vector{T} , n) where T<: solver
+function iter(g::Vector{T} , n , prg::Progress) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
     elyps_solver!(g[1] , 1000)
-    for i = 1:64
-        v_cycle!(g, 1)
+    for i = 1:m
+        alt_v_cycle!(g, 1)
+        next!(prg)
     end
     push!(out, (phase=copy(g[1].phase), iteration=j))
     end
@@ -1885,9 +1896,10 @@ function iter(g::Vector{T} , n) where T<: solver
 end
 
 
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
 tasks = []
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 4)
+    t = Threads.@spawn iter(tests[i], n , prg)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
@@ -1913,13 +1925,13 @@ function alpha_error(alpha::Number , solution::Array )
     set_xi_and_psi!(test_solver[1])
     for j in 1:64
         elyps_solver!(test_solver[1], 1000)
-        v_cycle!(test_solver , 1)
+        alt_v_cycle!(test_solver , 1)
     end
 return [(;alpha=alpha , error=norm(test_solver[1].phase - solution))]
 end
 set_xi_and_psi!(original_grid[1])
 for j in 1:64
-    v_cycle!(original_grid, 1)
+    alt_v_cycle!(original_grid, 1)
 end
 print("finished original v_cycle")
 tasks = []
@@ -2189,7 +2201,7 @@ function test_values(alpha_distribution::Distribution , epsilon_distribution::Di
     #SMOOTH!(relaxed_solver[1], 100, false)
     for j=1:64
     elyps_solver!(relaxed_solver[1], 2000)
-    v_cycle!(relaxed_solver , 1)
+    alt_v_cycle!(relaxed_solver , 1)
     end
     error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
     return (;alpha=alpha , epsilon=eps , error=error)
@@ -2198,7 +2210,7 @@ end
 original_solver = testgrid(multi_solver, M, 2)
 set_xi_and_psi!(original_solver[1])
 for j=1:64
-v_cycle!(original_solver , 1)
+alt_v_cycle!(original_solver , 1)
 end
 #SMOOTH!(original_solver[1], 100, false);
 eps = 3e-3
@@ -2436,7 +2448,7 @@ function testgrid(::Type{multi_solver},M, len; dt = 1e-3 ,  epsilon=8e-3 , h0=3e
 
 end
 
-function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1e6 , dt=1e-3, epsilon=8e-3 , h0=3e-3)
+function testgrid(::Type{relaxed_multi_solver},M, len ; alpha=1.5e6 , dt=1e-3, epsilon=8e-3 , h0=3e-3)
     grid = Array{relaxed_multi_solver}(undef, len)
     phase = zeros(size(M) .+ 2)
     phase[2:end-1, 2:end-1] = M

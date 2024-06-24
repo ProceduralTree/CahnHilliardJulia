@@ -45,17 +45,17 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
         d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
     end
 
-    restrict_solver!(grid[level], grid[level+1])
-    solver = grid[level+1]
-    solution = deepcopy(solver)
     
-    d_large = restrict(d, G)
-    r_large = restrict(r, G)
+        restrict_solver!(grid[level], grid[level+1])
+        coursegrid_solver = grid[level+1]
+        solution = deepcopy(coursegrid_solver)
+    
+        d_large = restrict(d, G)
+        r_large = restrict(r, G)
     
     
-    u_large = zeros(size(d_large))
-    v_large = zeros(size(d_large))
-    
+        u_large = zeros(size(d_large))
+        v_large = zeros(size(d_large))
 
     #Newton Iteration for solving smallgrid
     for i = 1:300
