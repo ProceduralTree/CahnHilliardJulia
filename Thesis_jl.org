@@ -1140,7 +1140,7 @@ savefig(p,"images/smooth_relaxed.svg")
 #+RESULTS: fig:relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
 
-Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since alpha had an effect similar to epsilon, where it changed the boundary thickness in the phase-field \( \phi \). Therefore epsilon and alpha cannot be chosen independently. Hence we use a simple MCMC optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
+Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since \( \alpha \) had an effect similar to \( \varepsilon \), where it changed the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) cannot be chosen independently. Hence we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
 * Relaxed experiments
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
 ** Relaxed energy evaluations
@@ -1239,9 +1239,6 @@ p=plot([original_res, relaxed_res[1:64]],label= ["original"  "relaxed"] , ylabel
 savefig(p , "images/relaxed-convergence.svg")
 #+end_src
 
-#+RESULTS[5e4a5491fa0000fa06dfa4ca120fd37e64b63759]: fig:relaxed-convergence
-[[file:images/relaxed-convergence.svg]]
-
 ** Relaxed stability in time
 we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time. However since the sub-iteration showed problematic behaviour, this micht also be a side-effect of this.
 #+name: fig:relaxed-stability-in-time
@@ -1270,7 +1267,7 @@ we test convergence in space by succesivly subdividing our grid into finer meshe
 
 
 #+name: fig:relaxed-stability-in-space
-#+begin_src julia-vterm :results file graphics :file relaxed-space-stability.svg
+#+begin_src julia-vterm :results file graphics :file relaxed-space-stability.svg :exports none
 <<init>>
 using DataFrames
 using JLD2
@@ -1294,13 +1291,13 @@ savefig(p , "images/relaxed-space-stability.svg")
 
 * Comparison
 ** effect of alpha
-In the previous chapter we have shown stability compared to the original solver. However we have not yet show a direct comparison between both methods. Since the relaxed solver is dependant on the relaxation variable \( \alpha \) We are interested in finding an optimal value for it.
-Furthemore to see the effect \( \alpha \) has on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
-Should the relaxed solver approach the original, we would expect
+In the previous chapter we have shown the stability, and lack thereof, for the relaxed solver. However in this chapter we show a direct comparison between both methods. Since the relaxed solver is dependant on the relaxation variable \( \alpha \).
+To see the impact of \( \alpha \) on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
+Since the solution of the relaxed solver should approach the original solver, we expect
 \begin{equation}
-||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}||_{Fr} \to 0
+||\phi_{ij}^{n+1} - \phi_{ij}^{n+1,\alpha}||_{Fr} \to 0.
 \end{equation}
-In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference to the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \) we explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed approach ironically results in restricted behaviour. Empirical this is to be expected as. for large values of alpha the elliptical equation approaches \( \phi \)  and for small values the elliptical solver from chapter [[Elliptical PDE]] does not converge. 
+In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference between the relaxed solver and the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \). We explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed solver results in restricted behaviour, which we also expect. On the other hand, for large values of \( \alpha \) the elliptical equation approaches \( \phi \), however it does not converge to \( \phi \) for small values of \( \alpha \).
 #+name: fig:alpha-error
 #+begin_src julia-vterm :results graphics file :file alpha-error.svg
 using JLD2
@@ -1310,13 +1307,14 @@ using Measures
 
 pgfplotsx()
 results = jldopen("experiments/alpha.jld2")["result"]
-p=plot(results.alpha  , results.error ./64^2, label=false , xlabel=L"alpha $\alpha$" , ylabel="difference" )
+p=plot(results.alpha  , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
 savefig(p, "images/alpha-error.svg")
 #+end_src
 
-#+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \)
-#+RESULTS[e0431a1d9eb6a4b02dd44d40e4d028df8332f5e5]: fig:alpha-error
+#+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \) for different values of  \( \alpha \)
+#+RESULTS[20827d9a0de8055b906a95ca1fbaa96f9d92a771]: fig:alpha-error
 [[file:images/alpha-error.svg]]
+
 ** direct comparison
 #+begin_src julia-vterm :results file graphics html :file relaxed-comp.gif
 <<init>>
@@ -1342,7 +1340,7 @@ anim = @animate for iter in zip(results.solver,results1.solver ,results2.solver 
     end
 gif(anim , "images/relaxed-comp.gif", fps=10)
 #+end_src
-although we can observe slight differences between the original solver and the relaxed approach they are barely noticeable by eye. Therefore we run our solver for a fixed value of \( \alpha=7700 \) , as this was one of the best values from Fig.[[fig:alpha-error]], We then  show the numerical difference between \( \phi_{ij}^n \) and \( \phi_{ij}^{n,\alpha} \) in Fig.[[fig:relaxed-original-comparison]]. We observe a a small difference between both methods, especially in areas with high curvature and inclusions of small segments of one phase in the other.
+We can observe slight differences between the original solver and the relaxed solver. To quantify those, we run the relaxed solver for a fixed value of \( \alpha=7700 \) , as it is in the intervall where \( \alpha \) is minimal in Fig.[[fig:alpha-error]]. We then  show the numerical difference between \( \phi_{ij}^n \) and \( \phi_{ij}^{n,\alpha} \) in Fig.[[fig:relaxed-original-comparison]]. We observe a a small difference between both methods, especially in areas with high curvature and inclusions of small segments of one phase in the other.
 #+name: relaxed-comparison
 #+begin_src julia-vterm :results file graphics html :file relaxed-comparison.gif
 <<init>>
