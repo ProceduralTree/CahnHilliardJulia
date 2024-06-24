@@ -111,7 +111,10 @@ function set_xi_and_psi!(solver::T) where T <: Union{adapted_multi_solver, adapt
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
     solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1]) + B.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
+
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    + B.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
+
     return nothing
 end
 #+end_src
@@ -304,7 +307,18 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n + B_{2,ij} \nabla_d \cdot B_{1,ij}  + \nabla_d(G_
 \end{pmatrix}
 \end{equation}
 this approach conserves the implicit \( L \) operator and therefore only has to modify the \( \zeta^n_{ij}, \psi^n_{ij} \) initialization
+#+begin_src julia :tangle src/adapted_multisolver.jl
+function set_xi_and_psi!(solver::T) where T <: Union{boundary_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
 
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+            + B_2.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
+            + div.(B_1 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
+            + Ggrad.(B_0 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
+end
+#+end_src
 * Different boundary conditions for testing
 ** static boundary conditions
 *** constant laplacian \( \pm \)
@@ -566,6 +580,21 @@ struct gradient_boundary_solver <: solver
     W_prime::Function
     len::Int
     width::Int
+    end
+struct boundary_solver <: solver
+    phase::Matrix{Float64}
+    potential::Matrix{Float64}
+    xi::Matrix{Float64}
+    psi::Matrix{Float64}
+    epsilon::Float64
+    h::Float64
+    dt::Float64
+    W_prime::Function
+    len::Int
+    width::Int
+    B_0::Function
+    B_1::Function
+    B_2::Function
     end
 #+end_src
 #+begin_src julia :tangle src/adapted_testgrids.jl :eval never
