@@ -540,7 +540,7 @@ where the V-cycle consists of the following steps
 2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
 3. restriction from the fine grid to the course grid \(  h \to H  \).
 4. a Gauss-Seidel iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
-We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
+    We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 5. prolongation from the course grid to the fine grid \( H\to h \)
 6. post smoothing on the fine grid
 
@@ -570,6 +570,50 @@ solver.potential .+= prolong(v_large, G)
 
 #+end_src
 The V-cycle of a two-grid method using pre- and post-smoothing is then stated by:
+#+begin_src julia :eval never :tangle src/mulisolver.jl
+function alt_v_cycle!(grid::Array{T}, level) where T <: solver
+    finegrid_solver = grid[level]
+    #pre SMOOTHing
+    SMOOTH!(solver, 40, false)
+
+    d = zeros(size(solver.phase))
+    r = zeros(size(solver.phase))
+
+    # calculate error between L and expected values
+    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+        d[I], r[I] = [solver.xi[I], solver.psi[I]]
+        .- L(finegrid_solver, I.I..., finegrid_solver.phase[I], finegrid_solver.potential[I])
+    end
+
+    restrict_solver!(grid[level], grid[level+1])
+    coursegrid_solver = grid[level+1]
+    solution = deepcopy(coursegrid_solver)
+
+    d_large = restrict(d, G)
+    r_large = restrict(r, G)
+
+
+    u_large = zeros(size(d_large))
+    v_large = zeros(size(d_large))
+
+    for I in CartesianIndices(coursegrid_solver.phase)[2:end-1, 2:end-1]
+        coursegrid_solver.xi[I]  , coursegrid_solver.psi[I] = L(coursegrid_solver , I.I... , coursegrid_solver.phase[I] , coursegrid_solver.potential[I] ) .+ [d_large[I],r_large[I]]
+    end
+
+    SMOOTH!(coursegrid_solver, 40 , false)
+
+    u_large = coursegrid_solver.phase .- solution.phase
+    v_large = coursegrid_solver.potential .- solution.potential
+
+    finegrid_solver = grid[level]
+    finegrid_solver.phase .+= prolong(u_large , G)
+    finegrid_solver.potential .+= prolong(v_large, G)
+
+
+    SMOOTH!(finegrid_solver, 80, false)
+end
+#+end_src
+
 #+begin_src julia :tangle src/multisolver.jl :eval never :noweb no-export
 function v_cycle!(grid::Array{T}, level) where T <: solver
     solver = grid[level]
