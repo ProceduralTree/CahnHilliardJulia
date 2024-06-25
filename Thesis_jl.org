@@ -539,7 +539,7 @@ where the V-cycle consists of the following steps
 1. a Gauss-Seidel relaxation for smoothing on the fine grid \( h \), as described in Chapter [[SMOOTH operator]].
 2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
 3. restriction from the fine grid to the course grid \(  h \to H  \).
-4. a Gauss-Seidel iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+4. a Gauss-Seidel SMOOTH to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
     We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[SMOOTH operator]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 5. prolongation from the course grid to the fine grid \( H\to h \)
 6. post smoothing on the fine grid
@@ -576,12 +576,12 @@ function alt_v_cycle!(grid::Array{T}, level) where T <: solver
     #pre SMOOTHing
     SMOOTH!(solver, 40, false)
 
-    d = zeros(size(solver.phase))
-    r = zeros(size(solver.phase))
+    d = zeros(size(finegrid_solver.phase))
+    r = zeros(size(finegrid_solver.phase))
 
     # calculate error between L and expected values
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]]
+    for I in CartesianIndices(finegrid_solver.phase)[2:end-1, 2:end-1]
+        d[I], r[I] = [finegrid_solver.xi[I], finegrid_solver.psi[I]]
         .- L(finegrid_solver, I.I..., finegrid_solver.phase[I], finegrid_solver.potential[I])
     end
 
@@ -823,7 +823,7 @@ savefig(p , "images/convergence.svg")
 #+end_src
 
 #+caption: Stability of the original CH solver for increasing sub-iterations
-#+RESULTS[0cdeb1f5d3f86d528a9e2b555b76dd964d7c72c9]: fig:convergence
+#+RESULTS[352350d7cb19f6fa37525bfb4950c4aba4eb9a6e]: fig:convergence
 [[file:images/convergence.svg]]
 
 in practise we observe the behaviour we expect, where an increasing number of sub-iterations leads to decreasing change compared to the previous sub-iteration.
@@ -841,8 +841,10 @@ p = plot(p1,p2)
 savefig(p , "images/subiteration.svg")
 #+end_src
 
-#+RESULTS:
+#+RESULTS[17fc4df2e4d089d1d12fd7209b2b8dc7cb027c15]:
+#+begin_export html
 [[file:images/subiteration.svg]]
+#+end_export
 
 ** Stability in time
 We expect our numerical error to decrease when calculating with smaller time steps. To test this, we  successively subdivide the original time interval \( [0,T] \) in finer parts. We fix \( \Delta t \cdot n = T \) for \( T=10^{-2} \) and test different values of \( n \). In Figure [[fig:stability-in-time]] we compare the phase-field \( \phi^{n}_{ij} \) and \( \phi^{n-1}_{ij}  \) at \( T=10^{-2} \). and observe the decrease we expect.
@@ -897,9 +899,12 @@ We expect our methods to be stable under different grid-sizes \( h \) and grid-p
 using DataFrames
 using JLD2
 using LaTeXStrings
+gr()
 df = jldopen("experiments/space_refinement.jld2")["result"]
 gd = groupby(df , :iteration)
-change = [norm(df[!, "phase"][i] .- restrict(df[! , "phase"][i-16] , G))/*(size(df[!,"phase"][i])...) for i=17:16:size(df , 1)]
+n = 4
+change = [norm(gd[n].phase[i] - restrict(gd[n].phase[i-1] , G))/ *(size(gd[n].phase[i])...) for i= 2:size(gd[n].phase , 1) ]
+
 p1 = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],
          change ,
          ylabel = "difference" ,
@@ -933,7 +938,7 @@ savefig(p , "images/space-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the baseline solver while solving on successively finer grids
-#+RESULTS[67b472ddafeb65ec4005a1bbc9c3220b10030ad8]: fig:stability-in-space
+#+RESULTS[725b01a96840eca71ed778b2ea26a7bc24cf2afc]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
 * Relaxed problem
@@ -1195,8 +1200,8 @@ we do evaluate our relaxed method using the discrete energy defined in Eq.[[eqre
 using JLD2
 using DataFrames
 i0 = 1*64 +1
-original_results = jldopen("experiments/iteration.jld2")["result"]
-relaxed_results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+original_results = jldopen("experiments/alt-iteration.jld2")["result"]
+relaxed_results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
 original_energy = bulk_energy.(original_results[i0:i0+63,:].solver)
 relaxed_energy = bulk_energy.(relaxed_results[i0:i0+63,:].solver)
 p1 = plot(1:64 ,
@@ -1224,26 +1229,27 @@ p3 = heatmap(relaxed_results.solver[i0+63].phase ,
              legend=:none ,
              showaxis=false ,
              grid=false)
+
 p = plot(p2,p3,p1 , layout=layout3x1 , size=(1600 ,1600))
 savefig(p , "images/relaxed-energy-balance.svg")
 #+end_src
 
 #+caption: Energy decay of the relaxed solver compared to the original solver.
-#+RESULTS[1b44ccd4d0cab858a935d94cd0d6b20e92ebcfff]: fig:relaxed-energy-balance
+#+RESULTS[ddc6809b1b7f3918596757e2d1ab6e0f9ac4c92f]: fig:relaxed-energy-balance
 [[file:images/relaxed-energy-balance.svg]]
 
 
 We observe the discrete energy decrease is the same manner as with the original solver.
 ** Relaxed numerical mass balance
-since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach. Our relaxed solver shows  mass loss around 2% as seen in Fig.[[fig:relaxed-mass-balance]]. This is nowhere near the machine precision, we reached in Fig.[[fig:mass-balance]]. However it is still tolerable.
+since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well, to be competitive with the baseline approach. Our relaxed solver shows  mass loss around 5% as seen in Fig.[[fig:relaxed-mass-balance]]. This is nowhere near the machine precision, we reached in Fig.[[fig:mass-balance]]. The relaxed solver is therefore not mass conservative.
 #+name: fig:relaxed-mass-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
 using Measures
-i0 = 64 * 0+1
-results = jldopen("experiments/relaxed-iteration.jld2")["result"]
+i0 = 64 * 1+1
+results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
@@ -1254,8 +1260,9 @@ savefig(p , "images/relaxed-mass-balance.svg")
 
 #+caption: Mass los in the relaxed solver
 
+
 ** Stability of a relaxed multigrid sub-iteration
-We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). Here we observe instablility at about 60 sub-iterations in Fig.[[fig:relaxed-convergence]]. We are uncertain, as to why.
+We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). After some implementation mistakes the  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. The relaxed solver has significantly slower convergence compared to the baseline solver. During testing the relaxed solverg converged at around 1024 sub-iterations and the baseline solver at around 16.
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
 <<init>>
@@ -1272,19 +1279,21 @@ original_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) f
 
 original_res =  groupby(original_res , :iteration)[1].cycle_function
 
-
-df = jldopen("experiments/relaxed-subiteration.jld2")["result"]
+df = jldopen("experiments/alt-relaxed-subiteration.jld2")["result"]
 df = groupby(df , :experiment)[i0]
 gd = groupby(df , :iteration)
 relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
 
 relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
-p=plot([original_res, relaxed_res[1:64]],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" )
+p=plot([original_res, relaxed_res[1:128]],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" , yaxis=:log10 )
 savefig(p , "images/relaxed-convergence.svg")
 #+end_src
 
+#+RESULTS[14ad9189aff29255900fc51825317bae4f13be6e]: fig:relaxed-convergence
+[[file:images/relaxed-convergence.svg]]
+
 ** Relaxed stability in time
-we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time. However since the sub-iteration showed problematic behaviour, this micht also be a side-effect of this.
+we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time.
 #+name: fig:relaxed-stability-in-time
 #+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg
 <<init>>
@@ -1303,11 +1312,10 @@ savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the relaxed and baseline solvers while solving the time interval \( t \in \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
-#+RESULTS: fig:relaxed-stability-in-time
+#+RESULTS[ef38636e23fc3d9303364c9203744561c2ff36bd]: fig:relaxed-stability-in-time
 [[file:images/relaxed-time-stability.svg]]
 
 ** Relaxed stability in space
-we test convergence in space by succesivly subdividing our grid into finer meshes
 
 
 #+name: fig:relaxed-stability-in-space
@@ -1316,25 +1324,33 @@ we test convergence in space by succesivly subdividing our grid into finer meshe
 using DataFrames
 using JLD2
 using LaTeXStrings
-default(fontfamily="computer modern" , titlefontsize=32 , guidefontsize=18 , tickfontsize = 12 , legendfontsize=18)
+default(fontfamily="computer modern" , titlefontsize=22 , guidefontsize=18 , tickfontsize = 12 , legendfontsize=12)
 gr()
+odf = jldopen("experiments/space_refinement.jld2")["result"]
 df = jldopen("experiments/relaxed_space_refinement.jld2")["result"]
 gd = groupby(df , :iteration)
+ogd = groupby(odf , :iteration)
 n = 4
 change = [norm(gd[n].phase[i] - restrict(gd[n].phase[i-1] , G))/ *(size(gd[n].phase[i])...) for i= 2:size(gd[n].phase , 1) ]
+ochange = [norm(ogd[n].phase[i] - restrict(ogd[n].phase[i-1] , G))/ *(size(ogd[n].phase[i])...) for i= 2:size(ogd[n].phase , 1) ]
 p = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],
-change ,
+[ochange ,change] ,
 ylabel = "difference" ,
+yaxis = :log10,
 xlabel = "change in number of gridpoints" ,
-label=L"\Delta \phi" ,
+labels=[L"original $\Delta \phi$"  L"relaxed $\Delta\phi$"  ],
 seriestype=:scatter ,
 xaxis=:flip ,
-legend=:topright)
+legend=:topright,
+right_margin = 10 * Plots.mm,
+left_margin = 2 * Plots.mm,
+bottom_margin = 2* Plots.mm
+         )
 
 savefig(p , "images/relaxed-space-stability.svg")
 #+end_src
 
-#+RESULTS[2d1d59898b534f074ded1c9b41ae4828abeeea80]: fig:relaxed-stability-in-space
+#+RESULTS[8729b998f794fc283731188f8d5650c31f623e29]: fig:relaxed-stability-in-space
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
@@ -1654,7 +1670,7 @@ function iter(g::Vector{T} , n , k , prg::Progress) where T<: solver
     for j in 1:n
     set_xi_and_psi!(g[1])
     for i = 1:m
-        v_cycle!(g, 1)
+        alt_v_cycle!(g, 1)
         push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=k))
         next!(prg)
     end
@@ -1712,6 +1728,7 @@ jldsave("experiments/time.jld2"; result)
 #+begin_src julia :results output :noweb yes :exports none :tangle experiments/src/space.jl
 using DataFrames
 using JLD2
+using ProgressMeter
 <<init>>
 
 M = testdata(2^10 , 2^5 , 2^7 , 2 )
@@ -1721,14 +1738,16 @@ for i=2:size(grids,1)
     restrict_solver!(grids[i-1] , grids[i])
 end
 tests = [[grids[i-1] , grids[i]] for i=2:size(grids,1)]
+n = 4
+m = 64
 
-
-function iter(g::Vector{T} , n) where T<: solver
+function iter(g::Vector{T} , n , prg::Progress) where T<: solver
     out = []
     for j in 1:n
     set_xi_and_psi!(g[1])
-    for i = 1:64
-        v_cycle!(g, 1)
+    for i = 1:m
+        alt_v_cycle!(g, 1)
+        next!(prg)
     end
     push!(out, (phase=copy(g[1].phase), iteration=j))
     end
@@ -1737,8 +1756,9 @@ end
 
 
 tasks = []
+prg=Progress(size(tests ,1)*n*m , showspeed=true , )
 for i in eachindex(tests)
-    t = Threads.@spawn iter(tests[i], 16)
+    t = Threads.@spawn iter(tests[i], n , prg)
     push!(tasks , (iteration = 1 , task = t))
     end
 result = DataFrame()
