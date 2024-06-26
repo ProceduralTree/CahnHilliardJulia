@@ -893,6 +893,7 @@ savefig(p , "images/time-stability.svg")
 
 ** Stability in space
 We expect our methods to be stable under different grid-sizes \( h \) and grid-points \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
+In Fig.[[fig:stability-in-space]] we observe the differences to fluctuate between \(10^{-3}\) and \(10^{-4}\). Indicating that the solver is somewhat stable.
 #+name: fig:stability-in-space
 #+begin_src julia-vterm :results file graphics :file space-stability.svg
 <<init>>
@@ -917,7 +918,7 @@ p1 = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2
          xaxis=:flip ,
          legend=:topright)
 
-p2 = heatmap(gd[4].phase[begin],
+p2 = heatmap(gd[4].phase[1],
              title=L"1024 \times 1024" ,
              legend=:none ,
              aspectratio=:equal ,
@@ -939,8 +940,10 @@ savefig(p , "images/space-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the baseline solver while solving on successively finer grids
-#+RESULTS[fdbc80d6dcfc18a2f0e09e8a043eb0d37c956414]: fig:stability-in-space
+#+RESULTS[86f3e5e3d57f940d637b74a1a467c1862bbcb3aa]: fig:stability-in-space
 [[file:images/space-stability.svg]]
+
+
 
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
@@ -1317,7 +1320,7 @@ savefig(p , "images/relaxed-time-stability.svg")
 [[file:images/relaxed-time-stability.svg]]
 
 ** Relaxed stability in space
-
+For the relaxed solver we do the same evaluation for space, that we did for the baseline solver. We \(\Delta\phi\) going down exponentially with increasing grid sizes. This behaviour is as expected. However the jump from    \(128^2 \to 64^2\) to \(256^2 \to 128^2\)leads us to believe, that the solver is not yet stable for courser grids.
 
 #+name: fig:relaxed-stability-in-space
 #+begin_src julia-vterm :results file graphics :file relaxed-space-stability.svg :exports none
@@ -1354,8 +1357,8 @@ savefig(p , "images/relaxed-space-stability.svg")
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
+In the previous chapter we have shown the stability for both solver. In this chapter we show a direct comparison between both methods.
 ** effect of alpha
-In the previous chapter we have shown the stability, and lack thereof, for the relaxed solver. However in this chapter we show a direct comparison between both methods. Since the relaxed solver is dependant on the relaxation variable \( \alpha \).
 To see the impact of \( \alpha \) on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
 Since the solution of the relaxed solver should approach the original solver, we expect
 \begin{equation}
@@ -1380,7 +1383,8 @@ savefig(p, "images/alpha-error.svg")
 #+RESULTS[f474fd86cf30b6b4f9d6b13a527d99b42b609d04]: fig:alpha-error
 [[file:images/alpha-error.svg]]
 
-** direct comparison
+** Direct comparison
+We then show a coparison of both solvers we plot the phase-fields after 64 time-steps, and the difference \(\|\phi^{n+1}_{ij} - \phi^{n+1,\alpha}_{ij}\|_{Fr}\) over the time-steps \( n \in \{0 , \dots , 63 \}\).
 #+begin_src julia-vterm :results file graphics html :file relaxed-comp.gif
 <<init>>
 using JLD2
@@ -1405,7 +1409,7 @@ anim = @animate for iter in zip(results.solver,results1.solver ,results2.solver 
     end
 gif(anim , "images/relaxed-comp.gif", fps=10)
 #+end_src
-We can observe slight differences between the original solver and the relaxed solver. To quantify those, we run the relaxed solver for a fixed value of \( \alpha=7700 \) , as it is in the intervall where \( \alpha \) is minimal in Fig.[[fig:alpha-error]]. We then  show the numerical difference between \( \phi_{ij}^n \) and \( \phi_{ij}^{n,\alpha} \) in Fig.[[fig:relaxed-original-comparison]]. We observe a a small difference between both methods, especially in areas with high curvature and inclusions of small segments of one phase in the other.
+We can observe slight differences between the original solver and the relaxed solver. To quantify those, we run the relaxed solver for a fixed value of \( \alpha=7700 \) , as it is in the intervall where \( \alpha \) is minimal in Fig.[[fig:alpha-error]]. We then  show the numerical difference between \( \phi_{ij}^n \) and \( \phi_{ij}^{n,\alpha} \) in Fig.[[fig:relaxed-original-comparison]]. The observed difference is mainly in areas with high curvature and inclusions of small segments of one phase in the other.
 #+name: relaxed-comparison
 #+begin_src julia-vterm :results file graphics html :file relaxed-comparison.gif
 <<init>>
@@ -1495,7 +1499,7 @@ We have presented a baseline method implemented from the authors [cite:@SHIN2011
 We have done the derivations in a way, that enables a simple adaptation to a modified version of the discrete CH equation Eq.[[eqref:eq:discrete-cahn-hilliard]], as introduced in [cite:@SHIN20117441].
 We have introduced measures to evaluate both solvers in space , time and mass conservation as well as their sub-iteration behaviour.
 We have shown the baseline to be mass conservative, in a numerical sense, and we have shown it to be stable in all tested measures.
-We have shown our relaxed solver to approach the baseline, however we have also highlighted instability with subiterations, and mass-loss.
+We have shown our relaxed solver to approach the baseline, during sub-iterations it converges significantly slower than the baseline solver. Furthermore it is not mass conservative.
 We intentionally didn't evaluate runtime since numerical experiments have shown both solvers to be dependant on the amount of sub-iterations, hyperparameters such as \( \varepsilon \) as well as the number off smoothing iterations.
 It would therefore be unfair to evaluate one solver on a set of parameters tweaked for the other.
 As example for this dilemma we recall runs where the relaxed solver was around 10x faster than the baseline with the same parameters.
