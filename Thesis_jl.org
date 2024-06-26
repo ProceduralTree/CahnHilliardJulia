@@ -905,6 +905,7 @@ gd = groupby(df , :iteration)
 n = 4
 change = [norm(gd[n].phase[i] - restrict(gd[n].phase[i-1] , G))/ *(size(gd[n].phase[i])...) for i= 2:size(gd[n].phase , 1) ]
 
+
 p1 = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2\to64^2" , L"64^2 \to32^2"],
          change ,
          ylabel = "difference" ,
@@ -916,13 +917,13 @@ p1 = plot([L"1024^2 \to 512^2" , L"512^2 \to 256^2" , L"256^2\to128^2" , L"128^2
          xaxis=:flip ,
          legend=:topright)
 
-p2 = heatmap(gd[16].phase[begin],
+p2 = heatmap(gd[4].phase[begin],
              title=L"1024 \times 1024" ,
              legend=:none ,
              aspectratio=:equal ,
              grid=false ,
              showaxis=false)
-p3 = heatmap(gd[16].phase[4],
+p3 = heatmap(gd[4].phase[4],
              title=L"128 \times 128" ,
              aspectratio=:equal ,
              grid=false ,
@@ -938,7 +939,7 @@ savefig(p , "images/space-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the baseline solver while solving on successively finer grids
-#+RESULTS[725b01a96840eca71ed778b2ea26a7bc24cf2afc]: fig:stability-in-space
+#+RESULTS[fdbc80d6dcfc18a2f0e09e8a043eb0d37c956414]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
 * Relaxed problem
@@ -1344,13 +1345,12 @@ xaxis=:flip ,
 legend=:topright,
 right_margin = 10 * Plots.mm,
 left_margin = 2 * Plots.mm,
-bottom_margin = 2* Plots.mm
-         )
+bottom_margin = 2* Plots.mm)
 
 savefig(p , "images/relaxed-space-stability.svg")
 #+end_src
 
-#+RESULTS[8729b998f794fc283731188f8d5650c31f623e29]: fig:relaxed-stability-in-space
+#+RESULTS[ac21efe8cb7262c2f4dc5fe974e6ca94c77da05b]: fig:relaxed-stability-in-space
 [[file:images/relaxed-space-stability.svg]]
 
 * Comparison
@@ -2003,7 +2003,7 @@ for task in tasks
     end
 jldsave("experiments/alt-iteration.jld2"; result)
 #+end_src
-#+begin_src julia    :noweb no-export :tangle experiments/src/alt-relaxed-iteration.jl :async
+#+begin_src julia    :noweb no-export :tangle experiments/src/alt-relaxed-iteration.jl :eval never
 using JLD2
 using DataFrames
 using ProgressMeter
@@ -2012,7 +2012,7 @@ using Random
 <<setup-diverse-testgrids>>
 
 #tests = [testgrid(relaxed_multi_solver, M , 2;alpha=82000 , epsilon=0.009) for M in initial_data]
-tests = [testgrid(relaxed_multi_solver, M , 2) for M in initial_data]
+tests = [testgrid(relaxed_multi_solver, M , 2 , h0=1.5e-3) for M in initial_data]
 
 n = 64
 m = 512
@@ -2042,7 +2042,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/alt-relaxed-iteration-less-smooth.jld2"; result)
+jldsave("experiments/alt-h-relaxed-iteration.jld2"; result)
 #+end_src
 
 *** subiteration
@@ -2168,24 +2168,24 @@ savefig(p , "images/alt-relaxed-convergence.svg")
 [[file:images/alt-relaxed-convergence.svg]]
 
 *** mass
-#+begin_src julia-vterm :results file graphics :file alt-relaxed-mass-balance.svg
+#+begin_src julia-vterm :results file graphics :file alt-h-relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
 using Measures
 
-i0 = 64 * 1+1
-results = jldopen("experiments/alt-relaxed-iteration-less-smooth.jld2")["result"]
+i0 = 64 * 0+1
+results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
-savefig(p , "images/alt-relaxed-mass-balance.svg")
+savefig(p , "images/alt-h-relaxed-mass-balance.svg")
 #+end_src
 
-#+RESULTS[0c2d32d827d6b633e5934778ba800d45d35c5d45]:
-[[file:images/alt-relaxed-mass-balance.svg]]
+#+RESULTS[2c49ac09d098e45116f2a65875ee0d0ff160a9ff]:
+[[file:images/alt-h-relaxed-mass-balance.svg]]
 
 #+begin_src julia-vterm :results file graphics :file alt-mass-balance.svg
 <<init>>
