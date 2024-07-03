@@ -14,6 +14,7 @@
 #+latex_header: \usepackage[level]{datetime}
 * Title-page :ignore:
 #+begin_export latex
+\frontmatter
 \makeatletter
 \begin{titlepage}
     \centering
@@ -49,7 +50,9 @@
 This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation. It uses a discretization by the authors [cite:@SHIN20117441] as baseline, and expands upon this dicretisation with an elliptical relaxation approach. It introduces evaluation metrics regarding stability in time, space and during sub-iteration. And compares the elliptical approach against the baseline. Furthermore, it shows a qualitative success of the elliptical solver, however it also highlights challenges in numerical stability.
 #+end_abstract
 #+TOC: headlines 3
-
+#+begin_export latex
+\mainmatter
+#+end_export
 * Introduction
 The Cahn-Hilliard (CH) equation is a well known fourth order PDE used in multi-phase flow. It is used to couple different phases with a diffuse-interface, as compared to a sharp interface, approach. Therefore, it has a smooth transition between phases.
 The CH equation serves the same purpose, as the second order Allen-Cahn equation. However, the Allen-Cahn equation is not mass conservative. Hence, the Cahn-Hilliard equation is used if mass conservation  is required.
