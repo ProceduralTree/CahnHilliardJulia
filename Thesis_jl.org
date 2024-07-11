@@ -1,11 +1,11 @@
-#+title: Numerical methods
-#+subtitle: on the Cahn-Hilliard Equation
+#+title: A Multi-grid method
+#+subtitle: on the Cahn-Hilliard equation  and its relaxed variation.
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
 #+options: toc:nil
 #+BIND: org-latex-title-command ""
 #+BIND: org-latex-default-figure-position "H"
 #+latex_class: mimosis
- #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
+  #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
 #+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :session jl :cache yes
@@ -57,7 +57,7 @@ This Thesis gives a short overview and derivation for the Cahn-Hilliard Equation
 The Cahn-Hilliard (CH) equation is a well known fourth order PDE used in multi-phase flow. It is used to couple different phases with a diffuse-interface, as compared to a sharp interface, approach. Therefore, it has a smooth transition between phases.
 The CH equation serves the same purpose, as the second order Allen-Cahn equation. However, the Allen-Cahn equation is not mass conservative. Hence, the Cahn-Hilliard equation is used if mass conservation  is required.
 In this thesis we implement numerical solvers for the Cahn-Hilliard equation in the Julia programming language.
-We begin by giving an overview and a derivation for the analytical CH equation in Chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease in total energy for it.
+We begin by giving an overview and a derivation for the analytical CH equation in Chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease of total energy in time.
 The Chapter [[Multigrid method]] introduces our discretization and a finite difference based two grid method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally we introduce the initial conditions we used in this thesis.
 In Chapter [[Numerical experiments]] we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continuously for the analytical CH equation.
 Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed problem]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Multi-grid method]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
@@ -165,7 +165,7 @@ In order to show thermodynamic consistency of the CH equation, we take the time 
 &\stackrel{\partial_n\phi = 0}{=} - \int_{ \Omega } |\nabla \mu|^2 \ d \mathbf{x}, & \forall t \in (0,T)
 \end{align*}
 
-* Discretisation into a LES
+* Discretization into a LES
 ** The discretization of functions and derrivative operators
 As baseline for numerical experiments we use a two-grid method based on the finite difference method defined in [cite:@SHIN20117441].
 Our discretization follows the one taken by the authors in [cite:@SHIN20117441].
@@ -325,7 +325,17 @@ For testing we use initial phase-fields defined by the following equations:
 \end{aligned}
 \end{equation}
 where \( q_k \) are random points inside my domain. Those we generate those using the following RNG setup in Julia
+#+begin_src julia-vterm :session jl :results table :exports both
+using Random
+rng = MersenneTwister(42)
+gridsize = 64
+radius = gridsize /5
+blobs = gridsize ÷ 5
+rngpoints = rand(rng,1:gridsize, 2, blobs)
+#+end_src
 
+#+RESULTS[3552e4337f2c07fbcf995633085c942ca4f20731]:
+| Executing... 384b64d3 |
 
 #+name: fig:testinput
 #+begin_src julia-vterm :results file graphics  :file testdata.svg
@@ -368,6 +378,19 @@ L
 \end{pmatrix}
 .
 \end{align*}
+#+begin_src julia :tangle src/multisolver.jl :eval never
+function L(solver::multi_solver,i,j , phi , mu)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
+    psi = solver.epsilon^2/solver.h^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
+           -
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
+    return [xi, psi]
+end
+#+end_src
 This function follows from [[eqref:eq:discrete-cahn-hilliard]] and is linear in the unknowns \( \left(\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij} \right) \). The non-linear terms of eqref:eq:discrete-cahn-hilliard are collected in \( \left(\zeta^n_{ij}, \psi^n_{ij} \right) \). Which we define as
 \begin{align*}
 \begin{pmatrix}
@@ -382,6 +405,15 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n
 \end{pmatrix}
 .
 \end{align*}
+#+begin_src julia :tangle src/utils.jl :eval never
+function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
+    xi_init(x) = x / solver.dt
+    psi_init(x) = solver.W_prime(x) - 2 * x
+    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
+    return nothing
+end
+#+end_src
 The authors [cite:@SHIN20117441] defined a numerical method where all non linear terms are evaluated explicitly. Therefore , we know everything needed to calculate \( (\zeta^n_{ij} , \psi^n_{ij})^T \) at the beginning of each time step. We compute those values once and store them in the solver.
 Using \(  \left(\zeta^n_{ij}, \psi^n_{ij} \right)  \) and  \(   L\left(\phi^{n+1}_{ij} , \mu^{n+\frac{1}{2}}_{ij} \right) \) , we can rewrite eqref:eq:discrete-cahn-hilliard as
 #+name: eq:LES
@@ -412,6 +444,12 @@ DL\begin{pmatrix}
 \end{pmatrix}
 = \mathbf{DL}
 \end{align*}
+#+begin_src julia :tangle src/multisolver.jl :eval never
+function dL(solver::multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
+    end
+#+end_src
 Since \( L \) is linear, \( DL \) is constant. Using The abbreviation for \( \nabla_d(G_{ij}\nabla_d \mu_{ij}^{n+\frac{1}{2}}) \) introduced in [[The discretization of functions and derrivative operators]], we rewrite eqref:eq:LES in terms of \( DL \)
  #+name: eq:explicit-smooth
  \begin{equation}
@@ -462,8 +500,8 @@ where
 - \(  \Sigma_G \phi_{ij}^{n+1} = G_{i+\frac{1}{2}j} \phi^{n + 1,m}_{i+1j} +  G_{i-\frac{1}{2}j} \phi^{n + 1,m}_{i-1j} + G_{ij+\frac{1}{2}}  \phi^{n + 1,m}_{ij+1} + G_{ij-\frac{1}{2}} \phi^{n + 1,m}_{ij-1}  \),
 - \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
 
-* Multigrid Method
-The multigrid method consists of a ...
+* Multi-grid Method
+The multigrid method consists of a linear Gauss-Seidel solver, restriction and prolongation methods, to move between different grid sizes.
 ** Gauss-Seidel  smoothing
 The authors [cite:@SHIN20117441]derived Gauss-Seidel Smoothing from eqref:eq:LES :
  Smoothing denoted as a SMOOTH operator consists of a Gauss-Seidel method, by solving Eq.[[eqref:eq:smooth]] for all \( i,j \) with the initial guess for \( \zeta^n_{ij} , \psi^n_{ij} \).
@@ -532,7 +570,7 @@ function SMOOTH!(
     end
 end
 #+end_src
-We denote the approximations for \( \left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right)  \) after smoothing, as  \( \left( \bar{\phi}_{ij}^{n+1} , \bar{\mu}^{n+\frac{1}{2}}_{ij}  \right)  \)
+We denote the approximations for \( \left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right)  \) after smoothing, as  \( \left( \bar{\phi}_{ij}^{n+1} , \bar{\mu}^{n+\frac{1}{2}}_{ij}  \right)  \).
 In Fig.[[fig:smoothing-examples]] we show 4 of the 7 initial data after one 200 iterations of smoothing. It is apparent that the sharp interface from the initial Data has diffused.
 #+name: fig:smoothing-examples
 #+begin_src julia-vterm :results file graphics  :file smooth.svg
@@ -555,7 +593,7 @@ savefig(p,"images/smooth.svg")
 [[file:images/smooth.svg]]
 
 ** Multi-grid method
-The numerical method proposed in [cite:@SHIN20117441] consists of a V-cycle multi-grid method derived from previously stated operators. Specifically we use a two-grid implementation consisting of.
+The numerical method proposed in [cite:@SHIN20117441] consists of repeated sub-iterations of a multi-grid V-cycle.  Specifically we use a two-grid implementation with a fixed number of sub-iterations. Defined as:
 #+begin_src julia :eval never :exports code
 for j in 1:timesteps
 
@@ -569,13 +607,13 @@ end
 #+end_src
 where the V-cycle consists of the following steps
 1. a Gauss-Seidel relaxation for smoothing on the fine grid \( h \), as described in Chapter [[Gauss-Seidel smoothing]].
-2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) = L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
+2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) =: L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
 3. restriction from the fine grid to the course grid \(  h \to H  \).
 4. a Gauss-Seidel SMOOTH to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
     We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[Gauss-Seidel smoothing]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
 5. prolongation from the course grid to the fine grid \( H\to h \)
 6. post smoothing on the fine grid
-
+We Do Gauss-Seidel smoothing with fixed iterations.
 #+name: restrict-to-coarse-grid
 #+begin_src julia :eval never :exports none
 
@@ -975,8 +1013,6 @@ savefig(p , "images/space-stability.svg")
 #+RESULTS[86f3e5e3d57f940d637b74a1a467c1862bbcb3aa]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
-
-
 * Relaxed problem
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
@@ -1012,36 +1048,36 @@ In order to solve the relaxed CH equation we solve the following PDE in each  ti
 \end{align*}
 Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
 *** Discretization
-The discretization of the PDE expands the differential operators in the same way and proposes an equivalent scheme for solving the elliptical equation Eq.[[eqref:eq:elliptical-equation]].
+To solve the additional elliptical system, we propose a simple implicit scheme similiar to the one used in Eq.[[eqref:eq:elliptical-equation]].:
 \begin{align*}
-- \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^\alpha) + \alpha  c_{ij}^\alpha &= \alpha \phi_{ij}^\alpha
+- \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^{n+1,\alpha}) + \alpha  c_{ij}^{n+1,\alpha} &= \alpha \phi_{ij}^{n+1,\alpha}
 \end{align*}
-\( \implies \)
+We then use the finite differences defined in Eq.eqref:eq:discretization to derrive the corresponding linear system.
 \begin{align*}
-- (\frac{1}{h}(G_{i+\frac{1}{2}j} \nabla c^\alpha_{i+\frac{1}{2}j} + G_{ij+\frac{1}{2}} \nabla c^\alpha_{ij+\frac{1}{2}}) &  \\
-- (G_{i-\frac{1}{2}j} \nabla c^\alpha_{i-\frac{1}{2}j} + G_{ij-\frac{1}{2}} \nabla c^\alpha_{ij-\frac{1}{2}})) + \alpha  c_{ij}^\alpha   &= \alpha  \phi_{ij}^\alpha
-\end{align*}
-\( \implies \)
-\begin{align*}
-- \frac{1}{h^2} ( G_{i+\frac{1}{2}j}(c_{i+1j}^\alpha - c_{ij}^\alpha) & \\
-+G_{ij+\frac{1}{2}}(c_{ij+1}^\alpha - c_{ij}^\alpha) & \\
-+G_{i-\frac{1}{2}j}(c_{i-1j}^\alpha - c_{ij}^\alpha)& \\
-+G_{ij-\frac{1}{2}}(c_{ij-1}^\alpha - c_{ij}^\alpha)) + \alpha  c_{ij}^\alpha &=\alpha  \phi_{ij}^\alpha
+- \frac{1}{h^2} ( G_{i+\frac{1}{2}j}(c_{i+1j}^{n+1,\alpha} - c_{ij}^{n+1,\alpha}) & \\
++G_{ij+\frac{1}{2}}(c_{ij+1}^{n+1,\alpha} - c_{ij}^{n+1,\alpha}) & \\
++G_{i-\frac{1}{2}j}(c_{i-1j}^{n+1,\alpha} - c_{ij}^{n+1,\alpha})& \\
++G_{ij-\frac{1}{2}}(c_{ij-1}^{n+1,\alpha} - c_{ij}^{n+1,\alpha})) + \alpha  c_{ij}^{n+1\alpha} &=\alpha  \phi_{ij}^{n+1,\alpha}
 \end{align*}
 
-
-As before we abbreviate \(  \Sigma_G c^\alpha_{ij} = G_{i+\frac{1}{2}j} c^\alpha_{i+1j} +  G_{i-\frac{1}{2}j} c^\alpha_{i-1j} + G_{ij+\frac{1}{2}}  c^\alpha_{ij+1} + G_{ij-\frac{1}{2}} c^\alpha_{ij-1}  \) and \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
+We abbreviate \(  \Sigma_G c^{n+1,\alpha}_{ij} = G_{i+\frac{1}{2}j} c^{n+1,\alpha}_{i+1j} +  G_{i-\frac{1}{2}j} c^{n+1,\alpha}_{i-1j} + G_{ij+\frac{1}{2}}  c^{n+1,\alpha}_{ij+1} + G_{ij-\frac{1}{2}} c^{n+1,\alpha}_{ij-1}  \) and \(  \Sigma_{Gij} = G_{i+\frac{1}{2}j} + G_{i-\frac{1}{2}j} + G_{ij+\frac{1}{2}} + G_{ij-\frac{1}{2}}  \). Then the discrete elliptical PDE can be stated as:
 #+name: eq:discrete_elyps
 \begin{align}
--\frac{ \Sigma_G c^\alpha_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^\alpha_{ij} + \alpha c^\alpha_{ij} &= \alpha\phi^\alpha_{ij} \,.
+-\frac{ \Sigma_G c^{n+1,\alpha}_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^{n+1,\alpha}_{ij} + \alpha c^{n+1,\alpha}_{ij} &= \alpha\phi^{n+1,\alpha}_{ij} \,.
 \end{align}
-Solving Eq.[[eqref:eq:discrete_elyps]] for \(c_{ij}^\alpha \) then results in.
+this constituted a linear system with \( N\times N \) equations
+*** Gauss Seidel solver for the elliptical system
+To solve the elliptical system we introduce a Gauss-Seidel solver similar to the Gauss-Seidel Solver used for the smoothing step in the multi-grid method.
+We define this iteration in terms of \( s \),
+For the Gauss-Seidel Iterative solver, we define the abbreviations
+ \[  \Sigma_G c^{n+1,\alpha , s+\frac{1}{2}}_{ij} = G_{i+\frac{1}{2}j} c^{n+1,\alpha,s}_{i+1j} +  G_{i-\frac{1}{2}j} c^{n+1,\alpha,s+1}_{i-1j} + G_{ij+\frac{1}{2}}  c^{n+1,\alpha, s}_{ij+1} + G_{ij-\frac{1}{2}} c^{n+1,\alpha ,s+1}_{ij-1}  \]
+We then define the gaus seidel iteration by the following, and solve algebraicly for \( c_{ij}^{n+1,\alpha,s+1} \)
 \begin{align*}
-\left( \frac{\Sigma_{Gij}}{h^2} + \alpha \right)c_{ij}^{\alpha} = \alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}\\
-c_{ij}^{\alpha} = \frac{\alpha\phi^{\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{\alpha}}{h^2}}{\frac{\Sigma_{G}}{h^2} + \alpha}\\
-c_{ij}^{\alpha} = \frac{\alpha h^2 \phi^{\alpha}_{ij}}{\Sigma_{Gij} + \alpha h^2} + \frac{\Sigma_G c_{ij}^{\alpha}}{\Sigma_{Gij} + \alpha h^{2}}
+\left( \frac{\Sigma_{Gij}}{h^2} + \alpha \right)c_{ij}^{n+1,\alpha,s+1} = \alpha\phi^{n+1,\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{n+1,\alpha,s+\frac{1}{2}}}{h^2}\\
+c_{ij}^{n+1,\alpha,s+1} = \frac{\alpha\phi^{n+1,\alpha}_{ij} + \frac{\Sigma_G c_{ij}^{n+1,\alpha, s+\frac{1}{2}}}{h^2}}{\frac{\Sigma_{G}}{h^2} + \alpha}\\
+c_{ij}^{n+1,\alpha, s+1} = \frac{\alpha h^2 \phi^{n+1,\alpha}_{ij}}{\Sigma_{Gij} + \alpha h^2} + \frac{\Sigma_G c_{ij}^{n+1,\alpha , s+\frac{1}{2}}}{\Sigma_{Gij} + \alpha h^{2}}
 \end{align*}
-and can be translated to code as follows
+We run the elliptical solver for a fixed number of iterations. Furthermore we denote the solution of the iterative solver with \( c_{ij}^{n+1,\alpha} \). We implement the corresponding iteration as follows:
 #+begin_src julia :eval never :tangle src/elypssolver.jl :exports none
 using ProgressBars
 
@@ -1077,6 +1113,7 @@ function elyps_solver!(solver::T, n) where T  <: Union{relaxed_multi_solver , ad
 end
 #+end_src
 ** Relaxed system
+We use the same discetization approach, as for the baseline system.
 We reformulate the discretization in Eq.[[eqref:eq:discrete-relaxed-cahn-hilliard]] in terms of the relaxed function \(L\) as follows:
 \begin{align*}
 L_r
@@ -1101,60 +1138,52 @@ DL_r\begin{pmatrix}
 - \varepsilon^2 \alpha  - 2 & 1
 \end{pmatrix}
 \end{align*}
-
-** The relaxed multigrid method
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[Multi-grid method]].
-In the executions for each time step, we add the elliptic solver in the subiteration.
-#+begin_src julia :eval never :exports code
-for j in 1:timesteps
-
-    set_xi_and_psi!(solvers[1])
-
-    for i = 1:subiterations
-
-        elyps_solver!(solvers[1] , 1000)
-        v_cycle!(solvers, 1)
-    end
-end
-#+end_src
-
-#+name: fig:relaxed-anim
-#+begin_src julia-vterm :results file graphics html :file relaxed-anim.gif
-<<init>>
-using JLD2
-using DataFrames
-using Measures
-
-gr()
-
-results = jldopen("experiments/relaxed-iteration4.jld2")["result"]
-anim = @animate for s in results.solver
-    heatmap(s.phase)
-    end
-gif(anim , "images/relaxed-anim.gif", fps=10)
-#+end_src
-
-#+RESULTS: fig:relaxed-anim
-[[file:images/relaxed-anim.gif]]
-
-** SMOOTH operator
-The relaxed solver uses the same approach as the original solver, where we solve \( L_r(\phi^{n+1,m,\alpha}_{ij}, \mu^{n+\frac{1}{2},m,\alpha}_{ij}) = (\zeta_{ij}^n , \psi_{ij}^n)^T \) for each grid-point \( \phi_{ij}^{n+1,m,\alpha} \). Notably \((\zeta_{ij}^n , \psi_{ij}^n)^T  \) is the same as in the original part. As in the original smoothing, evalations of \( \mu^{n+\frac{1}{2},m,\alpha}_{kl} \) for \( k,l > i,j \) are replaced with their values from the previous SMOOTH iteration.
-
-Correspondingly the SMOOTH operation expands to:
-#+name: eq:discrete-relaxed-smooth
+Much like the original solver, where in Eq.eqref:eq:explicit-smooth we wrote the initial approach as as LES, we write the LES for the relaxed system as
 \begin{equation}
-\begin{aligned}
-  -\frac{\Sigma_{Gij}}{h^2}\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \,,\\
- \varepsilon ^2 \alpha \overline{\phi ^{n+1,m,\alpha}_{ij}} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\overline{\mu^{n + \frac{1}{2},m,\alpha}_{ji}}  - \psi_{ij}^{n,\alpha} \,,
-\end{aligned}
+L_r
+\begin{pmatrix}
+\phi ^{n+1,\alpha}_{ij} \\
+\mu^{n+\frac{1}{2},\alpha}_{ij}
+\end{pmatrix}
+=
+\begin{pmatrix}
+\zeta^n_{ij}
+ \\
+\psi^n_{ij}
+\end{pmatrix},
 \end{equation}
+where \( \left( \zeta_{ij}^n  , \psi_{ij}^n \right) \) are the same in the original and relaxed solvers.
+Since the relaxed CH equation is no longer second order in both directions the resulting LES is simpler. To take advantage of this, we resolve the system algebraically for each grid-point \( \left( i.j \right) \).
+#+name: eq:discrete-relaxed-smooth
+\begin{align}
+  -\frac{\Sigma_{Gij}}{h^2}\mu^{n + \frac{1}{2},m,\alpha}_{ji} &= \frac{\phi ^{n+1,m,\alpha}_{ij}}{\Delta t} - \zeta^{n,\alpha}_{ij} - \frac{\Sigma_G\mu_{ij}}{h^2} \,,\\
+\label{discrete-relaxed-smooth2}
+ \varepsilon ^2 \alpha \phi ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha} \,,
+\end{align}
 where
 - \(  \Sigma_G \mu_{ij} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m}_{ij-1}  \),
-We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,\alpha}} \) and \( \overline{\phi_{ij}^{n+1,m,\alpha}} \). This was not done in the original paper [cite:@SHIN20117441] because the required system of linear equations in the paper [cite:@SHIN20117441]  was solved numerically.
+The second dimension of eqref:eq:discrete-relaxed-smooth is solvable algebraically for \( \mu_{ij}^{n+\frac{1}{2} , m , \alpha} \) and subsitute it in eqref:discrete-relaxed-smooth2.
 \begin{align*}
 \varepsilon^2 \alpha(\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
-\( \implies \)
+We solve this system for \( \phi_{ij}^{n+1,m,\alpha} \). This results in the following system
+\begin{equation}
+\begin{aligned}
+ \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1} \\
+\mu_{ij}^{n+\frac{1}{2} ,m , \alpha} &= \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij})
+\end{aligned}
+\end{equation}
+this system does no longer require solving a 2D LES in the gaus seidel implementation of the following chapter.
+*** alternative LES
+\begin{equation}
+\begin{aligned}
+\mu_{ij}^{n+\frac{1}{2} ,m , \alpha} &= \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) \\
+ \varepsilon ^2 \alpha \phi ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha} \,,
+\end{aligned}
+\end{equation}
+
+** Relaxed Gauss-Seidel iteration
+
 \begin{align*}
 \varepsilon^2\alpha (\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} + \frac{h^2}{\Sigma_{Gij}}\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
@@ -1163,9 +1192,6 @@ We then solve directly for the smoothed variables, \( \overline{\mu_{ij}^{n+1,m,
 (\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
 \end{align*}
 \( \implies \)
-\begin{align*}
- \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1}
-\end{align*}
 #+name: solve-for-phi
 #+begin_src julia :eval never :exports none
 bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
@@ -1198,6 +1224,37 @@ function SMOOTH!(
     end
 end
 #+end_src
+*** alt gaus seidel
+second equation:
+\begin{equation}
+\begin{aligned}
+ \varepsilon ^2 \alpha \phi ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha}  \\
+\phi_{ij}^{n+1,m,\alpha} &= (\varepsilon^2\alpha + 2)^{-1} \left( \varepsilon^2\alpha c^{n+1,\alpha}_{ij} - \mu^{n+\frac{1}{2},m,\alpha}_{ij} - \psi_{ij}^{n,\alpha} \right)
+
+\end{aligned}
+\end{equation}
+#+begin_src julia :eval never :tangle src/multi_relaxed.jl :noweb no-export
+function SMOOTH!(
+    solver::T,
+    iterations,
+    adaptive
+) where T <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
+    for k = 1:iterations
+        # old_phase = copy(solver.phase)
+        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
+            i, j = I.I
+bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
+            solver.potential[I] = (solver.phase[I]/solver.dt - solver.xi[I] - discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)/solver.h^2) * (-solver.h^2/bordernumber)
+            solver.phase[I]  = 1/(solver.epsilon^2 * solver.alpha +2) * (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.potential[I] - solver.psi[I])
+
+        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-10
+            ##println("SMOOTH terminated at $(k) succesfully")
+            #break
+        end
+    end
+end
+
+#+end_src
 
 #+name: fig:relaxed-smooth-eval
 #+begin_src julia-vterm :results file graphics :file smooth_relaxed.svg
@@ -1226,6 +1283,40 @@ savefig(p,"images/smooth_relaxed.svg")
 [[file:images/smooth_relaxed.svg]]
 
 Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since \( \alpha \) had an effect similar to \( \varepsilon \), where it changed the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) cannot be chosen independently. Hence we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
+** The relaxed multigrid method
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[Multi-grid method]].
+In the executions for each time step, we add the elliptic solver in the subiteration. The iterative solver is then defined as:
+#+begin_src julia :eval never :exports code
+for j in 1:timesteps
+
+    set_xi_and_psi!(solvers[1])
+
+    for i = 1:subiterations
+
+        elyps_solver!(solvers[1] , 1000)
+        v_cycle!(solvers, 1)
+    end
+end
+#+end_src
+
+#+name: fig:relaxed-anim
+#+begin_src julia-vterm :results file graphics html :file relaxed-anim.gif
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+gr()
+
+results = jldopen("experiments/relaxed-iteration4.jld2")["result"]
+anim = @animate for s in results.solver
+    heatmap(s.phase)
+    end
+gif(anim , "images/relaxed-anim.gif", fps=10)
+#+end_src
+
+#+RESULTS: fig:relaxed-anim
+[[file:images/relaxed-anim.gif]]
 * Relaxed experiments
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
 ** Relaxed energy evaluations
@@ -1546,35 +1637,6 @@ This thesis leaves a lot of room for further research. We have already mentioned
 Furthermore, we initially considered a machine learning approach to replace the elliptical system. We didn't follow this idea mostly due to time constraints, as we had already collected trainings data during our numerical experiments. Our choice of programming language would have been of benefit here, as it would enable more advanced technices, such as integrating the numerical solver in the trainings loop since julia offers automatic diccerentiation of arbitrary functions, and therefore enables back-propagation (gradient descent) through the entire solver. Interessting would alo have been different discretizations of the relaxed CH equation, and different method for solving it, such as a finite volume or finite element method. Those bring the chalange of beeing harder to compare to our baseline.
 * Appendix
 ** Operator implementation
-#+begin_src julia :tangle src/utils.jl :eval never
-function set_xi_and_psi!(solver::T) where T <: Union{multi_solver , relaxed_multi_solver}
-    xi_init(x) = x / solver.dt
-    psi_init(x) = solver.W_prime(x) - 2 * x
-    solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
-    return nothing
-end
-#+end_src
-*** baseline
-#+begin_src julia :tangle src/multisolver.jl :eval never
-function L(solver::multi_solver,i,j , phi , mu)
-    xi = solver.phase[i, j] / solver.dt -
-         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          -
-          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2/solver.h^2 *
-          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
-           -
-           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
-    return [xi, psi]
-end
-#+end_src
-#+begin_src julia :tangle src/multisolver.jl :eval never
-function dL(solver::multi_solver , i , j)
-    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
-    end
-#+end_src
 *** relaxed
 #+begin_src julia :tangle src/multi_relaxed.jl :eval never
 function L(solver::relaxed_multi_solver,i,j , phi , mu)
@@ -1594,14 +1656,6 @@ function dL(solver::relaxed_multi_solver , i , j)
 #+end_src
 ** rng generation
 for random point generation we use the folowing Function and seed.
-#+begin_src julia-vterm :session jl :results table :exports both
-using Random
-rng = MersenneTwister(42)
-gridsize = 64
-radius = gridsize /5
-blobs = gridsize ÷ 5
-rngpoints = rand(rng,1:gridsize, 2, blobs)
-#+end_src
 
 #+RESULTS:
 : 2×12 Matrix{Int64}:
@@ -2603,7 +2657,6 @@ initial_data = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
-
 
 
 
