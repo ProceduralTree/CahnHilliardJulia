@@ -1,9 +1,26 @@
+function L(solver::multi_solver,i,j , phi , mu)
+    xi = solver.phase[i, j] / solver.dt -
+         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
+          -
+          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
+    psi = solver.epsilon^2/solver.h^2 *
+          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
+           -
+           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
+    return [xi, psi]
+end
+
+function dL(solver::multi_solver , i , j)
+    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
+             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
+    end
+
 function SMOOTH!(
     solver::T,
     iterations,
     adaptive
 ) where T <: Union{multi_solver, adapted_multi_solver , gradient_boundary_solver}
-    for k = 1:iterations
+    for s = 1:iterations
         # old_phase = copy(solver.phase)
         for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
             i, j = I.I
@@ -85,20 +102,3 @@ function v_cycle!(grid::Array{T}, level) where T <: solver
 
     SMOOTH!(solver, 800, false)
 end
-
-function L(solver::multi_solver,i,j , phi , mu)
-    xi = solver.phase[i, j] / solver.dt -
-         (discrete_G_weigted_neigbour_sum(i, j, solver.potential, G, solver.len, solver.width)
-          -
-          neighbours_in_domain(i, j, G, solver.len, solver.width) * mu )/solver.h^2
-    psi = solver.epsilon^2/solver.h^2 *
-          (discrete_G_weigted_neigbour_sum(i, j, solver.phase, G, solver.len, solver.width)
-           -
-           neighbours_in_domain(i, j, G, solver.len, solver.width) * phi) - 2 * phi + mu
-    return [xi, psi]
-end
-
-function dL(solver::multi_solver , i , j)
-    return [ (1/solver.dt) (1/solver.h^2*neighbours_in_domain(i,j,G,solver.len , solver.width));
-             (-1*solver.epsilon^2/solver.h^2 * neighbours_in_domain(i,j,G,solver.len , solver.width) - 2) 1]
-    end
