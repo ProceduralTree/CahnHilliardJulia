@@ -1167,6 +1167,7 @@ The second dimension of eqref:eq:discrete-relaxed-smooth is solvable algebraical
 \varepsilon^2 \alpha(\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
 \end{align*}
 We solve this system for \( \phi_{ij}^{n+1,m,\alpha} \). This results in the following system
+#+name: eq:relaxed-les
 \begin{equation}
 \begin{aligned}
  \phi_{ij}^{n+1,m,\alpha} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1} \\
@@ -1174,24 +1175,17 @@ We solve this system for \( \phi_{ij}^{n+1,m,\alpha} \). This results in the fol
 \end{aligned}
 \end{equation}
 this system does no longer require solving a 2D LES in the gaus seidel implementation of the following chapter.
-*** alternative LES
+** Relaxed Gauss-Seidel iteration
+We derrive a gaus seidel iteration from Eq.eqref:eq:relaxed-les. As before we state the iteration as.
 \begin{equation}
 \begin{aligned}
-\mu_{ij}^{n+\frac{1}{2} ,m , \alpha} &= \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) \\
- \varepsilon ^2 \alpha \phi ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha} \,,
+ \phi_{ij}^{n+1,m,\alpha,s+1} &= \left(\varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}^{n+\frac{1}{2},\alpha,m,s+\frac{1}{2}}}{h^2} ) -\psi_{ij}^n\right)\left(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}\right)^{-1} \\
+\mu_{ij}^{n+\frac{1}{2} ,m , \alpha , s+1} &= \frac{h^2}{\Sigma_G} (\frac{\phi_{ij}^{n+1,m,\alpha , s+1}}{\Delta t} - \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}^{n+\frac{1}{2},\alpha,m,s+\frac{1}{2}})
 \end{aligned}
 \end{equation}
-
-** Relaxed Gauss-Seidel iteration
-
-\begin{align*}
-\varepsilon^2\alpha (\phi_{ij}^{n+1,m,\alpha}) + 2\phi_{ij}^{n+1,m,\alpha} + \frac{h^2}{\Sigma_{Gij}}\frac{\phi_{ij}^{n+1,m,\alpha}}{\Delta t} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G} (- \zeta^n_{ij} - \frac{1}{h^2} \Sigma_G \mu_{ij}) - \psi_{ij}
-\end{align*}
-\( \implies \)
-\begin{align*}
-(\varepsilon^2 \alpha + 2 + \frac{h^2}{\Sigma_G \Delta t}) \phi_{ij}^{n+1,m,\alpha} &= \varepsilon^2 \alpha c^\alpha - \frac{h^2}{\Sigma_G}(- \zeta^n_{ij} - \frac{\Sigma_G \mu_{ij}}{h^2} ) -\psi_{ij}
-\end{align*}
-\( \implies \)
+where
+- \(  \Sigma_G \mu_{ij}^{n+\frac{1}{2},\alpha,m,s+\frac{1}{2}} = G_{i+\frac{1}{2}j} \mu^{n + \frac{1}{2},m,s}_{i+1j} +  G_{i-\frac{1}{2}j} \mu^{n + \frac{1}{2},m,s+1}_{i-1j} + G_{ij+\frac{1}{2}}  \mu^{n + \frac{1}{2},m,s}_{ij+1} + G_{ij-\frac{1}{2}} \mu^{n + \frac{1}{2},m,s+1}_{ij-1}  \),
+Contrary to the Gauss Seidel iteration in the baseline solver, this iteration is a lot cheaper to calculate, since it no longer requires solving a 2x2 LES per grid-point.
 #+name: solve-for-phi
 #+begin_src julia :eval never :exports none
 bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
@@ -1224,60 +1218,6 @@ function SMOOTH!(
     end
 end
 #+end_src
-*** alt gaus seidel
-second equation:
-\begin{equation}
-\begin{aligned}
- \varepsilon ^2 \alpha \phi ^{n+1,m,\alpha}_{ij} + 2 \phi ^{n+1,m,\alpha}_{ij} &= \varepsilon ^2 \alpha c^{n,\alpha}_{ij}  -\mu^{n + \frac{1}{2},m,\alpha}_{ji}  - \psi_{ij}^{n,\alpha}  \\
-\phi_{ij}^{n+1,m,\alpha} &= (\varepsilon^2\alpha + 2)^{-1} \left( \varepsilon^2\alpha c^{n+1,\alpha}_{ij} - \mu^{n+\frac{1}{2},m,\alpha}_{ij} - \psi_{ij}^{n,\alpha} \right)
-
-\end{aligned}
-\end{equation}
-#+begin_src julia :eval never :tangle src/multi_relaxed.jl :noweb no-export
-function SMOOTH!(
-    solver::T,
-    iterations,
-    adaptive
-) where T <: Union{relaxed_multi_solver , adapted_relaxed_multi_solver}
-    for k = 1:iterations
-        # old_phase = copy(solver.phase)
-        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-            i, j = I.I
-bordernumber = neighbours_in_domain(i, j, G, solver.len, solver.width)
-            solver.potential[I] = (solver.phase[I]/solver.dt - solver.xi[I] - discrete_G_weigted_neigbour_sum(i,j, solver.potential , G , solver.len , solver.width)/solver.h^2) * (-solver.h^2/bordernumber)
-            solver.phase[I]  = 1/(solver.epsilon^2 * solver.alpha +2) * (solver.epsilon^2 * solver.alpha * solver.c[I] - solver.potential[I] - solver.psi[I])
-
-        #if adaptive && LinearAlgebra.norm(old_phase - solver.phase) < 1e-10
-            ##println("SMOOTH terminated at $(k) succesfully")
-            #break
-        end
-    end
-end
-
-#+end_src
-
-#+name: fig:relaxed-smooth-eval
-#+begin_src julia-vterm :results file graphics :file smooth_relaxed.svg
-<<init>>
-plots = []
-eps = 0.13
-#M = testdata(64, div(64,3), 64/5 , 2)
-for alpha in [1e3 , 1e4 , 1e5 , 1e6 , 32500]
-local testgrd = testgrid(relaxed_multi_solver,M, 2 ; alpha=alpha , epsilon=eps)
-set_xi_and_psi!(testgrd[1])
-elyps_solver!(testgrd[1] , 2000)
-SMOOTH!(testgrd[1], 1000, false);
-push!(plots , heatmap(testgrd[1].phase, aspect_ratio=:equal, title=L"$\alpha = %$alpha$" , xlim=(2,testgrd[1].len) , ylim=(2,testgrd[1].width) , showaxis=false , legend=false));
-    end
-
-original = testgrid(multi_solver,M, 2)
-set_xi_and_psi!(original[1])
-SMOOTH!(original[1], 1000, false);
-push!(plots , heatmap(original[1].phase, aspect_ratio=:equal, title="original" , xlim=(2,original[1].len) , ylim=(2,original[1].width) , showaxis=false , legend=false));
-p = plot(plots...)
-savefig(p,"images/smooth_relaxed.svg")
-#+end_src
-
 #+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
 #+RESULTS: fig:relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
