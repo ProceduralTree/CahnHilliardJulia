@@ -2033,7 +2033,7 @@ for task in tasks
     end
 jldsave("experiments/alt-iteration.jld2"; result)
 #+end_src
-#+begin_src julia    :noweb no-export :tangle experiments/src/alt-relaxed-iteration.jl :eval never
+#+begin_src julia    :noweb no-export :tangle experiments/src/test-relaxed-iteration.jl :eval never
 using JLD2
 using DataFrames
 using ProgressMeter
@@ -2072,7 +2072,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/alt-h-relaxed-iteration.jld2"; result)
+jldsave("experiments/test-relaxed-iteration.jld2"; result)
 #+end_src
 
 *** subiteration
@@ -2142,12 +2142,12 @@ gif(anim , "images/alt-behaviour.gif" , fps = 10)
 #+end_export
 
 
-#+begin_src julia-vterm :results graphics file html :file alt-relaxed-behaviour.gif :session jl :noweb no-export :output-dir images :exports none :noweb no-export :cache no
+#+begin_src julia-vterm :results graphics file html :file test-relaxed-behaviour.gif :session jl :noweb no-export :output-dir images :exports none :noweb no-export :cache no
 <<init>>
 using JLD2
 using DataFrames
 gr()
-results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
+results = jldopen("experiments/test-relaxed-iteration.jld2")["result"]
 n  = size(results.solver , 1)
 pbar = ProgressBar(total = 10 * n)
 energy = zeros(0)
@@ -2158,12 +2158,12 @@ anim = @animate for res in eachrow(results)
 
 end
 
-gif(anim , "images/alt-relaxed-behaviour.gif" , fps = 10)
+gif(anim , "images/test-relaxed-behaviour.gif" , fps = 10)
 #+end_src
 
 #+RESULTS:
 #+begin_export html
-[[file:images/alt-relaxed-behaviour.gif]]
+[[file:images/test-relaxed-behaviour.gif]]
 #+end_export
 
 *** subiteration
@@ -2198,24 +2198,24 @@ savefig(p , "images/alt-relaxed-convergence.svg")
 [[file:images/alt-relaxed-convergence.svg]]
 
 *** mass
-#+begin_src julia-vterm :results file graphics :file alt-h-relaxed-mass-balance.svg
+#+begin_src julia-vterm :results file graphics :file test-relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
 using Measures
 
 i0 = 64 * 0+1
-results = jldopen("experiments/alt-relaxed-iteration.jld2")["result"]
+results = jldopen("experiments/test-relaxed-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
-savefig(p , "images/alt-h-relaxed-mass-balance.svg")
+savefig(p , "images/test-relaxed-mass-balance.svg")
 #+end_src
 
-#+RESULTS[2c49ac09d098e45116f2a65875ee0d0ff160a9ff]:
-[[file:images/alt-h-relaxed-mass-balance.svg]]
+#+RESULTS[b311022065943e92d83ad65b6b27e039a3728ab5]:
+[[file:images/test-relaxed-mass-balance.svg]]
 
 #+begin_src julia-vterm :results file graphics :file alt-mass-balance.svg
 <<init>>
