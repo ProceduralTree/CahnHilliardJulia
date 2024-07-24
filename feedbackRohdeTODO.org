@@ -1,22 +1,22 @@
 #+title: Feedback Rohde Todo
-* Chapter 2 [0/5]
-- [ ]  \( J = -\nabla\mu \) discussed with hasel
-- [ ]  \( M(\phi) = 1 \) never used, therefore not well defined
+* Chapter 2 [4/5]
+- [X]  \( J = -\nabla\mu \) discussed with hasel
+- [X]  \( M(\phi) = 1 \) never used, therefore not well defined
 - [ ]  traditional explanation
-- [ ]  thermodynamic consistency never explained in my sources
-- [ ]  same with energy decay. only that it is required
+- [X]  thermodynamic consistency never explained in my sources
+- [X]  same with energy decay. only that it is required
 * Chapter 3 [0/0]
-** TODO Improve numerical method explanation [0/4]
-- [ ] seperated LES and gaus seidel, multi grid.
-- [ ] discrete versions of diff op used in original paper \( \nabla_d \)
-- [ ] \( G_{xy} \) is well defined for non integers
+** TODO Improve numerical method explanation [3/4]
+- [X] seperated LES and gaus seidel, multi grid.
+- [X] discrete versions of diff op used in original paper \( \nabla_d \)
+- [X] \( G_{xy} \) is well defined for non integers
 - [ ] show 0 neuman boundary conditions through \( G \)
-* Chapter 4 [0/3]
+* Chapter 4 [1/3]
 - [ ] never did i use absolute meassures
 - [ ] sub iteration:
   - [ ] what physical
-  - [ ] TODO cauchy convergence criteria adding
-- [ ] time convergence, equilibrium to expensive since the experiment scales quadratically. Add that is to expensisive
+  - [ ] Cauchy convergence criteria adding
+- [X] time convergence, equilibrium to expensive since the experiment scales quadratically. Add that is to expensisive
 * Chapter 5 [0/2]
 - [ ] energy decay is to complicated for me
 - [ ] add initial condition and boundary conds.

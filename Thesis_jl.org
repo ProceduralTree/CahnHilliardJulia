@@ -300,9 +300,10 @@ end
 #+end_src
 
 We can then write the modified Laplacian \( \nabla_d (G \nabla_d\phi_{ij}^{n+1}) \) as:
-\begin{align*}
+#+name: eq:modified-laplacian
+\begin{align}
 \nabla_{d} \cdot(G \nabla_d\phi_{ij}^{n+1}) &= \frac{\Sigma_G\phi_{ij}^{n+1} - \Sigma_{Gij}\cdot \phi_{ij}^{n+1}}{h^2}
-\end{align*}
+\end{align}
 We use this modified Laplacian to deal with boundary conditions. Our abbreviations simplify separating implicit and explicit terms in the discretization.
 ** Initial data
 For testing of our numerical solver for eqref:eq:initial-value-problem  we use initial discrete phase-fields defined by the following equations:
@@ -471,7 +472,7 @@ function dL(solver::multi_solver , i , j)
 \operatorname{det}(\operatorname{\mathbf{DL}}_{ij}) = \frac{1}{\Delta t} + \frac{1}{h^2}\Sigma_{Gij}  \left( + \frac{\varepsilon^2}{h^2}\Sigma_{Gij} +2 \right) > 0
 \end{equation}
 as \( \Sigma_{Gij} \in \{0,1,2,3,4\} \)
-Using The abbreviation for \( \nabla_d(G_{ij}\nabla_d \mu_{ij}^{n+\frac{1}{2}}) \) introduced in [[The discretization of functions and derrivative operators]], and we rewrite eqref:eq:LES in terms of \( \operatorname{\mathbf{DL}}_{ij} \)
+Using The abbreviation for \( \nabla_d(G_{ij}\nabla_d \mu_{ij}^{n+\frac{1}{2}}) \) introduced in eqref:eq:modified-laplacian , and we rewrite eqref:eq:LES in terms of \( \operatorname{\mathbf{DL}}_{ij} \)
  #+name: eq:explicit-smooth
  \begin{equation}
 \begin{aligned}
