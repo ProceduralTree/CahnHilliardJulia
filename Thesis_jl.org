@@ -879,9 +879,10 @@ savefig(p , "images/mass_balance.svg")
 ** Stability of a multi-grid sub-iteration
 We expect our solver to stay stable when increasing the number of multigrid sub-iterations. To validate this assumption we show convergence with the following Cauchy criteria.
 \begin{equation}
-\| \phi^{n+1,m-1} - \phi^{n+1,m} \|_{Fr}= \sqrt{ \sum_{i,j \in \Omega_d} \left|   \phi^{n+1,m-1}_{ij} - \phi^{n+1,m}_{ij} \right|^2 }
+\| \phi^{n+1,m-1} - \phi^{n+1,m} \|_{Fr}:= \sqrt{ \sum_{i,j \in \Omega_d} \left|   \phi^{n+1,m-1}_{ij} - \phi^{n+1,m}_{ij} \right|^2 }
 \end{equation}
- As sub-iterations increase , \( m\to\infty \),  we expect the difference between both phase-fields to go to zero \( \|\phi^{n+1,m} - \phi^{n+1,m-1}\|_{Fr} \to 0 \). We observe this behaviour in Figure [[fig:convergence]].
+We use similar criteria in the following sub chapters to show convergence for different hyperparameters.
+We expect sub-iterations to show Cauchy convergence, which is what we observe in Figure [[fig:convergence]].
 #+name: fig:convergence
 #+begin_src julia-vterm :results file graphics :file convergence.svg :eval t
 <<init>>
@@ -929,7 +930,7 @@ savefig(p , "images/convergence.svg")
 #+RESULTS[597a37658d2642d9a31996591fa9771fd0d8f57a]: fig:convergence
 [[file:images/convergence.svg]]
 
-During sub-iterations the convergence is exponential , and is reached at about 16 sub-iterations. The bend is only observed in the first time-step, and is likely due to the sharp interface in the initial values which is diffused during the first few sub-iterations.
+During sub-iterations the convergence is exponential , and is reached at about 16 sub-iterations. The bend is only observed in the first time-step, and is likely due to the sharp interface in the initial values which is diffused during the first few sub-iterations. Looking at the difference before, and after one time step, it is apparent , that change is largest in areas with high curcature, which are mainly corners in the interface.
 
 #+begin_src julia-vterm :results file graphics html :file subiteration.svg :output-dir images :noweb no-export :session jl :exports none
 <<init>>
