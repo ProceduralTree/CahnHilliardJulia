@@ -7,6 +7,7 @@
 #+begin_abstract
 This work shows sensitivity of boundary conditions for two different finite diffrence approaches to solving the cahn hilliard equation
 #+end_abstract
+
 * Fundamentals
 The Cahn-Hilliard (CH) equation is a diffuse interface coupling equation used for interpolating between different approach in different formulas. We use it in the following form:
 \begin{equation}
@@ -308,15 +309,26 @@ W'(\phi_{ij}^n) - 2\phi_{ij}^n + B_{2,ij} \nabla_d \cdot B_{1,ij}  + \nabla_d(G_
 \end{equation}
 this approach conserves the implicit \( L \) operator and therefore only has to modify the \( \zeta^n_{ij}, \psi^n_{ij} \) initialization
 #+begin_src julia :tangle src/adapted_multisolver.jl
+#
+# + B_2.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
+# + div.(B_1 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
+# + Ggrad.(B_0 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
+#
+#
+function boundary_corection(solver::T , I::CartesianIndex) where T <: Union{boundary_solver}
+return Ggrad(solver.B0 , I , (solver.len , solver.width) , solver.h)
+       + div(solver.B_1 , I , (solver.len , solver,width) , sover.h)
+       + B_2(I, (solver.len , solver.width) )
+
+end
+
 function set_xi_and_psi!(solver::T) where T <: Union{boundary_solver}
+    inds = CartesianIndicies(sover.phase)
+    Idx = one(inds[begin])
     xi_init(x) = x / solver.dt
     psi_init(x) = solver.W_prime(x) - 2 * x
     solver.xi[2:end-1, 2:end-1] = xi_init.(solver.phase[2:end-1,2:end-1])
-
-    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1])
-            + B_2.(CartesianIndices(solver.phase[2:end-1,2:end-1]) , Ref((solver.len , solver.width)) )
-            + div.(B_1 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
-            + Ggrad.(B_0 ,CartesianIndices(solver.phase) , Ref((solver.len , solver.width)) , Ref(solver.h) )[2:end-1,2:end-1]
+    solver.psi[2:end-1, 2:end-1] = psi_init.(solver.phase[2:end-1,2:end-1]) + boundary_corection.(Ref(solver) , inds[begin]+Idx:inds[end]-Idx)
 end
 #+end_src
 * Different boundary conditions for testing
@@ -723,3 +735,7 @@ tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 #+end_src
 * References
 #+PRINT_BIBLIOGRAPHY:
+
+# Local Variables:
+# julia-snail-extensions: (ob-julia)
+# End:
