@@ -1435,7 +1435,7 @@ savefig(p , "images/relaxed-mass-balance.svg")
 
 
 ** Stability of a relaxed multigrid sub-iteration
-We use thea same Cauchy criterium as for the baseline solver for the relaxed solver as well.
+We use the same Cauchy criteria we used for the baseline solver.
 We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). After some implementation mistakes the  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. The relaxed solver has significantly slower convergence compared to the baseline solver. During testing the relaxed solverg converged at around 1024 sub-iterations and the baseline solver at around 16.
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
