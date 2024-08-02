@@ -1438,7 +1438,7 @@ savefig(p , "images/relaxed-mass-balance.svg")
 We use the same Cauchy criteria we used for the baseline solver.
 We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). After some implementation mistakes the  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. The relaxed solver has significantly slower convergence compared to the baseline solver. During testing the relaxed solverg converged at around 1024 sub-iterations and the baseline solver at around 16.
 #+name: fig:relaxed-convergence
-#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
+#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :eval t
 <<init>>
 using DataFrames
 using JLD2
@@ -1446,6 +1446,7 @@ using LaTeXStrings
 n=1024
 
 i0 = 1
+
 df = jldopen("experiments/subiteration.jld2")["result"]
 df = groupby(df , :experiment)[i0]
 gd = groupby(df , :iteration)
@@ -1459,13 +1460,11 @@ gd = groupby(df , :iteration)
 relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
 
 relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
-p=plot([original_res, relaxed_res],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" , yaxis=:log10 , xaxis = :log10 )
-savefig(p , "images/relaxed-convergence.svg")
+p=plot([original_res.+1e-14, relaxed_res.+1e-14],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" , yaxis=:log10 , xaxis = :log2 ) savefig(p , "images/relaxed-convergence.svg")
 #+end_src
 
-#+RESULTS[d5c51f643e991f1f224a7d6e8035bfc1ea1a17cb]: fig:relaxed-convergence
+#+RESULTS[eae421fa29f236ef3b08615ec0e7bca1501530e6]: fig:relaxed-convergence
 [[file:images/relaxed-convergence.svg]]
-
 ** Relaxed stability in time
 we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time.
 #+name: fig:relaxed-stability-in-time
