@@ -2204,7 +2204,7 @@ using Random
 tests = [testgrid(relaxed_multi_solver, M , 2 , h0=1.5e-3) for M in initial_data]
 
 n = 64
-m = 512
+m = 1024
 
 
 function iter(g::Vector{relaxed_multi_solver} , experiment , prg::Progress)
@@ -2212,8 +2212,8 @@ function iter(g::Vector{relaxed_multi_solver} , experiment , prg::Progress)
     for j in 1:n
     set_xi_and_psi!(g[1])
     for i = 1:m
-        elyps_solver!(g[1] , 1000)
-        alt_v_cycle!(g, 1)
+        elyps_solver!(g[1] , 100)
+        SMOOTH!(g[1] , 1 ,true)
         next!(prg)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=experiment))
@@ -2231,7 +2231,7 @@ result = DataFrame()
 for task in tasks
     append!(result , fetch(task.task) )
     end
-jldsave("experiments/test-relaxed-iteration.jld2"; result)
+jldsave("experiments/test-nomulti-iteration.jld2"; result)
 #+end_src
 
 *** subiteration
@@ -2357,24 +2357,26 @@ savefig(p , "images/alt-relaxed-convergence.svg")
 [[file:images/alt-relaxed-convergence.svg]]
 
 *** mass
-#+begin_src julia-vterm :results file graphics :file test-relaxed-mass-balance.svg
+#+begin_src julia-vterm :results file graphics :file test-nomulti-mass-balance.svg :eval t :cache nil
 <<init>>
 using JLD2
 using DataFrames
 using Measures
-
+gr()
 i0 = 64 * 0+1
-results = jldopen("experiments/test-relaxed-iteration.jld2")["result"]
+results = jldopen("experiments/test-nomulti-iteration.jld2")["result"]
 energy = [ massbal(s.phase) .- massbal(results.solver[i0].phase) for s in results[i0:i0+63,:].solver]
 p1 = plot(1:64 , energy, xlabel= "time-steps" , ylabel = "error"  , label =false)
 p2 = heatmap(results.solver[i0].phase , title="initial condition" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p3 = heatmap(results.solver[i0+63].phase , title="after 64 time-steps" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
 p = plot(p2,p3 , p1 , layout=layout3x1 , size=(1600 ,1600))
-savefig(p , "images/test-relaxed-mass-balance.svg")
+
+savefig(p , "images/test-nomulti-mass-balance.svg")
 #+end_src
 
-#+RESULTS[b311022065943e92d83ad65b6b27e039a3728ab5]:
-[[file:images/test-relaxed-mass-balance.svg]]
+#+ATTR_ORG: :width 900
+#+RESULTS[b2c7d914038a15bb0a7f1b596edfb1a1377c4fbd]:
+[[file:images/test-nomulti-mass-balance.svg]]
 
 #+begin_src julia-vterm :results file graphics :file alt-mass-balance.svg
 <<init>>
