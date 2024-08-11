@@ -632,17 +632,19 @@ for j in 1:timesteps
 end
 #+end_src
 where the V-cycle consists of the following steps , where \( m \) denotes the current sub-iteration
-1. a Gauss-Seidel relaxation for smoothing on the fine grid \( h \), as described in Chapter [[Gauss-Seidel smoothing]].
-2. calculate the residual error  \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) := L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
-3. restriction from the fine grid to the course grid \(  h \to H  \).
-- TODO formula
-  Restriction is a weighted average of four neighbours as such:
+The approximations for \( \phi_{ij}^{n+1} , \mu_{ij}^{n+\frac{1}{2}} \) after the m-th V-cycle sub-iteration are denoted with \(  \phi_{ij}^{n+1,m+1} , \mu_{ij}^{n+\frac{1}{2},m+1}  \)
+*** Pre Smoothing
+Pre smoothing consists of a fixed number of Gauss-Seidel iterations, in our case *40*,  on the fine grid \( h \), as described in Chapter [[Gauss-Seidel smoothing]]. Afterwards we calculate the residual error \( \left(d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \right) := L\left( \phi_{ij}^{n+1} , \mu^{n+\frac{1}{2}}_{ij}  \right) - (\zeta^n_{ij} , \psi^n_{ij}  )  \). for the course grid \( H \) correction.
+*** Restriction
+We restrict the residuals onto the course grid. Restriction from the fine grid to the course grid \(  h \to H  \) for a variable eg. \( \phi_{ij} \) is done as follows:
 \begin{equation}
 \phi^{H}_{ij} = \frac{1}{\Sigma_{Gij}} \left(G_{2i,2j}\phi^{h}_{2i,2j} + G_{2i-1,2j} \phi^{h}_{2i-1,2j} + G_{2i,2j-1}  \phi^{h}_{2i,2j-1} +G_{2i-1,2j-1} \phi^{h}_{2i-1,2j-1} \right)
 \end{equation}
-4. a Gauss-Seidel SMOOTH to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
+*** Course grid solution
+On the course grid we use a Gauss-Seidel iteration to solve \( L(\hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m})_H = L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).
     We solve for \( \left( \hat{\phi}_{ij,H}^{n+1,m}, \hat{\mu}_{ij,H}^{n+\frac{1}{2},m} \right) \) using the same iteration as in Chapter [[Gauss-Seidel smoothing]] however we replace \( (\zeta_{ij}^{n} , \psi_{ij}^n) \) with  \(  L(\bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m}) + (d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m}) \).  In the iteration, where \( \bar{\phi}_{ij,H}^{n+1,m} , \bar{\mu}_{ij,H}^{n+\frac{1}{2},m} \) are the values after the smooth restricted to the coarser grid and \( d_{ij,H}^{n+1,m} , r_{ij,H}^{n+1,m} \) is the residual from the smooth  iteration on the fine grid restricted onto the coarse grid.
-5. prolongation from the course grid to the fine grid \( H\to h \)
+*** Prolongation
+we prolong the solution from the course grid. Prolongation of a variable eg. \( \phi_{ij} \) from the course grid to the fine grid \( H\to h \) we do by using the nearest neighbour weighet by  \( G \).
 \begin{equation}
 \begin{pmatrix}
 \phi^h_{2i,2j} \\
@@ -658,8 +660,10 @@ G^{h}_{2i,2j-1}  \phi_{ij}^{H}       \\
 G^{h}_{2i-1,2j-1}\phi_{ij}^{H}
 \end{pmatrix}
 \end{equation}
-6. post smoothing on the fine grid =add number actually used=
-The approximations for \( \phi_{ij}^{n+1} , \mu_{ij}^{n+\frac{1}{2}} \) after the m-th V-cycle sub-iteration are denoted with \(  \phi_{ij}^{n+1,m+1} , \mu_{ij}^{n+\frac{1}{2},m+1}  \)
+*** Post Smoothing
+After prolongation of the course grid solution we perform a post smoothing step using *80* Gauß-Seidel steps. Post smoothing is otherwise identical to pre smoothing
+
+*** additional considerations
 We Do Gauss-Seidel smoothing with fixed iterations. As well as a fixed number of sub-iterations.
 
 #+name: restrict-to-coarse-grid
@@ -1386,7 +1390,37 @@ savefig(p , "images/relaxed-energy-balance.svg")
 #+RESULTS[ddc6809b1b7f3918596757e2d1ab6e0f9ac4c92f]: fig:relaxed-energy-balance
 [[file:images/relaxed-energy-balance.svg]]
 
+** Stability of a relaxed multigrid sub-iteration
+We use the same Cauchy criteria we used for the baseline solver.
+Furthermore, we compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). The  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. However, the relaxed solver shows significantly slower convergence compared to the baseline solver. Which is why whithout the log log scale employed, the behavior of both solvers would not be visible in the same plot. This behaviour suggests that the relaxed solver does not converge towards the solution of eqref:eq:relaxed-les. Further experiments on mass conservation confirm this suspicion. During further experiments with different initial conditions and number of Gauss-Seidel steps, we where not able to change the slow convergence behaviour.
+#+name: fig:relaxed-convergence
+#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :eval t
+<<init>>
+using DataFrames
+using JLD2
+using LaTeXStrings
+n=1024
 
+i0 = 1
+
+df = jldopen("experiments/subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
+gd = groupby(df , :iteration)
+original_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+original_res =  groupby(original_res , :iteration)[1].cycle_function
+
+df = jldopen("experiments/alt-relaxed-subiteration.jld2")["result"]
+df = groupby(df , :experiment)[i0]
+gd = groupby(df , :iteration)
+relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
+
+relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
+p=plot([original_res.+1e-14, relaxed_res.+1e-14],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" , yaxis=:log10 , xaxis = :log2 ) savefig(p , "images/relaxed-convergence.svg")
+#+end_src
+
+#+RESULTS[eae421fa29f236ef3b08615ec0e7bca1501530e6]: fig:relaxed-convergence
+[[file:images/relaxed-convergence.svg]]
 ** Relaxed numerical mass balance
 As already mentioned the relaxed solver is not mass conservative.
 Since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well.
@@ -1443,18 +1477,25 @@ Additionally, we simplify each of the sums in the second part, since the values 
 this sum, as it it is telescopic simplify further to
 \begin{equation}
 \begin{aligned}
-\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=  (\mu_{NN+1}+\mu_{3N+1})-(\mu_{N+1N+1}+\mu_{2N+1}) -  \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}
+\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=  (\mu_{NN+1}+\mu_{3N+1})-(\mu_{N+1N+1}+\mu_{2N+1}) \\
+&-  \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}
 \end{aligned}
 \end{equation}
 similar the other three sums on the boundary simplify to
 \begin{equation}
 \begin{aligned}
-\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &= - (\mu_{N+1,2}+\mu_{2,2}) - \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}  \\
-\sum_{j=3}^{N} \frac{\Sigma_G\mu_{2j}^{n+\frac{1}{2}} - \Sigma_{G2j}\cdot \mu_{2j}^{n+\frac{1}{2}}}{h^2} &= - (\mu_{NN+1}+\mu_{N2}) - \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1} \\
-\sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2} &=  - (\mu_{2,2}+\mu_{2,N+1}) -  \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}
+\sum_{i=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N,2}+\mu_{3,2})- (\mu_{N+1,2}+\mu_{2,2}) - \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}  \\
+\sum_{j=3}^{N} \frac{\Sigma_G\mu^{\alpha}_{2j}^{n+\frac{1}{2}} - \Sigma_{G2j}\cdot \mu_{2j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{2,3}+\mu_{2,N})- (\mu_{2,N+1}+\mu_{2,2}) - \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{2j} - \mu^{n+\frac{1}{2}}_{3j} \\
+\sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N+1,N}+\mu_{N+1,3}) - (\mu_{N+1,N+1}+\mu_{N+1,2}) -  \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{N+1,j} - \mu^{n+\frac{1}{2}}_{N,j}
 \end{aligned}
 \end{equation}
-we observe that the resulting sums are equal and oposite to the result from the first sum. They therefore cancel each other and we are left with
+we observe that the resulting sums are equal and oposite to the result from the first sum. They therefore cancel each other and we are left with the corner therms. Those therms sum up to
+\begin{equation}
+\mu_{N+1,N}+\mu_{N+1,3} - 2\mu_{N+1,N+1} \\
+\mu_{2,3}+\mu_{2,N} - 2\mu_{2,2}\\
+\mu_{N,2}+\mu_{N+1,3} - 2\mu_{2,N+1}\\
+\mu_{N,N+1}+\mu_{3,N+1} - 2\mu_{N+1,2}\\
+\end{equation}
 The third sum, on the corners, can be simplified the same way as the other two
 \begin{equation}
 \begin{aligned}
@@ -1464,7 +1505,13 @@ The third sum, on the corners, can be simplified the same way as the other two
 \frac{\Sigma_G\mu_{N+1,2}^{n+\frac{1}{2}} - \Sigma_{GN+1,2}\cdot \mu_{N+1,2}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{N+1,3} + \mu^{n+\frac{1}{2}}_{N,2} - 2 \mu^{n+\frac{1}{2}}_{N+1,2})
 \end{aligned}
 \end{equation}
-Our relaxed solver shows  mass loss around 5% as seen in Fig.[[fig:relaxed-mass-balance]]. This is nowhere near the machine precision, we reached in Fig.[[fig:mass-balance]]. The relaxed solver is therefore not mass conservative.
+Those terms cancel out with what remains in the second sum. We therefore conclude
+\begin{equation}
+\sum_{i=2}^{N+1} \sum_{j=2}^{N+1} \frac{1}{\Delta t} \left( \phi_{ij}^{n+1} - \phi_{ij}^{n}) = 0
+\end{equation}
+Which gives a discrete equivalent to the mass conservation shown in the analytical equations.
+==========
+Our relaxed solver shows significant mass loss as seen in Fig.[[fig:relaxed-mass-balance]]. especcially when compared to the original solver as seen in Fig.[[fig:mass-balance]]. The relaxed solver is therefore not mass conservative. Both the original approach as well as the relaxed one exhibit a discrete equivalent of mass conservation, therefore their difference has to be explained by the numerical solver. Which is consistent with the observations made with sub-iteration convergence. We therefore conclude our relaxed solver does not properly converge.
 #+name: fig:relaxed-mass-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :eval t
 <<init>>
@@ -1486,38 +1533,6 @@ savefig(p , "images/relaxed-mass-balance.svg")
 #+RESULTS[2791ce53917102c842085e5a07bbd977aa2123dd]: fig:relaxed-mass-balance
 [[file:images/relaxed-mass-balance.svg]]
 
-
-** Stability of a relaxed multigrid sub-iteration
-We use the same Cauchy criteria we used for the baseline solver.
-We also compare the subiteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). After some implementation mistakes the  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. The relaxed solver has significantly slower convergence compared to the baseline solver. During testing the relaxed solverg converged at around 1024 sub-iterations and the baseline solver at around 16.
-#+name: fig:relaxed-convergence
-#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :eval t
-<<init>>
-using DataFrames
-using JLD2
-using LaTeXStrings
-n=1024
-
-i0 = 1
-
-df = jldopen("experiments/subiteration.jld2")["result"]
-df = groupby(df , :experiment)[i0]
-gd = groupby(df , :iteration)
-original_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
-
-original_res =  groupby(original_res , :iteration)[1].cycle_function
-
-df = jldopen("experiments/alt-relaxed-subiteration.jld2")["result"]
-df = groupby(df , :experiment)[i0]
-gd = groupby(df , :iteration)
-relaxed_res = combine(gd  , :cycle => ((x)-> [norm(x[i].phase - x[i-1].phase) for i in 2:size(x,1)]))
-
-relaxed_res =  groupby(relaxed_res , :iteration)[1].cycle_function
-p=plot([original_res.+1e-14, relaxed_res.+1e-14],label= ["original"  "relaxed"] , ylabel="difference" , xlabel="sub-iteration" , yaxis=:log10 , xaxis = :log2 ) savefig(p , "images/relaxed-convergence.svg")
-#+end_src
-
-#+RESULTS[eae421fa29f236ef3b08615ec0e7bca1501530e6]: fig:relaxed-convergence
-[[file:images/relaxed-convergence.svg]]
 ** Relaxed stability in time
 we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time.
 #+name: fig:relaxed-stability-in-time
