@@ -8,7 +8,7 @@
   #+latex_header: \include{~/.doom.d/OrgConfig/noteHeader.tex}
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://gongzhitaao.org/orgcss/org.css"/>
 #+PROPERTY: header-args:julia :output-dir images :eval never :noweb no-export
-#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :session jl :cache yes :eval never
+#+PROPERTY: header-args:julia-vterm :output-dir images :exports results :noweb no-export :eval yes :session jl :cache no :eval never
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
@@ -28,7 +28,7 @@
 	{\LARGE \@author \par}
 	{\Large Matriculation Number: 3545737 \par}
 	\vspace{1.5cm}
-	{\large Examiner: Prof Rohde I believe \par}
+	{\large Examiner: Prof Rohde\par}
 	{\large Advisor: Hasel \par}
 	\vspace{1.5cm}
 	{\large Institute of Applied Analysis and Numerical Simulation\par}
@@ -60,7 +60,7 @@ In this thesis we implement numerical solvers for the Cahn-Hilliard equation in 
 We begin by giving an overview and a derivation for the analytical CH equation in Chapter [[The Cahn-Hilliard equation]]. We then show mass conservation and a decrease of total energy in time.
 The Chapter [[Multi-grid method]] introduces our discretization and a finite difference based two grid method. We explain the necessary functions, describe the relevant steps of our numerical implementation, and give their implementation. Additionally we introduce the initial conditions we used in this thesis.
 In Chapter [[Numerical experiments]] we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continuously for the analytical CH equation.
-Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed problem]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Multi-grid method]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
+Our thesis introduces a analytical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed Cahn-Hilliard equation]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Multi-grid method]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
 Subsequently, in chapter [[Relaxed experiments]], we evaluate our relaxed method against the baseline with the same measures, as introduced in chapter [[Numerical experiments]].
 
 We began writing this thesis with a reproducible research philosophy in mind. Hence, we provide the explanation you  are reading, and the implementation in the same file. The original aim was to have the mathematical formulas and their implementation interleaved in a way, that leaves no room for interpretation. While we fall short of this goal, we still provide all relevant code in the relevant sections and the appendix. All shown code is therefore the code that is run on our machine. Since not all parts of the code are relevant for understanding, unimportant sections are implemented elsewhere. Didacticly they aer replaced with a comment of form =<<unumportant-code-section>>=. Their implementation can be found in ~Thesis_jl.org~ in a code block of the same name.
@@ -166,14 +166,14 @@ In order to show thermodynamic consistency of the CH equation, we take the time 
 \end{align*}
 This a bounded \( L_2 \) norm  on \( \nabla \phi \) and \( \nabla \mu \).
 ** initial value problem
-Our Thesis then conserns it self with the initial value problem
+Our Thesis then concerns it self with the initial value problem
 #+name: eq:initial-value-problem
 \begin{equation}
 \begin{aligned}
 \partial_{t}\phi(x,t) &=  \nabla \cdot(M(\phi)\nabla\mu), \\
 \mu &= - \varepsilon^2 \Delta\phi  + W'(\phi), \\
 -\nabla\mu \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T),\\
-\nabla\phi \cdot \mathbf{n} = 0 & \text{on} \, \partial\Omega &\times (0,T), \\
+\nabla\phi \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T), \\
 \phi(x,0) &= \phi^0(x) \,,
 \end{aligned}
 \end{equation}
@@ -1070,7 +1070,7 @@ savefig(p , "images/space-stability.svg")
 #+RESULTS[86f3e5e3d57f940d637b74a1a467c1862bbcb3aa]: fig:stability-in-space
 [[file:images/space-stability.svg]]
 
-* Relaxed problem
+* Relaxed Cahn-Hilliard equation
 In effort to decrease the order of complexity, from fourth order derivative to second order, we propose an elliptical relaxation approach, where the relaxation variable \( c \) is the solution of the following elliptical PDE:
 #+name: eq:elliptical-equation
 \begin{align}
@@ -1086,19 +1086,7 @@ This results in the following relaxation for the classical CH equation Eq.[[eqre
 \end{aligned}
 \end{equation}
 It requires solving the elliptical PDE each time-step to calculate \(c\).
-
-As ansatz for the numerical solver we propose:
-#+name: eq:discrete-relaxed-cahn-hilliard
-\begin{equation}
-\begin{aligned}
-\frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \,,\\
- \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha} \,.
-\end{aligned}
-\end{equation}
-This approach is inspired by Eq.[[eqref:eq:discrete-cahn-hilliard]] and adapted to the relaxed CH equation in Eq.[[eqref:eq:discrete-relaxed-cahn-hilliard]].
-We then apply the multi-grid method proposed in [[Multi-grid method]] to the relaxed problem by replacing the differential operators with their discrete counterparts, as defined in Eq.[[eqref:eq:discretization]],
-and expand them.
-** Relaxed enregy functional
+** Relaxed energy functional
 We derive an corresponding energy for the relaxed CH eaquation with the following inner product
 \begin{equation}
 \left< \phi_t^{\alpha} , \mu^{\alpha} \right> = \left< \Delta \mu^{\alpha} , \mu^{\alpha} \right>
@@ -1121,22 +1109,50 @@ and using the boundary condition \( \left< \nabla\mu , n \right> = 0 \) on the r
 &= - \left\| \nabla \mu^{\alpha} \right\| \leq 0
 \end{aligned}
 \end{equation}
-it therefore holds for a relaxed enregy:
+it therefore holds for a relaxed energy:
 \begin{equation}
 \frac{d}{dt} E_{rel}(\phi) = \frac{d}{dt} \int_{\Omega} - \frac{1}{2}\varepsilon^2 \alpha (c - \phi)^2 + W(x) \ d \operatorname{\mathbf{V}} \leq 0
 \end{equation}
 which gives a bound for \( \Delta c =  \alpha(c-\phi)  \) similar to the estimate for \( \nabla\phi \) given in the original CH equation.
-** Elliptical PDE
-In order to solve the relaxed CH equation we solve the following PDE in each  time step:
-\begin{align*}
-- \nabla \cdot  (G \nabla c^\alpha) + \alpha c^\alpha  = \alpha \phi ^\alpha \,.
-\end{align*}
-Similarly to the first solver we solve this PDE  with a finite difference scheme using the same discretization as before.
-*** Discretization
-To solve the additional elliptical system, we propose a simple implicit scheme similar to what we use for the baseline solver.
+** Relaxed mass conservation
+Identically to what was show for the original CH equation in  eqref:eq:mass-conservation it holds:
+\begin{equation}
+\int_{\Omega}\partial_t \phi^{\alpha} \ d \operatorname{\mathbf{x}} = \int_{\Omega} \Delta \mu^{\alpha} \ d \operatorname{\mathbf{x}} = \int_{\partial\Omega} \nabla\mu^{\alpha} \cdot n \ d \operatorname{\mathbf{x}} =  0
+\end{equation}
+The relaxed CH equation therefore is mass conservative.
+** Relaxed initial value problem
+In this Thesis, regarding the relaxed CH equation, we concern our self with the following initial value problem, and it's numerical solution.
+#+name: eq:relaxed-initial-value-problem
+\begin{equation}
+\begin{aligned}
+\partial_{t}\phi(x,t) &=  \nabla \cdot\nabla\mu, \\
+\mu^{\alpha} &= - \varepsilon ^2 \alpha(c^\alpha - \phi^\alpha) + W'(\phi) , \\
+- \Delta c^\alpha  + \alpha c^a &= \alpha \phi ^\alpha, \\
+-\nabla\mu^{\alpha} \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T),\\
+\nabla\phi^{\alpha} \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T), \\
+\nabla c^{\alpha} \cdot \mathbf{n} &= 0 & \text{on} \, \partial\Omega &\times (0,T), \\
+\phi^{\alpha}(x,0) &= \phi^0(x) \,,\\
+c^{\alpha}(x,0) &= \phi^0(x) \,,
+\end{aligned}
+\end{equation}
+
+* Discretization of the relaxed problem
+As ansatz for the numerical solver for the CH equation we propose:
+#+name: eq:discrete-relaxed-cahn-hilliard
+\begin{equation}
+\begin{aligned}
+\frac{\phi_{ij}^{n+1,\alpha} - \phi_{ij}^{n,\alpha}}{\Delta t}  &=  \nabla _d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2},\alpha} )  \,,\\
+ \mu_{ij}^{n+\frac{1}{2},\alpha} &= 2\phi_{ij}^{n+1,\alpha} - \varepsilon^2 a(c_{ij}^{n+1,\alpha} - \phi_{ij}^{n+1,\alpha})  + W'(\phi_{ij}^{n,\alpha}) - 2\phi _{ij}^{n,\alpha} \,.
+\end{aligned}
+\end{equation}
+This approach is inspired by Eq.[[eqref:eq:discrete-cahn-hilliard]] and adapted to the relaxed CH equation in Eq.[[eqref:eq:discrete-relaxed-cahn-hilliard]].
+We then apply the multi-grid method proposed in [[Multi-grid method]] to the relaxed problem by replacing the differential operators with their discrete counterparts, as defined in Eq.[[eqref:eq:discretization]],
+and expand them.
+To solve the additional elliptical system, we propose a simple implicit finite difference scheme similar to what we use for the baseline solver.
 \begin{align*}
 - \nabla_d \cdot  (G_{ij} \nabla_d c_{ij}^{n+1,\alpha}) + \alpha  c_{ij}^{n+1,\alpha} &= \alpha \phi_{ij}^{n+1,\alpha}
 \end{align*}
+** Elliptical PDE
 We then use the finite differences defined in Eq.eqref:eq:discretization to derrive the corresponding linear system.
 \begin{align*}
 - \frac{1}{h^2} ( G_{i+\frac{1}{2}j}(c_{i+1j}^{n+1,\alpha} - c_{ij}^{n+1,\alpha}) & \\
@@ -1151,7 +1167,7 @@ We abbreviate \(  \Sigma_G c^{n+1,\alpha}_{ij} = G_{i+\frac{1}{2}j} c^{n+1,\alph
 -\frac{ \Sigma_G c^{n+1,\alpha}_{ij}}{h^2} + \frac{\Sigma_G}{h^2} c^{n+1,\alpha}_{ij} + \alpha c^{n+1,\alpha}_{ij} &= \alpha\phi^{n+1,\alpha}_{ij} \,.
 \end{align}
 this constitutes a linear system with \( N\times N \) equations
-*** Gauss Seidel solver for the elliptical system
+** Gauss Seidel solver for the elliptical system
 To solve the elliptical system we introduce a Gauss-Seidel solver similar to the Gauss-Seidel Solver used for the smoothing step in the multi-grid method.
 We define this iteration in terms of \( s \),
 For the Gauss-Seidel Iterative solver, we define the abbreviations
@@ -1342,10 +1358,104 @@ gif(anim , "images/relaxed-anim.gif", fps=10)
 
 #+RESULTS: fig:relaxed-anim
 [[file:images/relaxed-anim.gif]]
+The approach for the relaxed solver was in our tests significaltly faster than the baseline implementation. The runtime in practice is highly dependant on the amout of v-cyvle iteration for the basline and relaxed solver respectivly, as well as the number of Gauss-Seidel Iteration for the elliptical problem.  When using similar sub iterations and sufficiently small the relaxed solver was several time faster. When we let both solvers iterate until convergence, the relaxed solver still was slightly faster, However, as we will show in our experiments the relaxed solver has problems with convergence, and never converges to the solution of the baseline. Because of this, and due to potential improvements in our implementation. The previous statements are to be taken as qualitative guide, and not as quantitative statement, which requires further research.
+* Discrete mass conservation
+Since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well.
+Mass conservation for the CH equation is given as
+\begin{equation}
+\int_{\Omega} \partial_t\phi = 0
+\end{equation}
+We show a discrete analogue for both the baseline and the relaxed approach
+\begin{equation}
+\sum_{i,j \in \Omega_d} \frac{1}{\Delta t} (\phi_{ij}^{n+1} - \phi_{ij}^{n}) = 0.
+\end{equation}
+We show this for a square domain \( \Omega_d \) using the first line of  eqref:eq:discrete-cahn-hilliard and eqref:eq:discrete-relaxed-cahn-hilliard respectively.
+\begin{equation}
+\begin{aligned}
+\sum_{i=2}^{N+1} \sum_{j=2}^{N+1} \frac{1}{\Delta t} \left( \phi_{ij}^{n+1} - \phi_{ij}^{n} \right) &= \sum_{i=2}^{N+1}\sum_{j=2}^{N+1} \nabla_d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}}) \\
+\end{aligned}
+\end{equation}
+We split the right double sum into three parts. We consider them separately. The first part consists of the inner sum, where \( G_{i+\frac{1}{2}j} = G_{i+\frac{1}{2}j} = G_{ij+\frac{1}{2}} = G_{ij-\frac{1}{2}} = 0 \). The inner sum can therefore be written as such:
+\begin{equation}
+\begin{aligned}
+&= \sum_{i=3}^{N}\sum_{j=3}^{N} \frac{1}{h^2} \left( \mu^{n+\frac{1}{2}}_{i+1j} + \mu^{n+\frac{1}{2}}_{i-1j} + \mu^{n+\frac{1}{2}}_{ij+1} + \mu^{n+\frac{1}{2}}_{ij-1} - 4 \mu^{n+\frac{1}{2}}_{ij} \right) \\
+\end{aligned}
+\end{equation}
+The second part consists of the sums over the edges excluding the corners.
+\begin{equation}
+\begin{aligned}
+&+ \sum_{i=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} \\
+&+ \sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} \\
+&+ \sum_{j=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} \\
+&+ \sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2}\\
+\end{aligned}
+\end{equation}
+And the third part consists of the corners.
+\begin{equation}
+\begin{aligned}
+&+ \frac{\Sigma_G\mu_{N+1N+1}^{n+\frac{1}{2}} - \Sigma_{GN+1,N+1}\cdot \mu_{N+1,N+1}^{n+\frac{1}{2}}}{h^2}\\
+&+  \frac{\Sigma_G\mu_{N+1,2}^{n+\frac{1}{2}} - \Sigma_{GN+1,2}\cdot \mu_{N+1,2}^{n+\frac{1}{2}}}{h^2}\\
+&+  \frac{\Sigma_G\mu_{2,N+1}^{n+\frac{1}{2}} - \Sigma_{G2,N+1}\cdot \mu_{2,N+1}^{n+\frac{1}{2}}}{h^2}\\
+&+  \frac{\Sigma_G\mu_{2,2}^{n+\frac{1}{2}} - \Sigma_{G 2,2}\cdot \mu_{2,2}^{n+\frac{1}{2}}}{h^2}
+\end{aligned}
+\end{equation}
+The first double sum is a telescopic sum, and contracts to the following:
+\begin{equation}
+\begin{aligned}
+\sum_{i=3}^{N}\sum_{j=3}^{N} \frac{1}{h^2} \left( \mu^{n+\frac{1}{2}}_{i+1j} + \mu^{n+\frac{1}{2}}_{i-1j} + \mu^{n+\frac{1}{2}}_{ij+1} + \mu^{n+\frac{1}{2}}_{ij-1} - 4 \mu^{n+\frac{1}{2}}_{ij} \right) &=
+ \sum_{i=3}^{N} \mu_{i2}^{n+\frac{1}{2}} - \mu_{i3}^{n+\frac{1}{2}}\\
+& + \sum_{i=3}^{N} \mu_{iN+1}^{n+\frac{1}{2}} - \mu_{iN}^{n+\frac{1}{2}}\\
+& + \sum_{j=3}^{N} \mu_{2j}^{n+\frac{1}{2}} - \mu_{3j}^{n+\frac{1}{2}}\\
+& + \sum_{j=3}^{N} \mu_{N+1j}^{n+\frac{1}{2}} - \mu_{Nj}^{n+\frac{1}{2}}
+\end{aligned}
+\end{equation}
+Additionally, we simplify each of the sums in the second part, since the values of \( G \) are known on the boundary. On the right boundary ,for \( 2 < i < N+1 \),  \( G_{iN+\frac{3}{2}} = 0 \) and \( G_{iN+\frac{1}{2}}  = G_{i+\frac{1}{2}N+1}= 1 \)  it therefore follows:
+\begin{equation}
+\begin{aligned}
+\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=
+\frac{1}{h^2}\sum_{i=3}^{N} G_{i+\frac{1}{2}N+1} \mu^{n + \frac{1}{2}}_{i+1N+1} +  G_{i-\frac{1}{2}N+1} \mu^{n + \frac{1}{2}}_{i-1N+1} \\
+& \qquad+ G_{iN+\frac{3}{2}}  \mu^{n + \frac{1}{2}}_{iN+2} + G_{iN-\frac{3}{2}} \mu^{n + \frac{1}{2}}_{iN} \\
+&\qquad- (G_{iN+\frac{3}{2}}+G_{iN+\frac{1}{2}}+G_{i+\frac{1}{2}N+1}+G_{i-\frac{1}{2}N+1}) \mu^{n+\frac{1}{2}}_{iN+1} \\
+&= \frac{1}{h^2} \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i+1N+1} +  \mu^{n+\frac{1}{2}}_{i-1N+1} + \mu^{n+\frac{1}{2}}_{iN} - 3\mu^{n+\frac{1}{2}}_{iN+1}
+\end{aligned}
+\end{equation}
+this sum, as it it is telescopic simplify further to
+\begin{equation}
+\begin{aligned}
+\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=  (\mu_{NN+1}+\mu_{3N+1})-(\mu_{N+1N+1}+\mu_{2N+1}) \\
+&-  \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}
+\end{aligned}
+\end{equation}
+similar the other three sums on the boundary simplify to
+\begin{equation}
+\begin{aligned}
+\sum_{i=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N,2}+\mu_{3,2}) - (\mu_{N+1,2}+\mu_{2,2}) - \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}  \\
+\sum_{j=3}^{N} \frac{\Sigma_G \mu_{2j}^{n+\frac{1}{2},\alpha} - \Sigma_{G2j}\cdot \mu_{2j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{2,3}+\mu_{2,N}) - (\mu_{2,N+1}+ \mu_{2,2}) - \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{2j} - \mu^{n+\frac{1}{2}}_{3j} \\
+\sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N+1,N}+\mu_{N+1,3}) - (\mu_{N+1,N+1}+\mu_{N+1,2}) -  \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{N+1,j} - \mu^{n+\frac{1}{2}}_{N,j}
+\end{aligned}
+\end{equation}
+we observe that the resulting sums are equal and oposite to the result from the first sum. They therefore cancel each other and we are left with the corner therms. Those therms sum up to
+\begin{equation}
+\mu_{N+1,N}+\mu_{N+1,3} - 2\mu_{N+1,N+1} ++\mu_{2,3}+\mu_{2,N} - 2\mu_{2,2} + \mu_{N,2}+\mu_{N+1,3} - 2\mu_{2,N+1} + \mu_{N,N+1}+\mu_{3,N+1} - 2\mu_{N+1,2}
+\end{equation}
+The third sum, on the corners, can be simplified the same way as the other two
+\begin{equation}
+\begin{aligned}
+\frac{\Sigma_G\mu_{N+1N+1}^{n+\frac{1}{2}} - \Sigma_{GN+1,N+1}\cdot \mu_{N+1,N+1}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{NN+1} + \mu^{n+\frac{1}{2}}_{N+1N} - 2 \mu^{n+\frac{1}{2}}_{N+1N})\\
+\frac{\Sigma_G\mu_{2,2}^{n+\frac{1}{2}} - \Sigma_{G2,2}\cdot \mu_{2,2}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{3,2} + \mu^{n+\frac{1}{2}}_{2,3} - 2 \mu^{n+\frac{1}{2}}_{2,2})\\
+\frac{\Sigma_G\mu_{2N+1}^{n+\frac{1}{2}} - \Sigma_{G2,N+1}\cdot \mu_{2,N+1}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{3N+1} + \mu^{n+\frac{1}{2}}_{2N} - 2 \mu^{n+\frac{1}{2}}_{2N+1})\\
+\frac{\Sigma_G\mu_{N+1,2}^{n+\frac{1}{2}} - \Sigma_{GN+1,2}\cdot \mu_{N+1,2}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{N+1,3} + \mu^{n+\frac{1}{2}}_{N,2} - 2 \mu^{n+\frac{1}{2}}_{N+1,2})
+\end{aligned}
+\end{equation}
+Those terms cancel out with what remains in the second sum. We therefore conclude
+\begin{equation}
+\sum_{i=2}^{N+1} \sum_{j=2}^{N+1} \frac{1}{\Delta t} \left( \phi_{ij}^{n+1} - \phi_{ij}^{n}\right) = 0
+\end{equation}
+Which gives a discrete equivalent to the mass conservation shown in the analytical equations.
 * Relaxed experiments
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
 ** Relaxed energy evaluations
-we do evaluate our relaxed method using the discrete energy defined in Eq.[[eqref:eq:discrete-energy]]. On the same initial data, and with the same values for \( \varepsilon , h , dt \) as in the Chapter.[[Energy evaluations]]. Since we expect the relaxed approach to solve the same initial value problem  eqref:eq:initial-value-problem, we expect both solvers to behave the same. In Figure.[[fig:relaxed-energy-balance]] we then observe the energy decay we expected. Our relaxed approach closely follows the baseline, although it consistently decayed slightly faster. Both solvers decay in a simmilar manner. Both solvers show a slight bend after a few iterations. The bend in the relaxed solver is noticeably more pronounced. Additionally, in later iterations the relaxed solver shows faster energy decay than the original. We explain these differences with the observations taken in later experiments, where we observe mass-loss. We suspect the relaxed solver to therefore be more aggressive when minimizing energy.
+we do evaluate our relaxed method using the discrete energy defined in Eq.[[eqref:eq:discrete-energy]]. On the same initial data, and with the same values for \( \varepsilon , h , dt \) as in the Chapter.[[Energy evaluations]]. Since we expect the relaxed approach to solve the same initial value problem  eqref:eq:initial-value-problem, we expect both solvers to behave the same. In Figure.[[fig:relaxed-energy-balance]] we then observe the energy decay we expected. Our relaxed approach closely follows the baseline, although it consistently decayes slightly faster. Both solvers decay in a simmilar manner and both solvers show a slight bend after a few iterations. However the bend in the relaxed solver is noticeably more pronounced. Additionally, in later iterations the relaxed solver shows faster energy decay than the original. We explain these differences with the observations taken in later experiments, where we observe mass-loss and slower convergence. We suspect the relaxed solver to therefore be more aggressive when minimizing energy.
 #+name: fig:relaxed-energy-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-energy-balance.svg
 <<init>>
@@ -1420,98 +1530,10 @@ p=plot([original_res.+1e-14, relaxed_res.+1e-14],label= ["original"  "relaxed"] 
 #+end_src
 
 #+RESULTS[eae421fa29f236ef3b08615ec0e7bca1501530e6]: fig:relaxed-convergence
-[[file:images/relaxed-convergence.svg]]
+        [[file:images/relaxed-convergence.svg]]
 ** Relaxed numerical mass balance
 As already mentioned the relaxed solver is not mass conservative.
-Since both the CH equation Eq.[[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well.
-And in fact, when observing the discertization on the square domain \( \Omega_d \) we are able to show the following:
-\begin{equation}
-\begin{aligned}
-\sum_{i=2}^{N+1} \sum_{j=2}^{N+1} \frac{1}{\Delta t} \left( \phi_{ij}^{n+1} - \phi_{ij}^{n} \right) &= \sum_{i=2}^{N+1}\sum_{j=2}^{N+1} \nabla_d \cdot (G_{ij} \nabla_d \mu_{ij}^{n+\frac{1}{2}}) \\
-\end{aligned}
-\end{equation}
-We split the right double sum into three parts. We consider them seperately. The first part consists of the inner sum, where \( G_{i+\frac{1}{2}j} = G_{i+\frac{1}{2}j} = G_{ij+\frac{1}{2}} = G_{ij-\frac{1}{2}} = 0 \). The inner sum can therefore be written as such:
-\begin{equation}
-\begin{aligned}
-&= \sum_{i=3}^{N}\sum_{j=3}^{N} \frac{1}{h^2} \left( \mu^{n+\frac{1}{2}}_{i+1j} + \mu^{n+\frac{1}{2}}_{i-1j} + \mu^{n+\frac{1}{2}}_{ij+1} + \mu^{n+\frac{1}{2}}_{ij-1} - 4 \mu^{n+\frac{1}{2}}_{ij} \right) \\
-\end{aligned}
-\end{equation}
-The second part consists of the sums over the edges excluding the corners.
-\begin{equation}
-\begin{aligned}
-&+ \sum_{i=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} \\
-&+ \sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} \\
-&+ \sum_{j=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} \\
-&+ \sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2}\\
-\end{aligned}
-\end{equation}
-And the third part consists of the corners.
-\begin{equation}
-\begin{aligned}
-&+ \frac{\Sigma_G\mu_{N+1N+1}^{n+\frac{1}{2}} - \Sigma_{GN+1,N+1}\cdot \mu_{N+1,N+1}^{n+\frac{1}{2}}}{h^2}\\
-&+  \frac{\Sigma_G\mu_{N+1,2}^{n+\frac{1}{2}} - \Sigma_{GN+1,2}\cdot \mu_{N+1,2}^{n+\frac{1}{2}}}{h^2}\\
-&+  \frac{\Sigma_G\mu_{2,N+1}^{n+\frac{1}{2}} - \Sigma_{G2,N+1}\cdot \mu_{2,N+1}^{n+\frac{1}{2}}}{h^2}\\
-&+  \frac{\Sigma_G\mu_{2,2}^{n+\frac{1}{2}} - \Sigma_{G 2,2}\cdot \mu_{2,2}^{n+\frac{1}{2}}}{h^2}
-\end{aligned}
-\end{equation}
-The first double sum is a telescopic sum, and contracts to the following:
-\begin{equation}
-\begin{aligned}
-\sum_{i=3}^{N}\sum_{j=3}^{N} \frac{1}{h^2} \left( \mu^{n+\frac{1}{2}}_{i+1j} + \mu^{n+\frac{1}{2}}_{i-1j} + \mu^{n+\frac{1}{2}}_{ij+1} + \mu^{n+\frac{1}{2}}_{ij-1} - 4 \mu^{n+\frac{1}{2}}_{ij} \right) &=
- \sum_{i=3}^{N} \mu_{i2}^{n+\frac{1}{2}} - \mu_{i3}^{n+\frac{1}{2}}\\
-& + \sum_{i=3}^{N} \mu_{iN+1}^{n+\frac{1}{2}} - \mu_{iN}^{n+\frac{1}{2}}\\
-& + \sum_{j=3}^{N} \mu_{2j}^{n+\frac{1}{2}} - \mu_{3j}^{n+\frac{1}{2}}\\
-& + \sum_{j=3}^{N} \mu_{N+1j}^{n+\frac{1}{2}} - \mu_{Nj}^{n+\frac{1}{2}}
-\end{aligned}
-\end{equation}
-Additionally, we simplify each of the sums in the second part, since the values of \( G \) are known on the boundary. On the right boundary ,for \( 2 < i < N+1 \),  \( G_{iN+\frac{3}{2}} = 0 \) and \( G_{iN+\frac{1}{2}}  = G_{i+\frac{1}{2}N+1}= 1 \)  it therefore follows:
-\begin{equation}
-\begin{aligned}
-\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=
-\frac{1}{h^2}\sum_{i=3}^{N} G_{i+\frac{1}{2}N+1} \mu^{n + \frac{1}{2}}_{i+1N+1} +  G_{i-\frac{1}{2}N+1} \mu^{n + \frac{1}{2}}_{i-1N+1} \\
-& \qquad+ G_{iN+\frac{3}{2}}  \mu^{n + \frac{1}{2}}_{iN+2} + G_{iN-\frac{3}{2}} \mu^{n + \frac{1}{2}}_{iN} \\
-&\qquad- (G_{iN+\frac{3}{2}}+G_{iN+\frac{1}{2}}+G_{i+\frac{1}{2}N+1}+G_{i-\frac{1}{2}N+1}) \mu^{n+\frac{1}{2}}_{iN+1} \\
-&= \frac{1}{h^2} \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i+1N+1} +  \mu^{n+\frac{1}{2}}_{i-1N+1} + \mu^{n+\frac{1}{2}}_{iN} - 3\mu^{n+\frac{1}{2}}_{iN+1}
-\end{aligned}
-\end{equation}
-this sum, as it it is telescopic simplify further to
-\begin{equation}
-\begin{aligned}
-\sum_{i=3}^{N} \frac{\Sigma_G\mu_{iN+1}^{n+\frac{1}{2}} - \Sigma_{GiN+1}\cdot \mu_{iN+1}^{n+\frac{1}{2}}}{h^2} &=  (\mu_{NN+1}+\mu_{3N+1})-(\mu_{N+1N+1}+\mu_{2N+1}) \\
-&-  \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}
-\end{aligned}
-\end{equation}
-similar the other three sums on the boundary simplify to
-\begin{equation}
-\begin{aligned}
-\sum_{i=3}^{N} \frac{\Sigma_G\mu_{i2}^{n+\frac{1}{2}} - \Sigma_{Gi2}\cdot \mu_{i2}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N,2}+\mu_{3,2})- (\mu_{N+1,2}+\mu_{2,2}) - \sum_{i=3}^{N} \mu^{n+\frac{1}{2}}_{i1N} - \mu^{n+\frac{1}{2}}_{iN+1}  \\
-\sum_{j=3}^{N} \frac{\Sigma_G\mu^{\alpha}_{2j}^{n+\frac{1}{2}} - \Sigma_{G2j}\cdot \mu_{2j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{2,3}+\mu_{2,N})- (\mu_{2,N+1}+\mu_{2,2}) - \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{2j} - \mu^{n+\frac{1}{2}}_{3j} \\
-\sum_{j=3}^{N} \frac{\Sigma_G\mu_{N+1j}^{n+\frac{1}{2}} - \Sigma_{GN+1j}\cdot \mu_{N+1j}^{n+\frac{1}{2}}}{h^2} &= (\mu_{N+1,N}+\mu_{N+1,3}) - (\mu_{N+1,N+1}+\mu_{N+1,2}) -  \sum_{j=3}^{N} \mu^{n+\frac{1}{2}}_{N+1,j} - \mu^{n+\frac{1}{2}}_{N,j}
-\end{aligned}
-\end{equation}
-we observe that the resulting sums are equal and oposite to the result from the first sum. They therefore cancel each other and we are left with the corner therms. Those therms sum up to
-\begin{equation}
-\mu_{N+1,N}+\mu_{N+1,3} - 2\mu_{N+1,N+1} \\
-\mu_{2,3}+\mu_{2,N} - 2\mu_{2,2}\\
-\mu_{N,2}+\mu_{N+1,3} - 2\mu_{2,N+1}\\
-\mu_{N,N+1}+\mu_{3,N+1} - 2\mu_{N+1,2}\\
-\end{equation}
-The third sum, on the corners, can be simplified the same way as the other two
-\begin{equation}
-\begin{aligned}
-\frac{\Sigma_G\mu_{N+1N+1}^{n+\frac{1}{2}} - \Sigma_{GN+1,N+1}\cdot \mu_{N+1,N+1}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{NN+1} + \mu^{n+\frac{1}{2}}_{N+1N} - 2 \mu^{n+\frac{1}{2}}_{N+1N})\\
-\frac{\Sigma_G\mu_{2,2}^{n+\frac{1}{2}} - \Sigma_{G2,2}\cdot \mu_{2,2}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{3,2} + \mu^{n+\frac{1}{2}}_{2,3} - 2 \mu^{n+\frac{1}{2}}_{2,2})\\
-\frac{\Sigma_G\mu_{2N+1}^{n+\frac{1}{2}} - \Sigma_{G2,N+1}\cdot \mu_{2,N+1}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{3N+1} + \mu^{n+\frac{1}{2}}_{2N} - 2 \mu^{n+\frac{1}{2}}_{2N+1})\\
-\frac{\Sigma_G\mu_{N+1,2}^{n+\frac{1}{2}} - \Sigma_{GN+1,2}\cdot \mu_{N+1,2}^{n+\frac{1}{2}}}{h^2} &= \frac{1}{h^2} (\mu^{n+\frac{1}{2}}_{N+1,3} + \mu^{n+\frac{1}{2}}_{N,2} - 2 \mu^{n+\frac{1}{2}}_{N+1,2})
-\end{aligned}
-\end{equation}
-Those terms cancel out with what remains in the second sum. We therefore conclude
-\begin{equation}
-\sum_{i=2}^{N+1} \sum_{j=2}^{N+1} \frac{1}{\Delta t} \left( \phi_{ij}^{n+1} - \phi_{ij}^{n}) = 0
-\end{equation}
-Which gives a discrete equivalent to the mass conservation shown in the analytical equations.
-==========
-Our relaxed solver shows significant mass loss as seen in Fig.[[fig:relaxed-mass-balance]]. especcially when compared to the original solver as seen in Fig.[[fig:mass-balance]]. The relaxed solver is therefore not mass conservative. Both the original approach as well as the relaxed one exhibit a discrete equivalent of mass conservation, therefore their difference has to be explained by the numerical solver. Which is consistent with the observations made with sub-iteration convergence. We therefore conclude our relaxed solver does not properly converge.
+Our relaxed solver shows significant mass loss as seen in Fig.[[fig:relaxed-mass-balance]]. especially when compared to the original solver as seen in Fig.[[fig:mass-balance]]. The relaxed solver is therefore not mass conservative. Both the original approach as well as the relaxed one exhibit a discrete equivalent of mass conservation, therefore their difference has to be explained by the numerical solver. Which is consistent with the observations made with sub-iteration convergence. We therefore conclude our relaxed solver does not properly converge. This, most likely, is due to our choice of alternating the solution of \( c \) and \( \phi \). Especially since we intend to solve them both implicitly. Coupling the elliptical and relaxed CH equation might alleviate this, however the resulting system would be of similar complexity than eqref:eq:LES, which is what we intend to prevent with the relaxation approach. Alternatively, solving \( c \) explicitly leads to an unstable solver with the initial conditions used by us. We didn't test different initial conditions due to a lack of computational resources and time.
 #+name: fig:relaxed-mass-balance
 #+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :eval t
 <<init>>
@@ -1534,7 +1556,7 @@ savefig(p , "images/relaxed-mass-balance.svg")
 [[file:images/relaxed-mass-balance.svg]]
 
 ** Relaxed stability in time
-we test the behaviour under refinement in time by succesivly subdividing the original time interval \( [0,T] \) in finer parts. We use the same meassure as in Chaper.[[Stability in time]] and directly compare. We observe simmilar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver has consisten lower difference than the original solver. This might suggest a more consistent method over time.
+we test the behaviour under refinement in time by successive subdividing of the original time interval \( [0,T] \) into finer parts. We use the same measure as in Chapter.[[Stability in time]] and directly compare. We observe similar behaviour to the original solver in Fig.[[fig:relaxed-stability-in-time]]. The relaxed solver is consistently lower than the original solver. This might suggest a more consistent method over time.
 #+name: fig:relaxed-stability-in-time
 #+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg
 <<init>>
@@ -2774,7 +2796,6 @@ initial_data = [t1 ; t2]
 tests = [testgrid(multi_solver, M , 2) for M in initial_data]
 
 #+end_src
-
 
 
 
