@@ -1550,15 +1550,6 @@ savefig(p , "images/relaxed-time-stability.svg")
 The approach for the relaxed solver was in our tests significantly faster than the baseline implementation. The run-time in practice is highly dependant on the amount of V-cycle iterations, for the baseline and relaxed solver respectively, as well as the number of Gauss-Seidel iterations for the elliptical problem.  When using similar number of V-cycles and sufficiently small number of elliptical iterations, the relaxed solver is several time faster. When we let both solvers iterate until convergence, the relaxed solver still is slightly faster. However, as we will show in our experiments, the relaxed solver has problems with convergence and never converges to the solution of the baseline. Because of this, and due to potential improvements in our implementation, the previous statements are to be taken as a qualitative guide, and not as a quantitative statement, which would require further research.
 * Comparison
 In the previous chapter we have shown the stability for both solver. In this chapter we show a direct comparison between both methods.
-** explicit and implicit solution of the ellipical problem
-Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. We mentioned that this resulted in inconsisten behavior. We show the extend of this in correlation to \( \alpha \) in  [[fig:relaxed-smooth-eval]].
-#+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
-#+RESULTS: fig:relaxed-smooth-eval
-[[file:images/smooth_relaxed.svg]]
-
-Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since \( \alpha \) had an effect similar to \( \varepsilon \), where it changed the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) cannot be chosen independently. Hence we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
-Therefore, for the extend of our Thesis we alternate the solution of the elliptical problem, with a V-cycle.
-
 ** effect of \( \alpha  \) on the Gauss-Seidel iteration
 To see the impact of \( \alpha \) on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
 Since the solution of the relaxed solver should approach the original solver, we expect
@@ -1708,6 +1699,15 @@ A fair comparison would hence require to find the optimal number of smoothing fo
 This thesis leaves a lot of room for further research. We have already mentioned runtime evaluations, which require more optimizations, and additional experiments to test the number of smoothing iterations. Here it would be beneficial if both solvers are made adaptive, to ensure fair evaluations.
 Furthermore, we initially considered a machine learning approach to replace the elliptical system. We didn't follow this idea mostly due to time constraints, as we had already collected trainings data during our numerical experiments. Our choice of programming language would have been of benefit here, as it would enable more advanced techniques, such as integrating the numerical solver in the trainings loop since julia offers automatic differentiation of arbitrary functions, and therefore enables back-propagation (gradient descent) through the entire solver. Interesting would also have been different discretisations of the relaxed CH equation, and different method for solving it, such as a finite volume or finite element method. Those bring the challenge of beeing harder to compare to our baseline.
 * Appendix
+** explicit and implicit solution of the ellipical problem
+Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. We mentioned that this resulted in inconsisten behavior. We show the extend of this in correlation to \( \alpha \) in  [[fig:relaxed-smooth-eval]].
+#+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
+#+RESULTS: fig:relaxed-smooth-eval
+[[file:images/smooth_relaxed.svg]]
+
+Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since \( \alpha \) had an effect similar to \( \varepsilon \), where it changed the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) cannot be chosen independently. Hence we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
+Therefore, for the extend of our Thesis we alternate the solution of the elliptical problem, with a V-cycle.
+
 ** Additional Experiments
 *** Stability in space
 We expect our methods to be stable under different grid-sizes \( h \) and grid-points \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
