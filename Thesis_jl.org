@@ -1701,6 +1701,46 @@ Furthermore, we initially considered a machine learning approach to replace the 
 * Appendix
 ** explicit and implicit solution of the ellipical problem
 Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. We mentioned that this resulted in inconsisten behavior. We show the extend of this in correlation to \( \alpha \) in  [[fig:relaxed-smooth-eval]].
+#+begin_src julia-vterm :results file graphics :file alternating-elips-smooth.svg :eval t
+using DataFrames
+using JLD2
+using ProgressMeter
+using LaTeXStrings
+<<init>>
+<<setup-diverse-testgrids>>
+default(fontfamily="computer modern" , titlefontsize=12 , guidefontsize=12 , tickfontsize = 12 , legendfontsize=12)
+gr()
+n = 4
+m = 64
+plots = []
+
+g = testgrid(multi_solver, M , 2 , epsilon = 8e-3)
+set_xi_and_psi!(g[1])
+for i = 1:10
+   SMOOTH!(g[1], 100 , true )
+end
+po = heatmap(g[1].phase , title="original" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+push!(plots , po)
+
+
+for α in [1e2 , 1e3 , 1e4 , 1e5 , 1e6 ]
+    g = testgrid(relaxed_multi_solver, M , 2 , alpha = α , epsilon = 8e-3)
+    set_xi_and_psi!(g[1])
+    for i = 1:100
+    elyps_solver!(g[1] , 100)
+        SMOOTH!(g[1], 100 , true )
+    end
+px = heatmap(g[1].phase , title=L"\alpha=%$α" , legend=:none , aspectratio=:equal , grid=false , showaxis=false)
+    push!(plots , px)
+    end
+p = plot(plots...)
+savefig(p ,"images/alternating-elips-smooth.svg")
+
+#+end_src
+
+#+RESULTS[a3ddc59b764c981417abad3cd3dd2da226db8fe1]:
+[[file:images/alternating-elips-smooth.svg]]
+
 #+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of alpha
 #+RESULTS: fig:relaxed-smooth-eval
 [[file:images/smooth_relaxed.svg]]
