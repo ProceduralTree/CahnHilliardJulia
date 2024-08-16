@@ -61,7 +61,7 @@ The Chapter [[Discretization of the CH equation]] introduces our finite differen
  Chapter [[Numerical solver]] describes the relevant steps of our numerical implementation in the two-grid method we used.
 In Chapter [[Numerical experiments]] we evaluate this method's stability,discrete mass conservation and discrete energy decrease that we have shown continuously for the analytical CH equation.
 Our thesis introduces a elliptical relaxation approach to the classical CH equation, where instead of solving a fourth order PDE [fn:1], we solver a second order relaxed PDE and an additional elliptical PDE. In the chapter [[Relaxed Cahn-Hilliard equation]] we introduce this approach, and then derive a numerical solver using the method described in chapter [[Two-grid method]]. Hereupon we derive and implement the necessary functions for the discretized relaxed equation, and  we introduce a simple solver for the elliptical PDE.
-Subsequently, in chapter [[Relaxed experiments]], we evaluate our relaxed method against the baseline with the same measures, as introduced in chapter [[Numerical experiments]].
+Subsequently, in chapter [[Numerical experiments for the relaxed system]], we evaluate our relaxed method against the baseline with the same measures, as introduced in chapter [[Numerical experiments]].
 
 We began writing this thesis with a reproducible research philosophy in mind. Hence, we provide the explanation and the implementation in the same file. The original aim was to have the mathematical formulas and their implementation interleaved. While we fall short of this goal, we still provide all relevant code in the relevant sections and the appendix. All shown code is therefore the code that is run on our machine. Since not all parts of the code are relevant for understanding, unimportant sections are implemented elsewhere. Didactically they are replaced with a comment of form =<<unimportant-code-section>>=. Their implementation can be found in ~Thesis_jl.org~ in a code block of the same name.
 We did experiment with additional tools such as [[https:orgmode.org][org-mode]] that allow for scientific note-taking and literate programming.
@@ -803,7 +803,9 @@ gif(anim , "images/iteration.gif" , fps = 10)
 
 * Numerical experiments
 In the previous Chapter we discretized the CH equation based on the two-grid method described by the authors in [cite:@SHIN20117441] and we obtained a numerical scheme for \( \phi , \mu \). In this chapter we analyze the change in mass, change in total energy \( E^{bulk} \), the stability in time , space and during sub-iterations.
-Since we do not have exact solutions for the initial values tested, therefore we evaluate our solvers with a Cauchy criterion.
+Since we do not have exact solutions for the initial values tested we evaluate our solvers with a Cauchy criterion. The  initial values we use, if not mentioned otherwise, where:
+| Variable: | \varepsilon           | \Delta t     | h         |
+| Value:    | 8 * 10^{-3} | 10^{-3} | 3*10^{-3} |
 ** Energy evaluations
 The discrete energy measure we use:
 #+name: eq:discrete-energy
@@ -813,7 +815,8 @@ E^{\text{bulk}}_d(\phi_{ij}) &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} |G
 &= \sum_{i,j \in \Omega} \frac{\varepsilon^2}{2} G_{i+\frac{1}{2}j}(D_x\phi_{i+\frac{1}{2}j}) ^2 + G_{ij+\frac{1}{2}}(D_y\phi_{ij+\frac{1}{2}})^2  + W\left(\phi_{ij}\right)  .\\
 \end{aligned}
 \end{equation}
-Since the continuous total energy [[eqref:eq:energy]] decreases over time, we expect it's discrete counterpart to exhibit the same behaviour. Them numerical implementation for the bulk energy can be found in the Appendix [[bulk energy and mass balance]].
+Since the continuous total energy [[eqref:eq:energy]] decreases over time, we expect it's discrete counterpart to exhibit the same behaviour. Them numerical implementation for the bulk energy can be found in the Appendix.
+# [[bulk energy and mass balance]].
 In Fig.[[fig:energy-balance]] we observe the discrete total energy going down with increasing number of time-steps, as we expect from a  CH based solver. Visually we observe the energy decrease as reduced surface curvature.
 #+name: fig:energy-balance
 #+begin_src julia-vterm :results file graphics :file energy_balance.svg
@@ -860,7 +863,8 @@ b &= \frac{\sum_{i,j \in \Omega} \phi_{ij}}{N^2}
 \end{align*}
 such that \( b = 1 \) means there  only is phase 1, \( \phi \equiv 1 \), and \( b = -1 \) means there is only phase 2, \( \phi \equiv -1 \).
 Ideally this value stays constant over time, for numerical mass conservation.
-In practice we observe slight fluctuations in Figure [[fig:mass-balance]]. Those however are close to machine precision and can therefore be ignored. The numerical implementation is  in appendix [[bulk energy and mass balance]].
+In practice we observe slight fluctuations in Figure [[fig:mass-balance]]. Those however are close to machine precision and can therefore be ignored. The numerical implementation is  in appendix
+# [[bulk energy and mass balance]].
 
 #+name: fig:mass-balance
 #+begin_src julia-vterm :results file graphics :file mass_balance.svg :output-dir images :noweb no-export :session jl
@@ -1298,9 +1302,9 @@ function SMOOTH!(
 end
 #+end_src
 
-** The relaxed multigrid method
-As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch features this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[Two-grid method]].
-In the executions for each time step, we add the elliptic solver in the subiteration. The iterative solver is then defined as:
+** The relaxed two-grid method
+As the difference between both methods is abstracted away in the operators, the relaxed V-cycle the replaces the original operators with their relaxed counterparts. Due to julias multiple dispatch feature this changes nothing in the implementation Therefore we reuse the original V-cycle in the [[Two-grid method]].
+In the executions for each time step, we add the elliptic solver in the sub-iteration. The iterative solver is then defined as:
 #+begin_src julia :eval never :exports code
 for j in 1:timesteps
 
@@ -1314,24 +1318,6 @@ for j in 1:timesteps
 end
 #+end_src
 
-#+name: fig:relaxed-anim
-#+begin_src julia-vterm :results file graphics html :file relaxed-anim.gif
-<<init>>
-using JLD2
-using DataFrames
-using Measures
-
-gr()
-
-results = jldopen("experiments/relaxed-iteration4.jld2")["result"]
-anim = @animate for s in results.solver
-    heatmap(s.phase)
-    end
-gif(anim , "images/relaxed-anim.gif", fps=10)
-#+end_src
-
-#+RESULTS: fig:relaxed-anim
-[[file:images/relaxed-anim.gif]]
 * Discrete mass conservation
 Since both the CH equation [[eqref:eq:CH]] and the baseline solver from Fig.[[fig:mass-balance]] are mass conservative, the relaxed solver should be as well.
 Mass conservation for the CH equation is given as
@@ -1426,9 +1412,12 @@ Those terms cancel out with what remains in the second sum. We therefore conclud
 \end{equation}
 Which gives a discrete equivalent to the mass conservation shown in the analytical equations.
 * Numerical experiments for the relaxed system
-We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver.
-** explicit and implicit solution of the ellipical problem
-Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. We mentioned that this resulted in inconsisten behavior. We show the extend of this in correlation to \( \alpha \) and \(\varepsilon\) in [[fig:relaxed-smooth-eval]].
+We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver. If not mentioned otherwise, we use the following hyper-parameters
+| Variable: | \varepsilon           | \Delta t     | h         |
+| Value:    | 8 * 10^{-3} | 10^{-3} | 3*10^{-3} |
+** explicit and implicit solution of the elliptical problem
+Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. This resulted in inconsistent behavior. We show the extend of this in correlation to \( \alpha \) and \(\varepsilon\) in [[fig:relaxed-smooth-eval]] where we run 100 elliptical Gauss-Seidel iterations  followed by 1000 Gauss-Seidel iterations for the relaxed problem. We observe difficulty in developing the diffuse interface of the CH equation.Furthermore, comparing the results for \( \alpha = 10000 , \varepsilon \in \{0.05 , 0.025\} \) with the result of the original solver for \( \varepsilon=0.01 \) might suggest to use a lower value of \( \varepsilon \) to mitigate this. However this resulted in unpredictable interface with in further time steps.
+
 #+name: fig:relaxed-smooth-eval
 #+begin_src julia-vterm :results file graphics :file explicit-elips-smooth.svg :eval t
 using DataFrames
@@ -1469,10 +1458,13 @@ savefig(p ,"images/explicit-elips-smooth.svg")
 
 #+end_src
 
+#+caption: Effect of the relaxed SMOOTH operator for different values of \(\alpha\) and \(\varepsilon\)
 #+RESULTS: fig:relaxed-smooth-eval
 [[file:images/explicit-elips-smooth.svg]]
 
+Since explicit solving  eqref:eq:discrete_elyps at the beginning of a time-step did not yield a predictable solver we experiment with solving eqref:eq:discrete_elyps and eqref:eq:discrete-relaxed-smooth in an alternating manner. For ref:fig:alternating-elips-smooth we run 100 elliptical then 100 relaxed iterations and repeat both 10 times. For this experiment we observe the relaxed solver to be significantly better in developing the same interface as the baseline solver for a fixed value of \( \varepsilon \).
 
+#+name: fig:alternating-elips-smooth
 #+begin_src julia-vterm :results file graphics :file alternating-elips-smooth.svg :eval t
 using DataFrames
 using JLD2
@@ -1513,37 +1505,10 @@ savefig(p ,"images/alternating-elips-smooth.svg")
 #+end_src
 
 #+caption: Effect of the relaxed SMOOTH operator, and additional solving of the elliptical problem, for different values of \(\alpha\) and \(\varepsilon\)
-#+RESULTS[e405411cf65960c0d74e99989e61c94f56b56e55]:
+#+RESULTS: fig:alternating-elips-smooth
 [[file:images/alternating-elips-smooth.svg]]
 
-Furthermore, experimentation shows that alpha alone is insufficient to get a relaxed method consistent with the original solver, since \( \alpha \) had an effect similar to \( \varepsilon \), where it changed the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) cannot be chosen independently. Hence we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \) in order to give the relaxed solver the best chance we can. The implementation thereof is given in Appendix [[Monte Carlo optimizer]].
-Therefore, for the extend of our Thesis we alternate the solution of the elliptical problem, with a V-cycle.
-
-** effect of \( \alpha  \) on the Gauss-Seidel iteration
-To see the impact of \( \alpha \) on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
-Since the solution of the relaxed solver should approach the original solver, we expect
-\begin{equation}
-||\phi^{n+1} - \phi^{n+1,\alpha}||_{Fr} \to 0.
-\end{equation}
-In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference between the relaxed solver and the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \). We explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed solver results in restricted behaviour, which we also expect. On the other hand, for large values of \( \alpha \) the elliptical equation approaches \( \phi \), however it does not converge to \( \phi \) for small values of \( \alpha \).
-#+name: fig:alpha-error
-#+begin_src julia-vterm :results graphics file :file alpha-error.svg
-using JLD2
-using DataFrames
-using Measures
-<<init>>
-
-pgfplotsx()
-results = jldopen("experiments/alpha.jld2")["result"]
-p=plot(results.alpha , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
-
-savefig(p, "images/alpha-error.svg")
-#+end_src
-
-#+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \) for different values of  \( \alpha \)
-#+RESULTS[f474fd86cf30b6b4f9d6b13a527d99b42b609d04]: fig:alpha-error
-[[file:images/alpha-error.svg]]
-
+The experimentation shows that  \( \alpha \) has an effect similar to \( \varepsilon \), where it changes the boundary thickness in the phase-field \( \phi \). Therefore \( \varepsilon \) and \( \alpha \) might be correlated. To test this hypothesis we use a simple Monte Carlo optimizer for \( \alpha,\varepsilon \).
 ** optimizer for alpha
 In addition to the experiments in Fig.[[fig:alpha-error]] we have experimented with a Monte Carlo Optimizer to optimize \( \alpha \) in conjunction with \( \varepsilon \), to best approximate the baseline solver after one time-step. This resulted in a optimal \( \varepsilon \) found that was very close to the actual \( \varepsilon \) used. (9e-3 compared to 8e-3). This gives us confidence that the relaxed method solves the same problem, as the baseline. Optimal values for \( \alpha \) varied , however stayed fairly large around \( 10^5 \to 10^{6} \).
 
@@ -1597,6 +1562,31 @@ end
 jldsave("experiments/alpha-epsilon.jld2"; result=results)
 println("Best alpha: $best_alpha , Best epsilon: $best_epsilon")
 #+end_src
+** effect of \( \alpha  \) on the Gauss-Seidel iteration
+To see the impact of \( \alpha \) on our solver, we evaluate both solvers after one time-step , and then calculate the difference between \( \phi_{ij}^{n+1} \) and \( \phi_{ij}^{n+1,\alpha} \), for various values of \( \alpha \).
+Since the solution of the relaxed solver should approach the original solver, we expect
+\begin{equation}
+||\phi^{n+1} - \phi^{n+1,\alpha}||_{Fr} \to 0.
+\end{equation}
+In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference between the relaxed solver and the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \). We explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed solver results in restricted behaviour, which we also expect. On the other hand, for large values of \( \alpha \) the elliptical equation approaches \( \phi \), however it does not converge to \( \phi \) for small values of \( \alpha \).
+#+name: fig:alpha-error
+#+begin_src julia-vterm :results graphics file :file alpha-error.svg
+using JLD2
+using DataFrames
+using Measures
+<<init>>
+
+pgfplotsx()
+results = jldopen("experiments/alpha.jld2")["result"]
+p=plot(results.alpha , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
+
+savefig(p, "images/alpha-error.svg")
+#+end_src
+
+#+caption: Difference between the original solver \( \phi^1_{ij} \) and the relaxed solver \( \phi^{1,\alpha}_{ij} \) for different values of  \( \alpha \)
+#+RESULTS[f474fd86cf30b6b4f9d6b13a527d99b42b609d04]: fig:alpha-error
+[[file:images/alpha-error.svg]]
+
 ** Direct comparison of the baseline solver with the relaxed solver
 We then show a comparison of both solvers we plot the phase-fields after 64 time-steps, and the difference \(\|\phi^{n+1} - \phi^{n+1,\alpha}\|_{Fr}\) over the time-steps \( n \in \{0 , \dots , 63 \}\) .
 #+begin_src julia-vterm :results file graphics html :file relaxed-comp.gif
@@ -1826,8 +1816,6 @@ savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the relaxed and baseline solvers while solving the time interval \( t \in \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
-#+RESULTS[ef38636e23fc3d9303364c9203744561c2ff36bd]: fig:relaxed-stability-in-time
-[[file:images/relaxed-time-stability.svg]]
 
 ** additional considerations
 The approach for the relaxed solver was in our tests significantly faster than the baseline implementation. The run-time in practice is highly dependant on the amount of V-cycle iterations, for the baseline and relaxed solver respectively, as well as the number of Gauss-Seidel iterations for the elliptical problem.  When using similar number of V-cycles and sufficiently small number of elliptical iterations, the relaxed solver is several time faster. When we let both solvers iterate until convergence, the relaxed solver still is slightly faster. However, as we will show in our experiments, the relaxed solver has problems with convergence and never converges to the solution of the baseline. Because of this, and due to potential improvements in our implementation, the previous statements are to be taken as a qualitative guide, and not as a quantitative statement, which would require further research.
@@ -1847,7 +1835,7 @@ A fair comparison would hence require to find the optimal number of smoothing fo
 ** Outlook
 This thesis leaves a lot of room for further research. We have already mentioned runtime evaluations, which require more optimizations, and additional experiments to test the number of smoothing iterations. Here it would be beneficial if both solvers are made adaptive, to ensure fair evaluations.
 Furthermore, we initially considered a machine learning approach to replace the elliptical system. We didn't follow this idea mostly due to time constraints, as we had already collected trainings data during our numerical experiments. Our choice of programming language would have been of benefit here, as it would enable more advanced techniques, such as integrating the numerical solver in the trainings loop since julia offers automatic differentiation of arbitrary functions, and therefore enables back-propagation (gradient descent) through the entire solver. Interesting would also have been different discretisations of the relaxed CH equation, and different method for solving it, such as a finite volume or finite element method. Those bring the challenge of beeing harder to compare to our baseline.
-* Appendix
+* Appendix :noexport:
 ** Additional Experiments
 *** Stability in space
 We expect our methods to be stable under different grid-sizes \( h \) and grid-points \( N \). Therefore we expect the difference after one time-step between eg. a \( 512 \times 512 \) grid and a \( 1024 \times 1024 \) grid to be smaller than the difference between a \( 64 \times 64 \) grid and a \( 128 \times 128 \) grid. In order to keep the problem the same , we fix \( Nh = 10^{-3} \cdot 1024 \) and test for \( N \in \left\{ 1024 , 512 , 256 , 128 , 64 , 32 \right\} \)
@@ -2583,6 +2571,25 @@ savefig(p , "images/alt-mass-balance.svg")
 #+RESULTS[ae674c0585cf06a81f1a5f3ff0f6f1881ee869ee]:
 [[file:images/alt-mass-balance.svg]]
 
+*** vid
+#+name: fig:relaxed-anim
+#+begin_src julia-vterm :results file graphics html :file relaxed-anim.gif
+<<init>>
+using JLD2
+using DataFrames
+using Measures
+
+gr()
+
+results = jldopen("experiments/relaxed-iteration4.jld2")["result"]
+anim = @animate for s in results.solver
+    heatmap(s.phase)
+    end
+gif(anim , "images/relaxed-anim.gif", fps=10)
+#+end_src
+
+#+RESULTS: fig:relaxed-anim
+[[file:images/relaxed-anim.gif]]
 ** Monte Carlo optimizer
 ** bulk energy and mass balance
 #+begin_src julia :tangle src/utils.jl :eval never

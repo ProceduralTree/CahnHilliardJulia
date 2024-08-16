@@ -110,3 +110,5 @@ alpha error for longe time intervall
 - [ ] [[file:images/alpha-error.svg]]
 - [ ] [[file:images/relaxed-comparison.gif]]
 - [ ] [[file:images/relaxed-comparison.svg]]
+
+* TODO add parameters to numerical exoeriments
