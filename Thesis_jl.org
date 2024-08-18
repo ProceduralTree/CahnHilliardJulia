@@ -669,35 +669,9 @@ After prolongation of the course grid solution we perform a post smoothing step 
 
 *** additional considerations
 We Do Gauss-Seidel smoothing with fixed iterations. As well as a fixed number of sub-iterations.
-
-#+name: restrict-to-coarse-grid
-#+begin_src julia :eval never :exports none
-
-    restrict_solver!(grid[level], grid[level+1])
-    coursegrid_solver = grid[level+1]
-    solution = deepcopy(coursegrid_solver)
-
-    d_large = restrict(d, G)
-    r_large = restrict(r, G)
-
-
-    u_large = zeros(size(d_large))
-    v_large = zeros(size(d_large))
-#+end_src
-#+name: prolong-to-fine-grid
-#+begin_src julia :eval never :exports none
-u_large = solver.phase .- solution.phase
-v_large = solver.potential .- solution.potential
-
-solver = grid[level]
-
-solver.phase .+= prolong(u_large , G)
-solver.potential .+= prolong(v_large, G)
-
-#+end_src
 The V-cycle of a two-grid method using pre- and post-smoothing is then stated by:
 #+begin_src julia :eval never :tangle src/mulisolver.jl
-function alt_v_cycle!(grid::Array{T}, level) where T <: solver
+function v_cycle!(grid::Array{T}, level) where T <: solver
     finegrid_solver = grid[level]
     #pre SMOOTHing
     SMOOTH!(solver, 40, false)
@@ -740,63 +714,6 @@ function alt_v_cycle!(grid::Array{T}, level) where T <: solver
 end
 #+end_src
 
-#+begin_src julia :tangle src/multisolver.jl :eval never :noweb no-export
-function v_cycle!(grid::Array{T}, level) where T <: solver
-    solver = grid[level]
-    #pre SMOOTHing:
-    SMOOTH!(solver, 400, false)
-
-    d = zeros(size(solver.phase))
-    r = zeros(size(solver.phase))
-
-    # calculate error between L and expected values
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-    end
-
-    <<restrict-to-coarse-grid>>
-
-    #Newton Iteration for solving smallgrid
-    for i = 1:300
-        for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-
-            diffrence = L(solution, I.I..., solution.phase[I], solution.potential[I])
-                        .- [d_large[I], r_large[I]]
-                        .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-
-            local ret = dL(solution, I.I...) \ diffrence
-
-            u_large[I] = ret[1]
-            v_large[I] = ret[2]
-        end
-        solution.phase .-= u_large
-        solution.potential .-= v_large
-    end
-
-    <<prolong-to-fine-grid>>
-
-    SMOOTH!(solver, 800, false)
-end
-#+end_src
-
-
-After a few iterations, V-cycle exhibits the following behavior:
-
-#+name: fig:solver-iteration
-#+begin_src julia-vterm :results file graphics html :file iteration.gif :noweb no-export :async t :exports results html :output-dir images  :tangle src/plot.jl :session jl :eval never-export
-<<init>>
-using JLD2
-using DataFrames
-results = jldopen("experiments/iteration.jld2")["result"]
-anim = @animate for res in eachrow(results)
-    heatmap(res.solver.phase , title="phase field" , legend=:none , aspectratio=:equal , showaxis=false , grid=false , size=(400 ,400))
-end
-gif(anim , "images/iteration.gif" , fps = 10)
-#+end_src
-
-#+caption: A few time steps of the solver for different initial conditions as shown in [[Initial data]]
-#+RESULTS: fig:solver-iteration
-[[file:images/iteration.gif]]
 
 * Numerical experiments
 In the previous Chapter we discretized the CH equation based on the two-grid method described by the authors in [cite:@SHIN20117441] and we obtained a numerical scheme for \( \phi , \mu \). In this chapter we analyze the change in mass, change in total energy \( E^{bulk} \), the stability in time, and during sub-iterations.
@@ -1516,7 +1433,7 @@ The experimentation shows that  \( \alpha \) has an effect similar to \( \vareps
 ** optimizer for alpha
 The Monte Carlo optimizer runs both solvers for one time-step and compares their phase-fields \( \phi \) afterwards. It runs the relaxed solver with random values for \( \varepsilon , \alpha \) in a normal distribution around the current optimum. This results in a optimal \( \varepsilon \) found that is very close to the \( \varepsilon \) used in the baseline (9e-3 compared to 8e-3). This gives us confidence that the relaxed method solves the same problem, with the same \( \varepsilon \), as the baseline. Optimal values for \( \alpha \) varied , however stayed fairly large around \( 10^5 \to 10^{6} \).
 
-#+begin_src julia :tangle src/optim.jl :noweb yes
+#+begin_src julia :tangle src/optim.jl :noweb yes :noweb no-export
 using Distributions
 using DataFrames
 using JLD2
@@ -1530,7 +1447,7 @@ function test_values(alpha_distribution::Distribution , epsilon_distribution::Di
     #SMOOTH!(relaxed_solver[1], 100, false)
     for j=1:64
     elyps_solver!(relaxed_solver[1], 2000)
-    alt_v_cycle!(relaxed_solver , 1)
+    v_cycle!(relaxed_solver , 1)
     end
     error = norm(relaxed_solver[1].phase .- original_solver[1].phase) / *(size(relaxed_solver[1].phase)...)
     return (;alpha=alpha , epsilon=eps , error=error)
@@ -1539,7 +1456,7 @@ end
 original_solver = testgrid(multi_solver, M, 2)
 set_xi_and_psi!(original_solver[1])
 for j=1:64
-alt_v_cycle!(original_solver , 1)
+v_cycle!(original_solver , 1)
 end
 #SMOOTH!(original_solver[1], 100, false);
 eps = 3e-3
@@ -2041,7 +1958,7 @@ function iter(g::Vector{T} , n , k , prg::Progress) where T<: solver
     for j in 1:n
     set_xi_and_psi!(g[1])
     for i = 1:m
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
         push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=k))
         next!(prg)
     end
@@ -2117,7 +2034,7 @@ function iter(g::Vector{T} , n , prg::Progress) where T<: solver
     for j in 1:n
     set_xi_and_psi!(g[1])
     for i = 1:m
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
         next!(prg)
     end
     push!(out, (phase=copy(g[1].phase), iteration=j))
@@ -2235,7 +2152,7 @@ function iter(g::Vector{T} , n) where T<: solver
     set_xi_and_psi!(g[1])
     for i = 1:64
         elyps_solver!(g[1] , 1000)
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
     end
     end
     push!(out, (phase=copy(g[1].phase), iteration=n))
@@ -2278,7 +2195,7 @@ function iter(g::Vector{T} , n , prg::Progress) where T<: solver
     set_xi_and_psi!(g[1])
     elyps_solver!(g[1] , 1000)
     for i = 1:m
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
         next!(prg)
     end
     push!(out, (phase=copy(g[1].phase), iteration=j))
@@ -2316,13 +2233,13 @@ function alpha_error(alpha::Number , solution::Array )
     set_xi_and_psi!(test_solver[1])
     for j in 1:64
         elyps_solver!(test_solver[1], 1000)
-        alt_v_cycle!(test_solver , 1)
+        v_cycle!(test_solver , 1)
     end
 return [(;alpha=alpha , error=norm(test_solver[1].phase - solution))]
 end
 set_xi_and_psi!(original_grid[1])
 for j in 1:64
-    alt_v_cycle!(original_grid, 1)
+    v_cycle!(original_grid, 1)
 end
 print("finished original v_cycle")
 tasks = []
@@ -2353,7 +2270,7 @@ function iter(g::Vector{T} , experiment , prg::Progress) where T<: solver
     for j in 1:n
     set_xi_and_psi!(g[1])
     for i = 1:m
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
         next!(prg)
     end
     push!(out, (solver=deepcopy(g[1]), iteration=j , experiment=experiment))
@@ -2435,7 +2352,7 @@ function iter(g::Vector{T} , n ,experiment , prg::Progress) where T<: solver
     set_xi_and_psi!(g[1])
     for i = 1:m
         elyps_solver!(g[1] , 1000)
-        alt_v_cycle!(g, 1)
+        v_cycle!(g, 1)
         push!(out, (cycle=deepcopy(g[1]), iteration=j , subiteration=i , experiment=experiment))
         next!(prg)
     end
@@ -2621,50 +2538,6 @@ function massbal(arr)
 #+end_src
 
 * Utility functions :noexport:
-alternative V-cycle:
-#+begin_src julia :eval never :tangle src/utils.jl
-function alt_v_cycle!(grid::Array{T}, level) where T <: solver
-    solver = grid[level]
-    #pre SMOOTHingj
-    SMOOTH!(solver, 40, false)
-
-    d = zeros(size(solver.phase))
-    r = zeros(size(solver.phase))
-
-    # calculate error between L and expected values
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-        d[I], r[I] = [solver.xi[I], solver.psi[I]] .- L(solver, I.I..., solver.phase[I], solver.potential[I])
-    end
-
-restrict_solver!(grid[level], grid[level+1])
-solver = grid[level+1]
-solution = deepcopy(solver)
-
-d_large = restrict(d, G)
-r_large = restrict(r, G)
-
-
-u_large = zeros(size(d_large))
-v_large = zeros(size(d_large))
-
-    #Newton Iteration for solving smallgrid
-    for I in CartesianIndices(solver.phase)[2:end-1, 2:end-1]
-    solver.xi[I]  , solver.psi[I] = L(solver , I.I... , solver.phase[I] , solver.potential[I] ) .+ [d_large[I],r_large[I]]
-    end
-
-    SMOOTH!(solver, 40 , false)
-    u_large = solver.phase .- solution.phase
-    v_large = solver.potential .- solution.potential
-
-    solver = grid[level]
-
-    solver.phase .+= prolong(u_large , G)
-    solver.potential .+= prolong(v_large, G)
-
-
-    SMOOTH!(solver, 80, false)
-end
-#+end_src
 #+name: imports
 #+begin_src julia :session jl :results silent :exports none
 using Plots
