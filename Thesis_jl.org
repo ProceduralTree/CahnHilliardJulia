@@ -99,11 +99,11 @@ E^{\text{bulk}}[\phi] &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 
 \end{align}
 where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441] shown in Fig. [[fig:double-well]].
 #+name: fig:double-well
-#+begin_src julia-vterm :results file graphics :file double-well.svg
+#+begin_src julia-vterm :results file graphics :file double-well.svg :eval t
 using Plots
 using LaTeXStrings
 W(x) = 1/4 * (1- x^ 2)^2
-p = plot(W , xlims=(-2,2) , label=:none)
+p = plot(W , xlims=(-2,2) , label=:none , xlabel = L"\phi" , ylabel=L"W(\phi)")
 savefig(p, "images/double-well.svg")
 #+end_src
 
@@ -184,7 +184,7 @@ We discretize our domain \( \Omega \) to be a Cartesian-grid \( \Omega_d \) on a
 \end{equation}
 as shown in ref:fig:discrete-domain
 #+name: fig:discrete-domain
-#+begin_src julia-vterm :results file graphics :file domain.svg
+#+begin_src julia-vterm :results file graphics :file domain.svg :eval t
 using Plots
 using LaTeXStrings
 pgfplotsx()
@@ -841,7 +841,7 @@ using DataFrames
 using JLD2
 using LaTeXStrings
 
-pgfplotx()
+pgfplotsx()
 i0 = 4
 df = jldopen("experiments/subiteration.jld2")["result"]
 gd = groupby(df , :iteration)
@@ -1491,15 +1491,16 @@ Since the solution of the relaxed solver should approach the original solver, we
 \end{equation}
 In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference between the relaxed solver and the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \). We explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed solver results in restricted behaviour, which we also expect. On the other hand, for large values of \( \alpha \) the elliptical equation approaches \( \phi \), however it does not converge to \( \phi \) for small values of \( \alpha \).
 #+name: fig:alpha-error
-#+begin_src julia-vterm :results graphics file :file alpha-error.svg
+#+begin_src julia-vterm :results graphics file :file alpha-error.svg :eval t
 using JLD2
 using DataFrames
 using Measures
+using LaTeXStrings
 <<init>>
 
 pgfplotsx()
 results = jldopen("experiments/alpha.jld2")["result"]
-p=plot(results.alpha , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel="difference" )
+p=plot(results.alpha , results.error ./64^2, label=false , xlabel=L"\alpha" , ylabel=L"||\phi^{1} - \phi^{1,\alpha}||_{Fr}" )
 
 savefig(p, "images/alpha-error.svg")
 #+end_src
@@ -1567,7 +1568,7 @@ gif(anim , "images/relaxed-comparison.gif", fps=10)
 
 
 #+name: fig:relaxed-original-comparison
-#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg
+#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg :eval t
 <<init>>
 using JLD2
 using DataFrames
@@ -1586,8 +1587,8 @@ original, relaxed =   original_results.solver[i+63],relaxed_results.solver[i+63]
 p1 = plot(1:size(difference,
                  1) ,
           difference ,
-          xlabel= "time-steps" ,
-          ylabel = "error"  ,
+          xlabel= "n" ,
+          ylabel = L"||\phi^{n} - \phi^{n,\alpha}||_{Fr}"  ,
           title="diffrence" ,
           label=false)
 
@@ -1663,7 +1664,7 @@ savefig(p , "images/relaxed-energy-balance.svg")
 
 ** Stability of a relaxed two-grid sub-iteration
 We use the same Cauchy criterion we used for the baseline solver.
-Furthermore, we compare the sub-iteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi_{ij}^{n+1,m} - \phi_{ij}^{n+2,m-1} \|_{Fr} \) against \( \| \phi_{ij}^{n+1,m,\alpha} - \phi_{ij}^{n+1,m-1,\alpha} \| \) for \( m \in \{2, \dots , 64\} \). The  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. However, the relaxed solver shows significantly slower convergence compared to the baseline solver. Which is why without the log-log scale employed, the behavior of both solvers would not be visible in the same plot. This behaviour suggests that the relaxed solver does not converge towards the solution of eqref:eq:relaxed-les. Further experiments on mass conservation confirm this suspicion. During further experiments with different initial conditions and number of Gauss-Seidel steps, we where not able to change the slow convergence behaviour.
+Furthermore, we compare the sub-iteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi^{1,m} - \phi^{2,m-1} \|_{Fr} \) against \( \| \phi^{1,m,\alpha} - \phi^{2,m-1,\alpha} \|_{Fr} \) for \( m \in \{2, \dots , 64\} \). The  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. However, the relaxed solver shows significantly slower convergence compared to the baseline solver. Which is why without the log-log scale employed, the behavior of both solvers would not be visible in the same plot. This behaviour suggests that the relaxed solver does not converge towards the solution of eqref:eq:relaxed-les. Further experiments on mass conservation confirm this suspicion. During further experiments with different initial conditions and number of Gauss-Seidel steps, we where not able to change the slow convergence behaviour.
 #+name: fig:relaxed-convergence
 #+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :eval t
 <<init>>
