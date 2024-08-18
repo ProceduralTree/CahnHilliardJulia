@@ -111,4 +111,6 @@ alpha error for longe time intervall
 - [ ] [[file:images/relaxed-comparison.gif]]
 - [ ] [[file:images/relaxed-comparison.svg]]
 
-* TODO add parameters to numerical exoeriments
+* DONE add parameters to numerical exoeriments
+
+* TODO rem alt v-cycle
