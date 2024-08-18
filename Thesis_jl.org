@@ -1,5 +1,4 @@
-#+title: A Multi-grid method
-#+subtitle: on the Cahn-Hilliard equation  and its relaxed variation.
+#+title: A numerical method on the Cahn-Hilliard equation  and its relaxed variation.
 #+BIBLIOGRAPHY: ~/org/resources/bibliography/refs.bib
 #+options: toc:nil
 #+BIND: org-latex-title-command ""
