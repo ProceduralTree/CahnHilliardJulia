@@ -11,6 +11,7 @@
 # #+INFOJS_OPT: view:info toc:nil
 #+latex_header: \renewcommand{\floatpagefraction}{.9}%
 #+latex_header: \usepackage[level]{datetime}
+
 * Title-page :ignore:
 #+begin_export latex
 \frontmatter
@@ -18,6 +19,7 @@
 \begin{titlepage}
     \centering
 \includegraphics[width=1\textwidth]{logo/logo.png}
+\includegraphics[width=0.19\textwidth]{pics/_simtech.png}
 \par
 	\vspace{1.5cm}
 	{\scshape\huge Bachelor's Thesis \par}
@@ -47,10 +49,38 @@
 #+begin_abstract
 This thesis gives a short overview on the classical Cahn-Hilliard equation, based on the authors [cite:@Wu_2022], and introduces an elliptical relaxation approach. It uses the discretization, and solver by the authors [cite:@SHIN20117441] as baseline, and uses those to derive discretization and solver for the elliptical relaxation. We proof mass conservation for the Cahn-Hilliard equation, the relaxed equation, and a discrete version for both discretizations. However this thesis does not show discrete mass conservation for the solvers. We introduce evaluation metrics regarding stability and global energy, and shows that both solvers are to be stable and decay in energy. Furthermore, we show a qualitative success of the elliptical solver, however it also highlights the relaxed solvers failure to conserve mass. Additionally this thesis discusses the selection of a relaxation hyper-parameter \( \alpha \).
 #+end_abstract
+
+#+begin_declaration
+„Hiermit erkläre ich, dass ich die vorliegende Arbeit selbständig verfasst habe, dass ich keine anderen als die angegebenen
+Quellen benutzt und alle wörtlich oder sinngemäß aus anderen Werken
+übernommenen Aussagen als solche gekennzeichnet habe, dass die
+eingereichte Arbeit weder vollständig noch in wesentlichen Teilen Gegenstand
+eines anderen Prüfungsverfahrens gewesen ist, dass ich die Arbeit weder
+vollständig noch in Teilen bereits veröffentlicht habe und dass das elektronische
+Exemplar mit den anderen Exemplaren übereinstimmt.“
+#+end_declaration
+
+#+begin_declaration
+English translation for convenience:
+"I hereby declare that I have written the present work independently, that I
+have not used any sources other than those specified and that all statements
+taken verbatim or meaningfully from other works have been marked as such,
+that the submitted work has not been completely or partially the subject of
+another examination procedure, that I have not published the work either
+completely or in part, and that the electronic copy coincides exactly with the
+other copies."
+#+end_declaration
+
+#+begin_remark
+The SimTech bachelor programm does include writing a Propädeutikum as preface for the bachelor thesis. This Propädeutikum is included in this document, and can be found in The Chapters [[The Cahn-Hilliard Equation]] and [[Discretization of the CH equation]].
+#+end_remark
+
 #+TOC: headlines 3
 #+begin_export latex
+\listoffigures
 \mainmatter
 #+end_export
+
 * Introduction
 The Cahn-Hilliard (CH) equation is a well known fourth order partial differential equation (PDE) used in multi-phase flow. It is used to couple different phases in a fluid with a diffuse-interface. It does this using a continuous transition between two phases.
 The CH equation, beeing fourth order, is difficult to solve numerically. However it is still used since it is able to guarantee conservation of mass.
@@ -98,7 +128,7 @@ E^{\text{bulk}}[\phi] &= \int_{\Omega} \frac{\varepsilon^2}{2} |\nabla \phi |^2 
 \end{align}
 where \(W(\phi) \) denotes the Helmholtz free energy density of mixing [cite:@Wu_2022] that we approximate it in further calculations with \(W(\phi) = \frac{(1-\phi ^2)^2}{4}\) as in [cite:@SHIN20117441] shown in Fig. [[fig:double-well]].
 #+name: fig:double-well
-#+begin_src julia-vterm :results file graphics :file double-well.svg :eval t
+#+begin_src julia-vterm :results file graphics :file double-well.svg
 using Plots
 using LaTeXStrings
 W(x) = 1/4 * (1- x^ 2)^2
@@ -183,7 +213,7 @@ We discretize our domain \( \Omega \) to be a Cartesian-grid \( \Omega_d \) on a
 \end{equation}
 as shown in ref:fig:discrete-domain
 #+name: fig:discrete-domain
-#+begin_src julia-vterm :results file graphics :file domain.svg :eval t
+#+begin_src julia-vterm :results file graphics :file domain.svg
 using Plots
 using LaTeXStrings
 pgfplotsx()
@@ -333,7 +363,7 @@ For testing of our numerical solver for eqref:eq:initial-value-problem  we use i
 \end{aligned}
 \end{equation}
 where \( q_k \) are random points the given domain. We generate those using the following RNG setup in Julia
-#+begin_src julia  :exports both :eval t :results output
+#+begin_src julia  :exports both :results output
 using Random
 rng = MersenneTwister(42)
 gridsize = 64
@@ -717,7 +747,7 @@ end
 * Numerical experiments
 In the previous Chapter we discretized the CH equation based on the two-grid method described by the authors in [cite:@SHIN20117441] and we obtained a numerical scheme for \( \phi , \mu \). In this chapter we analyze the change in mass, change in total energy \( E^{bulk} \), the stability in time, and during sub-iterations.
 Since we do not have exact solutions for the initial values tested we evaluate our solvers with a Cauchy criterion. The  initial values we use, if not mentioned otherwise, where:
-| Variable: | \varepsilon           | \Delta t     | h         |
+|Parameter: | \varepsilon           | \Delta t     | h         |
 |-----------+-------------+---------+-----------|
 | Value:    | 8 * 10^{-3} | 10^{-3} | 3*10^{-3} |
 ** Energy evaluations
@@ -833,7 +863,7 @@ We expect our solver to stay stable when increasing the number of two-grid sub-i
 We use similar criteria in the following sub chapters to show convergence for different hyperparameters.
 We expect sub-iterations to show Cauchy convergence, which is what we observe in Figure [[fig:convergence]].
 #+name: fig:convergence
-#+begin_src julia-vterm :results file graphics :file convergence.svg :eval t
+#+begin_src julia-vterm :results file graphics :file convergence.svg
 <<init>>
 <<setup-diverse-testgrids>>
 using DataFrames
@@ -1333,13 +1363,13 @@ Those terms cancel out with what remains in the second sum. We therefore conclud
  Therefore, in eqref:eq:discrete-mass-conservation, the discretizations for both, the baseline and the relaxed methods, have a discrete equivalent of mass conservation.
 * Numerical experiments for the relaxed system
 We expect the relaxed solver to behave the same as the baseline method for all test cases that we have introduced in Chapter [[Numerical experiments]]. Therefore we run the same experiments for our relaxed solver. If not mentioned otherwise, we use the following hyper-parameters
-| Variable: | \varepsilon           | \Delta t     | h         |
+| Parameter: | \varepsilon           | \Delta t     | h         |
 | Value:    | 8 * 10^{-3} | 10^{-3} | 3*10^{-3} |
 ** explicit and implicit solution of the elliptical problem
 Initially we experimented with solving the elliptical problem explicitly at the beginning of each time-step. This resulted in inconsistent behavior. We show the extend of this in correlation to \( \alpha \) and \(\varepsilon\) in [[fig:relaxed-smooth-eval]] where we run 100 elliptical Gauss-Seidel iterations  followed by 1000 Gauss-Seidel iterations for the relaxed problem. We observe difficulty in developing the diffuse interface of the CH equation.Furthermore, comparing the results for \( \alpha = 10000 , \varepsilon \in \{0.05 , 0.025\} \) with the result of the original solver for \( \varepsilon=0.01 \) might suggest to use a lower value of \( \varepsilon \) to mitigate this. However this resulted in unpredictable interface with in further time steps.
 
 #+name: fig:relaxed-smooth-eval
-#+begin_src julia-vterm :results file graphics :file explicit-elips-smooth.svg :eval t
+#+begin_src julia-vterm :results file graphics :file explicit-elips-smooth.svg
 using DataFrames
 using JLD2
 using ProgressMeter
@@ -1385,7 +1415,7 @@ savefig(p ,"images/explicit-elips-smooth.svg")
 Since explicit solving  eqref:eq:discrete_elyps at the beginning of a time-step did not yield a predictable solver we experiment with solving eqref:eq:discrete_elyps and eqref:eq:discrete-relaxed-smooth in an alternating manner. For ref:fig:alternating-elips-smooth we run 100 elliptical then 100 relaxed iterations and repeat both 10 times. For this experiment we observe the relaxed solver to be significantly better in developing the same interface as the baseline solver for a fixed value of \( \varepsilon \).
 
 #+name: fig:alternating-elips-smooth
-#+begin_src julia-vterm :results file graphics :file alternating-elips-smooth.svg :eval t
+#+begin_src julia-vterm :results file graphics :file alternating-elips-smooth.svg
 using DataFrames
 using JLD2
 using ProgressMeter
@@ -1490,7 +1520,7 @@ Since the solution of the relaxed solver should approach the original solver, we
 \end{equation}
 In Fig.[[fig:alpha-error]] we observe the following behaviour where in all cases the difference between the relaxed solver and the original solver is apparent. Furthermore we observe a optimal value of \( \alpha \) at approximately \( 7.5 * 10^5 \). We explain this with our observations done for the Smoothing operator, where for small and large values of \( \alpha \) the relaxed solver results in restricted behaviour, which we also expect. On the other hand, for large values of \( \alpha \) the elliptical equation approaches \( \phi \), however it does not converge to \( \phi \) for small values of \( \alpha \).
 #+name: fig:alpha-error
-#+begin_src julia-vterm :results graphics file :file alpha-error.svg :eval t
+#+begin_src julia-vterm :results graphics file :file alpha-error.svg
 using JLD2
 using DataFrames
 using Measures
@@ -1567,7 +1597,7 @@ gif(anim , "images/relaxed-comparison.gif", fps=10)
 
 
 #+name: fig:relaxed-original-comparison
-#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg :eval t
+#+begin_src julia-vterm :results file graphics :file relaxed-comparison.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1665,7 +1695,7 @@ savefig(p , "images/relaxed-energy-balance.svg")
 We use the same Cauchy criterion we used for the baseline solver.
 Furthermore, we compare the sub-iteration behaviour of the relaxed solver to the original we therefore plot \( \|\phi^{1,m} - \phi^{2,m-1} \|_{Fr} \) against \( \| \phi^{1,m,\alpha} - \phi^{2,m-1,\alpha} \|_{Fr} \) for \( m \in \{2, \dots , 64\} \). The  sub-iterations in Fig.[[fig:relaxed-convergence]] are stable. However, the relaxed solver shows significantly slower convergence compared to the baseline solver. Which is why without the log-log scale employed, the behavior of both solvers would not be visible in the same plot. This behaviour suggests that the relaxed solver does not converge towards the solution of eqref:eq:relaxed-les. Further experiments on mass conservation confirm this suspicion. During further experiments with different initial conditions and number of Gauss-Seidel steps, we where not able to change the slow convergence behaviour.
 #+name: fig:relaxed-convergence
-#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg :eval t
+#+begin_src julia-vterm :results file graphics :file relaxed-convergence.svg
 <<init>>
 using DataFrames
 using JLD2
@@ -1697,7 +1727,7 @@ p=plot([original_res.+1e-14, relaxed_res.+1e-14],label= ["original"  "relaxed"] 
 As already mentioned the relaxed solver is not mass conservative.
 Our relaxed solver shows significant mass loss as seen in Fig.[[fig:relaxed-mass-balance]], especially when compared to the original solver in Fig.[[fig:mass-balance]]. Both the original approach and the relaxed one exhibit a discrete equivalent of mass conservation, therefore their difference has to be explained by the numerical solver. Which is consistent with the observations made with sub-iteration convergence. We therefore conclude that our relaxed solver does not properly converge. This, most likely, is due to our choice of alternating the solution of \( c \) and \( \phi \). because we intend to solve them both implicitly. Coupling the elliptical and relaxed CH equation might alleviate this, however the resulting system would be of similar complexity to eqref:eq:LES, which is what we intend to prevent with the relaxation approach. Alternatively, solving \( c \) explicitly leads to an unstable solver with the initial conditions used by us. We did not test different initial conditions due to a lack of computational resources and time.
 #+name: fig:relaxed-mass-balance
-#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg :eval t
+#+begin_src julia-vterm :results file graphics :file relaxed-mass-balance.svg
 <<init>>
 using JLD2
 using DataFrames
@@ -1718,7 +1748,7 @@ savefig(p , "images/relaxed-mass-balance.svg")
 [[file:images/relaxed-mass-balance.svg]]
 
 ** Relaxed stability in time
-We test the behaviour under refinement in time by successive subdividing of the original time interval \( [0,T] \) into finer parts. Then, in ref:fig:relaxed-stability-in-time, we observe the stability of the relaxed solver in time, wich is similar  to the original solver. We compare  \( \| \phi^{n+1,\alpha}_{\Delta t = \frac{10^{-2}}{n+1}} - \phi^{n,\alpha}_{\Delta t = \frac{10^{-2}}{n}} \|_{Fr} \) at \( t=10^{-2} \), for wich the relaxed solver is consistently lower than the original solver. This might suggest a more consistent method over time. More likely however, this is due to the more aggressive energy decay, and non mass conservation.
+We test the behaviour under refinement in time by successive subdividing of the original time interval \( [0,T] \) into finer parts. Then, in Fig.[[fig:relaxed-stability-in-time]], we observe the stability of the relaxed solver in time, wich is similar  to the original solver. We compare  \( \| \phi^{n+1,\alpha}_{\Delta t = \frac{10^{-2}}{n+1}} - \phi^{n,\alpha}_{\Delta t = \frac{10^{-2}}{n}} \|_{Fr} \) at \( t=10^{-2} \), for wich the relaxed solver is consistently lower than the original solver. This might suggest a more consistent method over time. More likely however, this is due to the more aggressive energy decay, and non mass conservation.
 #+name: fig:relaxed-stability-in-time
 #+begin_src julia-vterm :results file graphics :file relaxed-time-stability.svg
 <<init>>
@@ -2456,7 +2486,7 @@ savefig(p , "images/alt-relaxed-convergence.svg")
 [[file:images/alt-relaxed-convergence.svg]]
 
 *** mass
-#+begin_src julia-vterm :results file graphics :file test-nomulti-mass-balance.svg :eval t :cache nil
+#+begin_src julia-vterm :results file graphics :file test-nomulti-mass-balance.svg  :cache nil
 <<init>>
 using JLD2
 using DataFrames
