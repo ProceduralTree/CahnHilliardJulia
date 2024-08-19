@@ -1767,6 +1767,9 @@ savefig(p , "images/relaxed-time-stability.svg")
 #+end_src
 
 #+Caption: Behavior of the relaxed and baseline solvers while solving the time interval \( t \in \left[ 0 , 10^{-2} \right] \) with increasing number of time-steps.
+#+RESULTS: fig:relaxed-stability-in-time
+[[file:images/relaxed-time-stability.svg]]
+
 
 ** additional considerations
 The approach for the relaxed solver was in our tests significantly faster than the baseline implementation. The run-time in practice is highly dependant on the amount of V-cycle iterations, for the baseline and relaxed solver respectively, as well as the number of Gauss-Seidel iterations for the elliptical problem.  When using similar number of V-cycles and sufficiently small number of elliptical iterations, the relaxed solver is several time faster. When we let both solvers iterate until convergence, the relaxed solver still is slightly faster. However, as we will show in our experiments, the relaxed solver has problems with convergence and never converges to the solution of the baseline. Because of this, and due to potential improvements in our implementation, the previous statements are to be taken as a qualitative guide, and not as a quantitative statement, which would require further research.
