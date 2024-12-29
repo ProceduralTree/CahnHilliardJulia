@@ -1,5 +1,5 @@
 * This Repository includes the full code for my Bachelor Thesis.
 This thesis has been written in a literate code style. Therefore all code snippets neccesary for understanding the underlying algorithm can be found in the Thesis_jl.org document, and where exported from there. This documents simultaneously serves as documentation for the code.  The ~.org~ File is a format native to emacs and allows or execution and export of code snippets. This version requires the [[https://github.com/shg/ob-julia-vterm.el][ob-julia-vterm]] package for the code snippets to work. Additionally we recommend a starter config such as [[https://github.com/doomemacs/doomemacs][doom-emacs]].
 * Structure
-- All allgorithmic code is exported to the ~src/~ directory
+- All algorithmic code is exported to the ~src/~ directory
 - all experiments are under ~experiments/src/~
