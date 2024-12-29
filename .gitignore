@@ -11,3 +11,4 @@
 *.toc
 /.dir-locals.el
 *.tex
+*.jld2
